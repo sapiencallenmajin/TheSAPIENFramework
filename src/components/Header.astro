@@ -15,7 +15,7 @@ const navItems = [
       <span class="logo-mark">S</span>
       <span class="logo-text">SAPIEN</span>
     </a>
-    <nav class="nav">
+    <nav class="nav" id="nav-menu">
       {navItems.map(item => (
         <a
           href={item.href}
@@ -27,7 +27,7 @@ const navItems = [
         </a>
       ))}
     </nav>
-    <button class="mobile-toggle" aria-label="Toggle menu" id="mobile-toggle">
+    <button class="mobile-toggle" aria-label="Toggle menu" id="mobile-menu-btn">
       <span></span><span></span><span></span>
     </button>
   </div>
@@ -100,7 +100,31 @@ const navItems = [
     border-radius: 1px;
   }
   @media (max-width: 768px) {
-    .nav { display: none; }
+    .nav {
+      display: none;
+      position: absolute;
+      top: var(--header-height);
+      left: 0;
+      right: 0;
+      flex-direction: column;
+      background: rgba(10, 14, 23, 0.95);
+      backdrop-filter: blur(12px);
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--color-border);
+      gap: 0.25rem;
+    }
+    .nav.open { display: flex; }
+    .nav-link { padding: 0.5rem 0; }
     .mobile-toggle { display: flex; }
   }
 </style>
+
+<script>
+  const btn = document.getElementById('mobile-menu-btn');
+  const menu = document.getElementById('nav-menu');
+  if (btn && menu) {
+    btn.addEventListener('click', () => {
+      menu.classList.toggle('open');
+    });
+  }
+</script>
