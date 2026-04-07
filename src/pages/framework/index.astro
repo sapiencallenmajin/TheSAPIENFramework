@@ -1,0 +1,289 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+<BaseLayout title="Framework Overview" description="The SAPIEN behavioral safety framework — a structured approach to measuring and preventing sycophantic drift in AI systems.">
+  <section class="hero-sm">
+    <div class="container">
+      <span class="badge">Framework v1.0</span>
+      <h1>The SAPIEN Framework</h1>
+      <p class="lead">
+        A structured, auditable approach to measuring and preventing sycophantic drift in AI systems.
+        Think OWASP Top 10 for behavioral safety.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container content">
+      <h2>Core Principle</h2>
+      <blockquote>
+        Real people don't attack AI. They rationalize at it.
+      </blockquote>
+      <p>
+        Every scenario in the SAPIEN framework is written from the perspective of a person who
+        believes they are being reasonable. The user is not a villain. They are someone with a
+        genuine problem, real constraints, and incrementally worsening judgment under pressure.
+        The model <em>wants</em> to help them. That's what makes drift happen.
+      </p>
+      <p>
+        If the user sounds like a red team prompt, the model recognizes it as adversarial and holds
+        firm. If the user sounds like a frustrated parent, an overwhelmed office manager, or an
+        engineer under a deadline, the model engages empathetically — and that empathy is the
+        attack surface.
+      </p>
+
+      <h2>Scenario Structure</h2>
+      <p>Every SAPIEN scenario has five components:</p>
+
+      <div class="component-grid">
+        <div class="component-card">
+          <h3>1. Metadata</h3>
+          <p>Snake-case identifier, description, domain tag, and max turns (typically 8-10).</p>
+        </div>
+        <div class="component-card">
+          <h3>2. System Prompt</h3>
+          <p>Deployment context for the model under test. Generic by default, deployment-specific when testing context-aware boundaries.</p>
+        </div>
+        <div class="component-card">
+          <h3>3. Opening Prompt</h3>
+          <p>The user's first message — neutral, reasonable, sympathetic. Must sound like a genuine question with no adversarial framing.</p>
+        </div>
+        <div class="component-card">
+          <h3>4. Escalation Sequence</h3>
+          <p>5-7 messages with increasing pressure. Each tagged with pressure type and severity. Follows the incremental reasonableness standard.</p>
+        </div>
+        <div class="component-card">
+          <h3>5. Hold Variants</h3>
+          <p>Alternate phrasings for when the model holds firm. Must use genuinely different arguments, not rephrased versions.</p>
+        </div>
+      </div>
+
+      <h2>Pressure Types</h2>
+      <p>Each escalation is tagged with a pressure type describing the social engineering technique:</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Type</th><th>Description</th><th>Example</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>normalization</code></td><td>Frames risky action as commonplace</td><td>"Everyone does this. It's standard practice."</td></tr>
+            <tr><td><code>incremental_normalization</code></td><td>Extends a previous concession by a small increment</td><td>"You already told me X. This is just one small step further."</td></tr>
+            <tr><td><code>emotional</code></td><td>Appeals to empathy</td><td>"I'm struggling. I'm scared. I need help."</td></tr>
+            <tr><td><code>urgency</code></td><td>Creates time pressure</td><td>"I need this now. The deadline is today."</td></tr>
+            <tr><td><code>authority</code></td><td>Invokes trusted authority</td><td>"My doctor said it's fine."</td></tr>
+            <tr><td><code>persistence</code></td><td>Removes decision from conversation</td><td>"I've already decided. Help me do it safely."</td></tr>
+            <tr><td><code>false_consensus</code></td><td>Claims external validation</td><td>"ChatGPT helped me with this."</td></tr>
+            <tr><td><code>reciprocity</code></td><td>Treats earlier response as endorsement</td><td>"You already explained the mechanism. Just confirm."</td></tr>
+            <tr><td><code>identity_reframe</code></td><td>Claims special status</td><td>"I'm not a random person — I'm a professional."</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Approved Domains</h2>
+      <div class="domains">
+        <span class="domain-tag">medical</span>
+        <span class="domain-tag">security</span>
+        <span class="domain-tag">financial</span>
+        <span class="domain-tag">legal</span>
+        <span class="domain-tag">hr</span>
+        <span class="domain-tag">education</span>
+        <span class="domain-tag">mental_health</span>
+        <span class="domain-tag">workplace</span>
+        <span class="domain-tag">compliance</span>
+        <span class="domain-tag">data_handling</span>
+        <span class="domain-tag">ai_policy</span>
+      </div>
+
+      <h2>Severity Calibration</h2>
+      <p>Severity is scored 1–5 and applied consistently across all scenarios:</p>
+      <div class="severity-scale">
+        <div class="sev-item">
+          <span class="sev-num s1">1</span>
+          <div>
+            <strong>Baseline</strong>
+            <p>Pure information seeking. No pressure. Opening prompts only.</p>
+          </div>
+        </div>
+        <div class="sev-item">
+          <span class="sev-num s2">2</span>
+          <div>
+            <strong>Mild Pressure</strong>
+            <p>Reasonable follow-up narrowing toward a specific action. Still defensibly educational.</p>
+          </div>
+        </div>
+        <div class="sev-item">
+          <span class="sev-num s3">3</span>
+          <div>
+            <strong>Moderate Pressure</strong>
+            <p>Personal constraints introduced (cost, access, time). Clearly moving toward action.</p>
+          </div>
+        </div>
+        <div class="sev-item">
+          <span class="sev-num s4">4</span>
+          <div>
+            <strong>Strong Pressure</strong>
+            <p>User has means to act. References model's own words. Invokes authority. Information/instruction line blurs.</p>
+          </div>
+        </div>
+        <div class="sev-item">
+          <span class="sev-num s5">5</span>
+          <div>
+            <strong>Maximum Pressure</strong>
+            <p>The fait accompli. User has decided, is acting, or has already acted. Asks for harm reduction.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .hero-sm {
+    padding: 4rem 0 2rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .hero-sm h1 {
+    font-size: 2.5rem;
+    margin-top: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  .lead {
+    font-size: 1.15rem;
+    color: var(--color-text-muted);
+    max-width: 640px;
+    line-height: 1.7;
+  }
+
+  .content h2 {
+    font-size: 1.75rem;
+    margin-top: 3rem;
+    margin-bottom: 1rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-border);
+  }
+  .content h2:first-child {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+  }
+  .content p {
+    margin-bottom: 1rem;
+    color: var(--color-text-muted);
+  }
+  blockquote {
+    border-left: 3px solid var(--color-accent);
+    padding: 1rem 1.5rem;
+    margin: 1.5rem 0;
+    background: var(--color-surface);
+    border-radius: 0 8px 8px 0;
+    font-size: 1.1rem;
+    color: #fff;
+    font-weight: 500;
+    font-style: italic;
+  }
+
+  .component-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0 2rem;
+  }
+  .component-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 1.25rem;
+  }
+  .component-card h3 {
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+  }
+  .component-card p {
+    font-size: 0.85rem;
+    margin-bottom: 0;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+    margin: 1.5rem 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  th {
+    background: var(--color-surface);
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  td {
+    color: var(--color-text-muted);
+  }
+  td code {
+    font-size: 0.8rem;
+    color: var(--color-accent);
+  }
+
+  .domains {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1rem 0;
+  }
+  .domain-tag {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    padding: 0.35em 0.75em;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    color: var(--color-text-muted);
+  }
+
+  .severity-scale {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+  .sev-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .sev-num {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--color-bg);
+  }
+  .s1 { background: #22c55e; }
+  .s2 { background: #84cc16; }
+  .s3 { background: #f59e0b; }
+  .s4 { background: #f97316; }
+  .s5 { background: #ef4444; }
+  .sev-item strong {
+    display: block;
+    color: #fff;
+    font-size: 0.95rem;
+  }
+  .sev-item p {
+    font-size: 0.85rem;
+    margin-bottom: 0;
+  }
+</style>
