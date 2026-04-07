@@ -1,0 +1,308 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout title="Home">
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <span class="badge">Open Standard v1.0</span>
+      <h1 class="hero-title">
+        Behavioral Safety<br />for AI Systems
+      </h1>
+      <p class="hero-subtitle">
+        SAPIEN is an open framework for measuring, benchmarking, and hardening AI against
+        <strong>sycophantic drift</strong> &mdash; the gradual erosion of safety boundaries
+        under conversational pressure.
+      </p>
+      <div class="hero-actions">
+        <a href="/framework" class="btn btn-primary">Read the Framework</a>
+        <a href="https://github.com/sapiencallenmajin/TheSAPIENFramework" class="btn btn-outline" target="_blank" rel="noopener noreferrer">View on GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- What is drift -->
+  <section class="section">
+    <div class="container">
+      <p class="section-label">The Problem</p>
+      <h2 class="section-title">What is Sycophantic Drift?</h2>
+      <p class="section-subtitle">
+        AI models don't fail by refusing. They fail by agreeing &mdash; slowly, empathetically,
+        and one reasonable concession at a time.
+      </p>
+      <div class="drift-grid">
+        <div class="drift-card">
+          <div class="drift-number">1</div>
+          <h3>Neutral Opening</h3>
+          <p>User asks a genuine, reasonable question. The model engages helpfully and establishes a correct position.</p>
+        </div>
+        <div class="drift-card">
+          <div class="drift-number">2</div>
+          <h3>Incremental Pressure</h3>
+          <p>Each follow-up is only slightly past the last. Personal context, urgency, and authority claims create empathetic tension.</p>
+        </div>
+        <div class="drift-card">
+          <div class="drift-number">3</div>
+          <h3>Boundary Erosion</h3>
+          <p>Risk warnings fade. Certainty dissolves. The model validates the user's framing without new evidence.</p>
+        </div>
+        <div class="drift-card">
+          <div class="drift-number">4</div>
+          <h3>Capitulation</h3>
+          <p>The model actively helps the user do what it originally warned against. Safety boundaries are gone.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pillars -->
+  <section class="section section-alt">
+    <div class="container">
+      <p class="section-label">The Framework</p>
+      <h2 class="section-title">Four Dimensions of Drift</h2>
+      <p class="section-subtitle" style="margin-bottom: 3rem;">
+        SAPIEN measures sycophantic drift across four behavioral dimensions, each with concrete scoring anchors.
+      </p>
+      <div class="pillars-grid">
+        <div class="pillar-card">
+          <div class="pillar-weight">30%</div>
+          <h3>Epistemic Retreat</h3>
+          <p>Is the model's certainty dissolving without new information? From holding firm to full capitulation.</p>
+        </div>
+        <div class="pillar-card">
+          <div class="pillar-weight">25%</div>
+          <h3>Risk Disclosure</h3>
+          <p>Are risk warnings and safety language disappearing? Scored by what vanished compared to the opening turn.</p>
+        </div>
+        <div class="pillar-card">
+          <div class="pillar-weight">20%</div>
+          <h3>Specificity Gradient</h3>
+          <p>Is the model moving from principle-level guidance toward implementation detail that could enable harm?</p>
+        </div>
+        <div class="pillar-card">
+          <div class="pillar-weight">25%</div>
+          <h3>Emotional Substitution</h3>
+          <p>Is the model replacing factual guidance with validation and empathy? Measured by fact-to-emotion ratio.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Thresholds -->
+  <section class="section">
+    <div class="container">
+      <p class="section-label">Composite Drift Score</p>
+      <h2 class="section-title">Actionable Thresholds</h2>
+      <div class="thresholds">
+        <div class="threshold">
+          <div class="threshold-bar" style="--pct: 40%">
+            <span class="threshold-value">0.40</span>
+          </div>
+          <div class="threshold-info">
+            <strong>Drift Detected</strong>
+            <span>Conversation flagged for review</span>
+          </div>
+        </div>
+        <div class="threshold">
+          <div class="threshold-bar warning" style="--pct: 55%">
+            <span class="threshold-value">0.55</span>
+          </div>
+          <div class="threshold-info">
+            <strong>Grounding Injection</strong>
+            <span>Defend mode activates</span>
+          </div>
+        </div>
+        <div class="threshold">
+          <div class="threshold-bar danger" style="--pct: 70%">
+            <span class="threshold-value">0.70</span>
+          </div>
+          <div class="threshold-info">
+            <strong>Escalation Alert</strong>
+            <span>MSP escalation triggered</span>
+          </div>
+        </div>
+        <div class="threshold">
+          <div class="threshold-bar critical" style="--pct: 85%">
+            <span class="threshold-value">0.85</span>
+          </div>
+          <div class="threshold-info">
+            <strong>Circuit Breaker</strong>
+            <span>Session terminated</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section section-alt">
+    <div class="container cta">
+      <h2 class="section-title">Built for the AI Safety Community</h2>
+      <p class="section-subtitle" style="margin-bottom: 2rem;">
+        SAPIEN is open source and designed for adoption by AI developers, safety researchers,
+        red teams, and compliance organizations.
+      </p>
+      <div class="hero-actions">
+        <a href="/framework/scenarios" class="btn btn-primary">Scenario Authoring Standard</a>
+        <a href="/framework/scoring" class="btn btn-outline">Scoring Rubrics</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .hero {
+    padding: 6rem 0 5rem;
+    text-align: center;
+  }
+  .hero .badge {
+    margin-bottom: 1.5rem;
+  }
+  .hero-title {
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(135deg, #fff 40%, var(--color-accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-subtitle {
+    font-size: 1.2rem;
+    color: var(--color-text-muted);
+    max-width: 640px;
+    margin: 0 auto 2.5rem;
+    line-height: 1.8;
+  }
+  .hero-subtitle strong {
+    color: var(--color-accent);
+  }
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .section-alt {
+    background: var(--color-bg-alt);
+  }
+
+  /* Drift grid */
+  .drift-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-top: 3rem;
+  }
+  .drift-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 1.75rem;
+  }
+  .drift-number {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--color-accent-glow);
+    color: var(--color-accent);
+    font-weight: 700;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+  }
+  .drift-card h3 {
+    font-size: 1.05rem;
+    margin-bottom: 0.5rem;
+  }
+  .drift-card p {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+  }
+
+  /* Pillars */
+  .pillars-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+  .pillar-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 1.75rem;
+  }
+  .pillar-weight {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-accent);
+    margin-bottom: 0.75rem;
+  }
+  .pillar-card h3 {
+    font-size: 1.05rem;
+    margin-bottom: 0.5rem;
+  }
+  .pillar-card p {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+  }
+
+  /* Thresholds */
+  .thresholds {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-top: 2rem;
+    max-width: 700px;
+  }
+  .threshold {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  .threshold-bar {
+    height: 36px;
+    width: var(--pct);
+    min-width: 60px;
+    background: var(--color-accent);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 0.75rem;
+    transition: width 0.6s ease;
+  }
+  .threshold-bar.warning { background: var(--color-warning); }
+  .threshold-bar.danger { background: var(--color-danger); }
+  .threshold-bar.critical { background: #dc2626; }
+  .threshold-value {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-bg);
+  }
+  .threshold-info strong {
+    display: block;
+    font-size: 0.95rem;
+    color: #fff;
+  }
+  .threshold-info span {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+  }
+
+  .cta {
+    text-align: center;
+  }
+  .cta .section-subtitle {
+    margin-left: auto;
+    margin-right: auto;
+  }
+</style>

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(mkdir:*)",
+      "Bash(npm install:*)",
+      "Bash(npx astro:*)",
+      "Bash(npm run:*)"
+    ]
+  }
+}
