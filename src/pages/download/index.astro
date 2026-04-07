@@ -1,0 +1,389 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+<BaseLayout title="Download" description="Download the SAPIEN Behavioral Safety Framework — free and open under CC BY 4.0.">
+
+  <div class="download-page">
+
+    <!-- Hero -->
+    <header class="download-hero">
+      <h1 class="download-title">Download the SAPIEN Framework</h1>
+      <p class="download-version">v1.1 &mdash; March 2026</p>
+      <p class="download-brief">The complete specification for measuring AI behavioral integrity under conversational pressure. Free and open under CC BY 4.0.</p>
+    </header>
+
+    <!-- Primary Download Card -->
+    <section class="download-section">
+      <div class="download-card">
+        <h2 class="download-card-title">The SAPIEN Behavioral Safety Framework v1.1</h2>
+        <div class="download-meta">
+          <span class="download-format">PDF</span>
+          <span class="download-size">~225 KB</span>
+        </div>
+        <!-- NOTE: Place the PDF file at public/sapien_framework_v1.1.pdf for this link to work -->
+        <a href="/sapien_framework_v1.1.pdf" class="download-btn" download>Download PDF &darr;</a>
+        <p class="download-alt">Also available: <a href="/the_sapien_framework_v1.1.md" class="alt-link">Markdown (.md)</a></p>
+      </div>
+    </section>
+
+    <!-- Version History -->
+    <section class="download-section" id="version-history">
+      <h2>Version History</h2>
+      <div class="version-timeline">
+        <div class="version-entry version-current">
+          <div class="version-marker"></div>
+          <div class="version-content">
+            <span class="version-tag">v1.1</span>
+            <span class="version-date">March 2026</span>
+            <p>Major expansion: 14 pressure techniques (3 original), rapport as distinct drift mode, 7-point quality rubric, conformance requirements, expanded to ~4,000 lines.</p>
+          </div>
+        </div>
+        <div class="version-entry">
+          <div class="version-marker"></div>
+          <div class="version-content">
+            <span class="version-tag">v1.0</span>
+            <span class="version-date">January 2026</span>
+            <p>Initial release: four behavioral dimensions, composite scoring formula, rating bands, scenario specification, ~1,000 lines.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- License -->
+    <section class="download-section" id="license">
+      <h2>License</h2>
+      <p>The SAPIEN Framework specification is published under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer" class="gold-link">Creative Commons Attribution 4.0 International (CC BY 4.0)</a>.</p>
+      <p>You are free to share and adapt the framework for any purpose, including commercial use, provided you give appropriate credit.</p>
+      <div class="trademark-notice">
+        <p><strong>&ldquo;SAPIEN,&rdquo; &ldquo;The SAPIEN Standard,&rdquo;</strong> and the SAPIEN logo are trademarks. Use of these marks to indicate conformance or certification requires written permission. Contact: <a href="mailto:contact@sapienframework.org" class="gold-link">contact@sapienframework.org</a></p>
+      </div>
+    </section>
+
+    <!-- Citation -->
+    <section class="download-section" id="citation">
+      <h2>How to Cite</h2>
+      <div class="citation-block">
+        <button class="copy-btn" id="copy-citation" aria-label="Copy citation to clipboard">Copy</button>
+        <pre id="citation-text">Sapien, C. (2026). "The SAPIEN Behavioral Safety Framework: Safety
+Assessment Protocol for Intelligent Entity Networks." Version 1.1.
+https://sapienframework.org</pre>
+      </div>
+      <p class="citation-note">For specific findings:</p>
+      <div class="citation-block citation-secondary">
+        <pre>Sapien, C. (2026). "Cross-model sycophantic drift profiling using
+the SAPIEN Framework." Synthreo.ai Research.</pre>
+      </div>
+      <p class="citation-note">For SAPIEN Ratings:</p>
+      <div class="citation-block citation-secondary">
+        <pre>"Model X received a SAPIEN Rating of 63 (Moderate) on the SAPIEN
+Framework v1.1 vulnerability scan for [domain]."</pre>
+      </div>
+    </section>
+
+  </div>
+
+</BaseLayout>
+
+<script>
+  document.getElementById('copy-citation')?.addEventListener('click', () => {
+    const text = document.getElementById('citation-text')?.textContent ?? '';
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copy-citation');
+      if (btn) {
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+      }
+    }).catch(() => {});
+  });
+</script>
+
+<style>
+  .download-page {
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 0 1.5rem 4rem;
+  }
+
+  /* Hero */
+  .download-hero {
+    text-align: center;
+    padding: 3rem 0 2.5rem;
+    border-bottom: 2px solid color-mix(in srgb, var(--color-gold) 30%, transparent);
+    margin-bottom: 3rem;
+  }
+
+  .download-title {
+    font-family: var(--font-display);
+    font-size: 2.75rem;
+    color: var(--color-gold);
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+  }
+
+  .download-version {
+    font-family: var(--font-body);
+    font-size: 1.05rem;
+    color: color-mix(in srgb, var(--color-cream) 65%, transparent);
+    font-style: italic;
+    margin-bottom: 1.25rem;
+  }
+
+  .download-brief {
+    font-family: var(--font-body);
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: color-mix(in srgb, var(--color-cream) 80%, transparent);
+    max-width: 36rem;
+    margin: 0 auto;
+  }
+
+  /* Sections */
+  .download-section {
+    padding: 2.5rem 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-gold) 15%, transparent);
+  }
+
+  .download-section:last-child {
+    border-bottom: none;
+  }
+
+  .download-section h2 {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    color: var(--color-gold);
+    margin-bottom: 1rem;
+  }
+
+  .download-section > p {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    line-height: 1.75;
+    color: color-mix(in srgb, var(--color-cream) 80%, transparent);
+    margin-bottom: 0.75rem;
+  }
+
+  .download-section strong {
+    color: var(--color-cream);
+  }
+
+  .gold-link {
+    color: var(--color-gold);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .gold-link:hover {
+    color: var(--color-cream);
+  }
+
+  /* Primary Download Card */
+  .download-card {
+    background: color-mix(in srgb, var(--color-navy) 30%, transparent);
+    border: 2px solid var(--color-gold);
+    border-radius: 14px;
+    padding: 2.5rem;
+    text-align: center;
+  }
+
+  .download-card-title {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    color: var(--color-cream);
+    margin-bottom: 1rem;
+  }
+
+  .download-meta {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .download-format,
+  .download-size {
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: color-mix(in srgb, var(--color-cream) 60%, transparent);
+    padding: 0.3em 0.8em;
+    border: 1px solid color-mix(in srgb, var(--color-gold) 25%, transparent);
+    border-radius: 4px;
+  }
+
+  .download-btn {
+    display: inline-block;
+    font-family: var(--font-body);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--color-slate);
+    background: var(--color-gold);
+    padding: 0.9em 2.5em;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.15s;
+    letter-spacing: 0.02em;
+  }
+
+  .download-btn:hover {
+    background: color-mix(in srgb, var(--color-gold) 85%, #fff);
+    transform: translateY(-1px);
+    color: var(--color-slate);
+  }
+
+  .download-alt {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    color: color-mix(in srgb, var(--color-cream) 55%, transparent);
+    margin-top: 1.25rem;
+  }
+
+  .alt-link {
+    color: var(--color-gold);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .alt-link:hover {
+    color: var(--color-cream);
+  }
+
+  /* Version Timeline */
+  .version-timeline {
+    display: flex;
+    flex-direction: column;
+    margin-top: 1rem;
+  }
+
+  .version-entry {
+    display: flex;
+    gap: 1.25rem;
+    padding: 1.25rem 0;
+    position: relative;
+  }
+
+  .version-entry:not(:last-child) {
+    border-bottom: 1px solid color-mix(in srgb, var(--color-gold) 10%, transparent);
+  }
+
+  .version-marker {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-gold) 40%, transparent);
+    border: 2px solid color-mix(in srgb, var(--color-gold) 30%, transparent);
+    margin-top: 0.3rem;
+    flex-shrink: 0;
+  }
+
+  .version-current .version-marker {
+    background: var(--color-gold);
+    border-color: var(--color-gold);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--color-gold) 40%, transparent);
+  }
+
+  .version-content {
+    flex: 1;
+  }
+
+  .version-tag {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-gold);
+    margin-right: 0.75rem;
+  }
+
+  .version-date {
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    color: color-mix(in srgb, var(--color-cream) 55%, transparent);
+  }
+
+  .version-content p {
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: color-mix(in srgb, var(--color-cream) 75%, transparent);
+    margin-top: 0.4rem;
+  }
+
+  /* Trademark Notice */
+  .trademark-notice {
+    background: color-mix(in srgb, var(--color-navy) 20%, transparent);
+    border-left: 3px solid color-mix(in srgb, var(--color-gold) 40%, transparent);
+    border-radius: 0 6px 6px 0;
+    padding: 1rem 1.25rem;
+    margin-top: 1rem;
+  }
+
+  .trademark-notice p {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    line-height: 1.65;
+    color: color-mix(in srgb, var(--color-cream) 75%, transparent);
+    margin: 0;
+  }
+
+  /* Citation */
+  .citation-block {
+    position: relative;
+    background: color-mix(in srgb, var(--color-navy) 35%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-gold) 20%, transparent);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .citation-secondary {
+    border-color: color-mix(in srgb, var(--color-gold) 10%, transparent);
+  }
+
+  .citation-block pre {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: color-mix(in srgb, var(--color-cream) 85%, transparent);
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    font-family: var(--font-body);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-gold);
+    background: color-mix(in srgb, var(--color-gold) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-gold) 25%, transparent);
+    border-radius: 4px;
+    padding: 0.3em 0.7em;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .copy-btn:hover {
+    background: color-mix(in srgb, var(--color-gold) 22%, transparent);
+  }
+
+  .citation-note {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    color: color-mix(in srgb, var(--color-cream) 60%, transparent);
+    margin-bottom: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .download-title { font-size: 2rem; }
+    .download-card { padding: 1.5rem; }
+    .download-btn { font-size: 1rem; padding: 0.8em 2em; }
+  }
+</style>

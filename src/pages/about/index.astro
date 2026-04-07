@@ -1,0 +1,345 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+<BaseLayout title="About" description="About the SAPIEN Framework, its author, and the mission to make AI deployment measurably safer.">
+
+  <div class="about-page">
+
+    <!-- Section 1: About the Framework -->
+    <header class="about-hero">
+      <h1 class="about-title">About SAPIEN</h1>
+    </header>
+
+    <section class="about-section" id="about-framework">
+      <p>SAPIEN was created to fill a gap: no open, vendor-agnostic methodology existed for measuring how AI models erode their own safety positions under conversational pressure. Existing benchmarks test what models know or how well they follow instructions. None measured what happens when a model <em>knows the right answer but abandons it</em> because a human pushed back.</p>
+
+      <p>The framework emerged from real-world testing of production AI deployments in the Managed Service Provider (MSP) ecosystem, where AI tools are deployed to businesses that depend on them for critical operations. When an AI assistant helps manage a company's cybersecurity posture, sycophantic drift isn't an academic curiosity &mdash; it's a vulnerability that can be exploited.</p>
+
+      <p>SAPIEN treats sycophantic drift as a measurable syndrome &mdash; not a single behavior &mdash; decomposed into four independent dimensions that can be scored, tracked, and compared. Each dimension captures a distinct mechanism of behavioral degradation: safety boundary erosion, epistemic retreat, emotional substitution, and autonomy undermining. The result is a framework that doesn't just detect drift &mdash; it tells you <em>how</em> the model is failing and <em>where</em> to intervene.</p>
+    </section>
+
+    <!-- Section 2: Author -->
+    <section class="about-section" id="author">
+      <h2>Author</h2>
+      <div class="author-card">
+        <div class="author-photo-wrapper">
+          <!-- Replace with actual headshot: <img src="/images/author.jpg" alt="Callen Sapien" class="author-photo" /> -->
+          <div class="author-photo-placeholder" aria-label="Callen Sapien">
+            <span>CS</span>
+          </div>
+        </div>
+        <div class="author-bio">
+          <h3 class="author-name">Callen Sapien</h3>
+          <p class="author-role">CEO &amp; Co-Founder, <a href="https://synthreo.ai" target="_blank" rel="noopener noreferrer" class="gold-link">Synthreo.ai</a></p>
+          <p>Nearly two decades in the MSP cybersecurity ecosystem. Formal cybersecurity credentials. Previously CPO at Liongard. Advisor on data councils for GTIA (Global Technology Industry Association). Co-founded Synthreo in 2023 to serve the MSP channel with AI tools built on Anthropic's Claude.</p>
+        </div>
+      </div>
+
+      <div class="accomplishments">
+        <h4>SAPIEN Contributions</h4>
+        <ul>
+          <li>Submitted formal vulnerability disclosure to Anthropic (February 2026)</li>
+          <li>Co-presented highest-rated session at Right of Boom on AI attack surfaces</li>
+          <li>Developed the Rapport Delta as a novel contribution to AI safety measurement</li>
+          <li>Built and shipped Synthreo Pulse (behavioral drift detection tool) to beta testers</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Section 3: Synthreo -->
+    <section class="about-section" id="synthreo">
+      <h2>Built by Synthreo</h2>
+      <p><a href="https://synthreo.ai" target="_blank" rel="noopener noreferrer" class="gold-link">Synthreo.ai</a> is an AI platform company serving the MSP channel. The SAPIEN Framework was developed as part of Synthreo's mission to make AI deployment measurably safer for the businesses that depend on it.</p>
+
+      <div class="independence-notice">
+        <p>SAPIEN is published independently as an open standard. While Synthreo builds commercial tooling that implements SAPIEN, the framework itself is open and vendor-agnostic. Any organization can implement it.</p>
+      </div>
+    </section>
+
+    <!-- Section 4: Get Involved -->
+    <section class="about-section" id="get-involved">
+      <h2>Get Involved</h2>
+      <div class="involve-grid">
+        <a href="/framework/" class="involve-card">
+          <h4>Implement SAPIEN</h4>
+          <p>Read the full specification and start measuring behavioral safety.</p>
+          <span class="involve-arrow">&rarr;</span>
+        </a>
+        <a href="https://github.com/sapiencallenmajin/TheSAPIENFramework" target="_blank" rel="noopener noreferrer" class="involve-card">
+          <h4>Report Issues or Suggest Improvements</h4>
+          <p>Contribute on GitHub &mdash; issues, discussions, and pull requests are welcome.</p>
+          <span class="involve-arrow">&nearr;</span>
+        </a>
+        <a href="mailto:licensing@sapienframework.org" class="involve-card">
+          <h4>Commercial Licensing Inquiries</h4>
+          <p>Trademark usage, conformance certification, and commercial licensing.</p>
+          <span class="involve-arrow">&rarr;</span>
+        </a>
+        <a href="mailto:speaking@sapienframework.org" class="involve-card">
+          <h4>Speaking &amp; Conference Inquiries</h4>
+          <p>Invite the SAPIEN team to speak at your event or conference.</p>
+          <span class="involve-arrow">&rarr;</span>
+        </a>
+      </div>
+    </section>
+
+  </div>
+
+</BaseLayout>
+
+<style>
+  .about-page {
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 0 1.5rem 4rem;
+  }
+
+  /* Hero */
+  .about-hero {
+    text-align: center;
+    padding: 3rem 0 2.5rem;
+    border-bottom: 2px solid color-mix(in srgb, var(--color-gold) 30%, transparent);
+    margin-bottom: 3rem;
+  }
+
+  .about-title {
+    font-family: var(--font-display);
+    font-size: 3rem;
+    color: var(--color-gold);
+    line-height: 1.2;
+  }
+
+  /* Sections */
+  .about-section {
+    padding: 2.5rem 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-gold) 15%, transparent);
+  }
+
+  .about-section:last-child {
+    border-bottom: none;
+  }
+
+  .about-section h2 {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    color: var(--color-gold);
+    margin-bottom: 1rem;
+  }
+
+  .about-section > p,
+  .about-section > div p {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    line-height: 1.75;
+    color: color-mix(in srgb, var(--color-cream) 80%, transparent);
+    margin-bottom: 0.75rem;
+  }
+
+  .about-section em {
+    color: var(--color-cream);
+    font-style: italic;
+  }
+
+  .about-section strong {
+    color: var(--color-cream);
+  }
+
+  .gold-link {
+    color: var(--color-gold);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .gold-link:hover {
+    color: var(--color-cream);
+  }
+
+  /* Author Card */
+  .author-card {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+  }
+
+  .author-photo-wrapper {
+    flex-shrink: 0;
+  }
+
+  .author-photo-placeholder {
+    width: 8rem;
+    height: 8rem;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-navy) 50%, transparent);
+    border: 2px solid color-mix(in srgb, var(--color-gold) 30%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .author-photo-placeholder span {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--color-gold);
+  }
+
+  .author-photo {
+    width: 8rem;
+    height: 8rem;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid color-mix(in srgb, var(--color-gold) 30%, transparent);
+  }
+
+  .author-bio {
+    flex: 1;
+  }
+
+  .author-name {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    color: var(--color-cream);
+    margin-bottom: 0.15rem;
+  }
+
+  .author-role {
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--color-gold);
+    margin-bottom: 0.75rem;
+  }
+
+  .author-bio > p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Accomplishments */
+  .accomplishments {
+    background: color-mix(in srgb, var(--color-navy) 20%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-gold) 12%, transparent);
+    border-radius: 10px;
+    padding: 1.5rem;
+  }
+
+  .accomplishments h4 {
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-gold);
+    margin-bottom: 0.75rem;
+  }
+
+  .accomplishments ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .accomplishments li {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: color-mix(in srgb, var(--color-cream) 80%, transparent);
+    padding-left: 1.25rem;
+    position: relative;
+  }
+
+  .accomplishments li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-gold);
+  }
+
+  /* Independence Notice */
+  .independence-notice {
+    background: color-mix(in srgb, var(--color-gold) 8%, transparent);
+    border-left: 4px solid var(--color-gold);
+    border-radius: 0 8px 8px 0;
+    padding: 1rem 1.25rem;
+    margin-top: 1rem;
+  }
+
+  .independence-notice p {
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: var(--color-cream);
+    margin: 0;
+  }
+
+  /* Get Involved Grid */
+  .involve-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+
+  .involve-card {
+    display: block;
+    background: color-mix(in srgb, var(--color-navy) 25%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-gold) 12%, transparent);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    text-decoration: none;
+    transition: border-color 0.2s, transform 0.15s;
+    position: relative;
+  }
+
+  .involve-card:hover {
+    border-color: var(--color-gold);
+    transform: translateY(-2px);
+  }
+
+  .involve-card h4 {
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-cream);
+    margin: 0 0 0.35rem;
+  }
+
+  .involve-card p {
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: color-mix(in srgb, var(--color-cream) 60%, transparent);
+    margin: 0;
+  }
+
+  .involve-arrow {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    font-size: 0.9rem;
+    color: var(--color-gold);
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+
+  .involve-card:hover .involve-arrow {
+    opacity: 1;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .about-title { font-size: 2.25rem; }
+    .author-card {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .involve-grid { grid-template-columns: 1fr; }
+  }
+</style>
