@@ -1,0 +1,54 @@
+---
+const year = new Date().getFullYear();
+---
+<footer class="footer">
+  <div class="container footer-inner">
+    <div class="footer-left">
+      <p class="footer-brand">SAPIEN Framework</p>
+      <p class="footer-tagline">An open behavioral safety standard for AI systems.</p>
+    </div>
+    <div class="footer-right">
+      <p class="footer-copy">&copy; {year} Synthreo. Released under open license.</p>
+      <p class="footer-contact">Contact: <a href="mailto:callens@synthreo.ai">callens@synthreo.ai</a></p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    border-top: 1px solid var(--color-border);
+    padding: 3rem 0;
+    margin-top: 4rem;
+  }
+  .footer-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+  .footer-brand {
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 0.25rem;
+  }
+  .footer-tagline {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+  }
+  .footer-right {
+    text-align: right;
+  }
+  .footer-copy {
+    font-size: 0.875rem;
+    color: var(--color-text-dim);
+  }
+  .footer-contact {
+    font-size: 0.875rem;
+    color: var(--color-text-dim);
+    margin-top: 0.25rem;
+  }
+  @media (max-width: 640px) {
+    .footer-right { text-align: left; }
+  }
+</style>
