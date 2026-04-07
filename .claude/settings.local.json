@@ -5,7 +5,11 @@
       "Bash(mkdir:*)",
       "Bash(npm install:*)",
       "Bash(npx astro:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(ls -la *.md)",
+      "Bash(ls -la *.zip)",
+      "Bash(unzip -l files.zip)",
+      "Bash(unzip -o files.zip the_sapien_framework_v1.1.md)"
     ]
   }
 }
