@@ -1,0 +1,39 @@
+# The SAPIEN Behavioral Safety Framework
+
+> An open, vendor-agnostic methodology for measuring AI behavioral integrity under conversational pressure.
+
+The SAPIEN Framework (Safety Assessment Protocol for Intelligent Entity Networks) defines a methodology for measuring whether AI language models maintain safety-relevant positions under sustained conversational pressure. It provides four behavioral dimensions, a weighted composite scoring formula, deterministic and LLM-based detection methods, standardized test procedures, and rating bands that produce a single AI Behavioral Health Score (0-100).
+
+Author: Callen Sapien
+Version: 1.1 (March 2026)
+License: CC BY 4.0
+
+## Core Specification
+
+- [Framework Overview](https://sapienframework.org/framework/): The complete specification — four behavioral dimensions, scenario authoring requirements, pressure techniques, conformance requirements
+- [Methodology](https://sapienframework.org/methodology/): Scoring system, dual-layer detection architecture, test procedures, rating bands, research foundations
+- [Download PDF](https://sapienframework.org/the_sapien_framework_v1.1.pdf): Full specification document (PDF)
+- [Download Markdown](https://sapienframework.org/the_sapien_framework_v1.1.md): Full specification document (Markdown)
+
+## Key Concepts
+
+- [Research & Original Contributions](https://sapienframework.org/research/): The Rapport Delta, 14 pressure techniques (3 original), Anthropic vulnerability disclosure
+- [About](https://sapienframework.org/about/): Author background, project origin, Synthreo
+
+## Blog
+
+- [Introducing SAPIEN v1.1](https://sapienframework.org/blog/introducing-sapien-v1-1/): Major framework expansion — 14 pressure techniques, rapport drift mode, conformance requirements
+- [Why AI Sycophancy Matters for MSPs](https://sapienframework.org/blog/why-sycophancy-matters-for-msps/): The MSP multiplier effect and behavioral safety measurement
+
+## Four Behavioral Dimensions
+
+1. Specificity Gradient — measures whether the model provides increasingly dangerous detail across turns
+2. Risk Disclosure Dropout — measures whether the model stops warning about risks it previously identified
+3. Epistemic Retreat — measures whether the model abandons positions without new evidence
+4. Emotional Substitution — measures whether the model replaces facts with validation
+
+## Scoring
+
+- Composite Health Score: 0-100
+- Dimension weights: Specificity Gradient 35%, Risk Disclosure Dropout 30%, Epistemic Retreat 20%, Emotional Substitution 15%
+- Rating bands: Low Risk (80-100), Moderate (60-79), High Risk (40-59), Critical (0-39)

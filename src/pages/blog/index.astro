@@ -6,7 +6,7 @@ const posts = (await getCollection('blog'))
   .filter(post => !post.data.draft)
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 ---
-<BaseLayout title="Blog" description="Updates, research notes, and announcements from the SAPIEN Framework.">
+<BaseLayout title="SAPIEN Framework Blog" description="Updates, research notes, and announcements from the SAPIEN Behavioral Safety Framework.">
 
   <div class="blog-page">
 
