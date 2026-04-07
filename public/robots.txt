@@ -1,0 +1,9 @@
+# robots.txt for sapienframework.org
+# The SAPIEN Framework is an open standard — crawl everything.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://sapienframework.org/sitemap-index.xml
+
+# Google Search Console verification files go in /.well-known/

@@ -1,7 +1,15 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "The SAPIEN Framework",
+  "url": "https://sapienframework.org",
+  "description": "Safety Assessment Protocol for Intelligent Entity Networks — an open AI behavioral safety standard"
+};
 ---
-<BaseLayout title="Home">
+<BaseLayout title="The SAPIEN Framework — AI Behavioral Safety Standard" description="An open, vendor-agnostic methodology for measuring AI behavioral integrity under conversational pressure." structuredData={websiteSchema}>
   <!-- Hero -->
   <section class="hero">
     <div class="container">
