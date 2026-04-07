@@ -6,10 +6,30 @@ import Footer from '../components/Footer.astro';
 interface Props {
   title: string;
   description?: string;
+  structuredData?: Record<string, unknown>;
 }
 
-const { title, description = 'SAPIEN — An open behavioral safety standard for AI systems. Measure, benchmark, and harden AI against sycophantic drift.' } = Astro.props;
+const { title, description = 'SAPIEN — An open behavioral safety standard for AI systems. Measure, benchmark, and harden AI against sycophantic drift.', structuredData } = Astro.props;
 const pageTitle = `${title} | SAPIEN Framework`;
+const canonicalUrl = Astro.url.href;
+
+const orgSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "The SAPIEN Framework",
+  "url": "https://sapienframework.org",
+  "description": "An open, vendor-agnostic methodology for measuring AI behavioral integrity under conversational pressure.",
+  "founder": {
+    "@type": "Person",
+    "name": "Callen Sapien",
+    "jobTitle": "CEO & Co-Founder",
+    "affiliation": {
+      "@type": "Organization",
+      "name": "Synthreo.ai",
+      "url": "https://synthreo.ai"
+    }
+  }
+};
 ---
 <!doctype html>
 <html lang="en">
@@ -18,17 +38,23 @@ const pageTitle = `${title} | SAPIEN Framework`;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#1A1F2E" />
+    <link rel="canonical" href={canonicalUrl} />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="The SAPIEN Framework" />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
-    <meta property="og:url" content={Astro.url.href} />
+    <meta property="og:url" content={canonicalUrl} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={pageTitle} />
     <meta name="twitter:description" content={description} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
+    <script type="application/ld+json" set:html={JSON.stringify(orgSchema)} />
+    {structuredData && (
+      <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+    )}
     <title>{pageTitle}</title>
   </head>
   <body>
