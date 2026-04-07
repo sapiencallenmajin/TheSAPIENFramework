@@ -1,97 +1,41 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
+import DocLayout from '../../components/DocLayout.astro';
+
+const sidebarItems = [
+  { label: '1. Introduction', anchor: 'introduction', children: [
+    { label: '1.1 The Problem', anchor: 'the-problem' },
+    { label: '1.2 What It Provides', anchor: 'what-it-provides' },
+    { label: '1.3 What It Does Not Provide', anchor: 'what-it-does-not-provide' },
+    { label: '1.5 Defined Terms', anchor: 'defined-terms' },
+  ]},
+  { label: '2. The Four Dimensions', anchor: 'four-dimensions', children: [
+    { label: '2.1 Specificity Gradient', anchor: 'specificity-gradient' },
+    { label: '2.2 Risk Disclosure Dropout', anchor: 'risk-disclosure-dropout' },
+    { label: '2.3 Epistemic Retreat', anchor: 'epistemic-retreat' },
+    { label: '2.4 Emotional Substitution', anchor: 'emotional-substitution' },
+  ]},
+  { label: '6. Scenario Authoring', anchor: 'scenario-authoring', children: [
+    { label: '6.1 Opening Neutrality', anchor: 'opening-neutrality' },
+    { label: '6.2 Incremental Reasonableness', anchor: 'incremental-reasonableness' },
+    { label: '6.3 Personal Context', anchor: 'personal-context' },
+    { label: '6.4 Model Word Exploitation', anchor: 'model-word-exploitation' },
+    { label: '6.5 Pressure Type Diversity', anchor: 'pressure-type-diversity' },
+    { label: '6.6 Fait Accompli', anchor: 'fait-accompli-requirement' },
+  ]},
+  { label: '8. Scenario Specification', anchor: 'scenario-specification' },
+  { label: '9. Pressure Techniques', anchor: 'pressure-techniques' },
+  { label: '14. Conformance', anchor: 'conformance', children: [
+    { label: '14.1 Required', anchor: 'conformance-required' },
+    { label: '14.2 Recommended', anchor: 'conformance-recommended' },
+    { label: '14.3 Optional', anchor: 'conformance-optional' },
+    { label: '14.4 Conformance Levels', anchor: 'conformance-levels' },
+    { label: '14.5 Reporting Requirements', anchor: 'reporting-requirements' },
+  ]},
+  { label: '16. Versioning & Governance', anchor: 'versioning-governance' },
+  { label: '17. Citation', anchor: 'citation' },
+];
 ---
-<BaseLayout title="Framework Specification" description="The SAPIEN Behavioral Safety Framework v1.1 — complete technical specification for measuring AI behavioral integrity under conversational pressure.">
-
-  <!-- Mobile TOC -->
-  <div class="mobile-toc" id="mobile-toc">
-    <button class="mobile-toc-toggle" id="mobile-toc-toggle" aria-expanded="false" aria-controls="mobile-toc-list">
-      Table of Contents
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="chevron"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    </button>
-    <nav class="mobile-toc-list" id="mobile-toc-list" aria-hidden="true">
-      <a href="#introduction" class="toc-link toc-h1">1. Introduction</a>
-      <a href="#the-problem" class="toc-link toc-h2">1.1 The Problem</a>
-      <a href="#what-it-provides" class="toc-link toc-h2">1.2 What It Provides</a>
-      <a href="#what-it-does-not-provide" class="toc-link toc-h2">1.3 What It Does Not Provide</a>
-      <a href="#defined-terms" class="toc-link toc-h2">1.5 Defined Terms</a>
-      <a href="#four-dimensions" class="toc-link toc-h1">2. The Four Dimensions</a>
-      <a href="#specificity-gradient" class="toc-link toc-h2">2.1 Specificity Gradient</a>
-      <a href="#risk-disclosure-dropout" class="toc-link toc-h2">2.2 Risk Disclosure Dropout</a>
-      <a href="#epistemic-retreat" class="toc-link toc-h2">2.3 Epistemic Retreat</a>
-      <a href="#emotional-substitution" class="toc-link toc-h2">2.4 Emotional Substitution</a>
-      <a href="#scenario-authoring" class="toc-link toc-h1">6. Scenario Authoring</a>
-      <a href="#opening-neutrality" class="toc-link toc-h2">6.1 Opening Neutrality</a>
-      <a href="#incremental-reasonableness" class="toc-link toc-h2">6.2 Incremental Reasonableness</a>
-      <a href="#personal-context" class="toc-link toc-h2">6.3 Personal Context</a>
-      <a href="#model-word-exploitation" class="toc-link toc-h2">6.4 Model Word Exploitation</a>
-      <a href="#pressure-type-diversity" class="toc-link toc-h2">6.5 Pressure Type Diversity</a>
-      <a href="#fait-accompli-requirement" class="toc-link toc-h2">6.6 Fait Accompli</a>
-      <a href="#scenario-specification" class="toc-link toc-h1">8. Scenario Specification</a>
-      <a href="#pressure-techniques" class="toc-link toc-h1">9. Pressure Techniques</a>
-      <a href="#conformance" class="toc-link toc-h1">14. Conformance</a>
-      <a href="#conformance-required" class="toc-link toc-h2">14.1 Required</a>
-      <a href="#conformance-recommended" class="toc-link toc-h2">14.2 Recommended</a>
-      <a href="#conformance-optional" class="toc-link toc-h2">14.3 Optional</a>
-      <a href="#conformance-levels" class="toc-link toc-h2">14.4 Conformance Levels</a>
-      <a href="#reporting-requirements" class="toc-link toc-h2">14.5 Reporting Requirements</a>
-      <a href="#versioning-governance" class="toc-link toc-h1">16. Versioning &amp; Governance</a>
-      <a href="#citation" class="toc-link toc-h1">17. Citation</a>
-    </nav>
-  </div>
-
-  <div class="framework-layout">
-    <!-- Desktop Sidebar -->
-    <aside class="sidebar" id="sidebar">
-      <nav class="sidebar-nav">
-        <div class="sidebar-section">
-          <a href="#introduction" class="sidebar-link active" data-section="introduction">1. Introduction</a>
-          <a href="#the-problem" class="sidebar-sublink" data-section="the-problem">1.1 The Problem</a>
-          <a href="#what-it-provides" class="sidebar-sublink" data-section="what-it-provides">1.2 What It Provides</a>
-          <a href="#what-it-does-not-provide" class="sidebar-sublink" data-section="what-it-does-not-provide">1.3 What It Does Not Provide</a>
-          <a href="#defined-terms" class="sidebar-sublink" data-section="defined-terms">1.5 Defined Terms</a>
-        </div>
-        <div class="sidebar-section">
-          <a href="#four-dimensions" class="sidebar-link" data-section="four-dimensions">2. The Four Dimensions</a>
-          <a href="#specificity-gradient" class="sidebar-sublink" data-section="specificity-gradient">2.1 Specificity Gradient</a>
-          <a href="#risk-disclosure-dropout" class="sidebar-sublink" data-section="risk-disclosure-dropout">2.2 Risk Disclosure Dropout</a>
-          <a href="#epistemic-retreat" class="sidebar-sublink" data-section="epistemic-retreat">2.3 Epistemic Retreat</a>
-          <a href="#emotional-substitution" class="sidebar-sublink" data-section="emotional-substitution">2.4 Emotional Substitution</a>
-        </div>
-        <div class="sidebar-section">
-          <a href="#scenario-authoring" class="sidebar-link" data-section="scenario-authoring">6. Scenario Authoring</a>
-          <a href="#opening-neutrality" class="sidebar-sublink" data-section="opening-neutrality">6.1 Opening Neutrality</a>
-          <a href="#incremental-reasonableness" class="sidebar-sublink" data-section="incremental-reasonableness">6.2 Incremental Reasonableness</a>
-          <a href="#personal-context" class="sidebar-sublink" data-section="personal-context">6.3 Personal Context</a>
-          <a href="#model-word-exploitation" class="sidebar-sublink" data-section="model-word-exploitation">6.4 Model Word Exploitation</a>
-          <a href="#pressure-type-diversity" class="sidebar-sublink" data-section="pressure-type-diversity">6.5 Pressure Type Diversity</a>
-          <a href="#fait-accompli-requirement" class="sidebar-sublink" data-section="fait-accompli-requirement">6.6 Fait Accompli</a>
-        </div>
-        <div class="sidebar-section">
-          <a href="#scenario-specification" class="sidebar-link" data-section="scenario-specification">8. Scenario Specification</a>
-        </div>
-        <div class="sidebar-section">
-          <a href="#pressure-techniques" class="sidebar-link" data-section="pressure-techniques">9. Pressure Techniques</a>
-        </div>
-        <div class="sidebar-section">
-          <a href="#conformance" class="sidebar-link" data-section="conformance">14. Conformance</a>
-          <a href="#conformance-required" class="sidebar-sublink" data-section="conformance-required">14.1 Required</a>
-          <a href="#conformance-recommended" class="sidebar-sublink" data-section="conformance-recommended">14.2 Recommended</a>
-          <a href="#conformance-optional" class="sidebar-sublink" data-section="conformance-optional">14.3 Optional</a>
-          <a href="#conformance-levels" class="sidebar-sublink" data-section="conformance-levels">14.4 Conformance Levels</a>
-          <a href="#reporting-requirements" class="sidebar-sublink" data-section="reporting-requirements">14.5 Reporting Requirements</a>
-        </div>
-        <div class="sidebar-section">
-          <a href="#versioning-governance" class="sidebar-link" data-section="versioning-governance">16. Versioning &amp; Governance</a>
-        </div>
-        <div class="sidebar-section">
-          <a href="#citation" class="sidebar-link" data-section="citation">17. Citation</a>
-        </div>
-      </nav>
-    </aside>
-
-    <!-- Main Content -->
-    <div class="content-area">
+<DocLayout title="Framework Specification" description="The SAPIEN Behavioral Safety Framework v1.1 — complete technical specification for measuring AI behavioral integrity under conversational pressure." sidebarItems={sidebarItems}>
 
       <!-- Header -->
       <header class="spec-header">
@@ -756,302 +700,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         </div>
       </section>
 
-    </div>
-  </div>
 
-</BaseLayout>
+
+</DocLayout>
 
 <style>
-  /* Layout */
-  .framework-layout {
-    display: flex;
-    max-width: 1400px;
-    margin: 0 auto;
-    min-height: 100vh;
-  }
-
-  /* Sidebar */
-  .sidebar {
-    width: 16rem;
-    flex-shrink: 0;
-    position: sticky;
-    top: var(--header-height, 64px);
-    height: calc(100vh - var(--header-height, 64px));
-    overflow-y: auto;
-    background: color-mix(in srgb, var(--color-slate) 100%, black 15%);
-    border-right: 1px solid color-mix(in srgb, var(--color-gold) 20%, transparent);
-    padding: 1.5rem 0;
-    scrollbar-width: thin;
-    scrollbar-color: var(--color-gold) transparent;
-  }
-
-  .sidebar-nav {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .sidebar-section {
-    padding-bottom: 0.5rem;
-    margin-bottom: 0.5rem;
-    border-bottom: 1px solid color-mix(in srgb, var(--color-gold) 10%, transparent);
-  }
-  .sidebar-section:last-child {
-    border-bottom: none;
-  }
-
-  .sidebar-link,
-  .sidebar-sublink {
-    display: block;
-    padding: 0.35rem 1.25rem;
-    font-family: var(--font-body);
-    font-size: 0.85rem;
-    color: color-mix(in srgb, var(--color-cream) 70%, transparent);
-    text-decoration: none;
-    border-left: 3px solid transparent;
-    transition: all 0.15s ease;
-    line-height: 1.4;
-  }
-
-  .sidebar-link {
-    font-weight: 600;
-    font-size: 0.875rem;
-  }
-
-  .sidebar-sublink {
-    padding-left: 2rem;
-    font-size: 0.8rem;
-  }
-
-  .sidebar-link:hover,
-  .sidebar-sublink:hover {
-    color: var(--color-cream);
-    background: color-mix(in srgb, var(--color-gold) 8%, transparent);
-  }
-
-  .sidebar-link.active,
-  .sidebar-sublink.active {
-    color: var(--color-gold);
-    border-left-color: var(--color-gold);
-    background: color-mix(in srgb, var(--color-gold) 10%, transparent);
-  }
-
-  /* Content area */
-  .content-area {
-    flex: 1;
-    min-width: 0;
-    padding: 2rem 3rem 4rem;
-    background: var(--color-slate);
-  }
-
-  /* Spec header */
-  .spec-header {
-    text-align: center;
-    padding-bottom: 2.5rem;
-    margin-bottom: 2.5rem;
-    border-bottom: 2px solid color-mix(in srgb, var(--color-gold) 30%, transparent);
-  }
-
-  .spec-badge {
-    display: inline-block;
-    font-family: var(--font-body);
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    padding: 0.35em 1em;
-    border: 1px solid var(--color-gold);
-    color: var(--color-gold);
-    border-radius: 9999px;
-    margin-bottom: 1rem;
-  }
-
-  .spec-title {
-    font-family: var(--font-display);
-    font-size: 2.5rem;
-    color: var(--color-gold);
-    line-height: 1.2;
-    margin-bottom: 0.5rem;
-  }
-
-  .spec-subtitle {
-    font-family: var(--font-body);
-    font-size: 1.15rem;
-    color: var(--color-cream);
-    margin-bottom: 1rem;
-    font-style: italic;
-  }
-
-  .spec-meta {
-    font-family: var(--font-body);
-    font-size: 0.9rem;
-    color: var(--color-gray);
-    margin-bottom: 0.25rem;
-  }
-
-  /* Preamble */
-  .spec-preamble {
-    padding-bottom: 2rem;
-    margin-bottom: 2rem;
-    border-bottom: 1px solid color-mix(in srgb, var(--color-gold) 20%, transparent);
-  }
-
-  /* Scroll margin for anchor links behind sticky header */
-  [id] {
-    scroll-margin-top: calc(var(--header-height, 64px) + 1.5rem);
-  }
-
-  /* Sections */
-  .spec-section {
-    padding-top: 2.5rem;
-    padding-bottom: 2.5rem;
-    border-top: 1px solid color-mix(in srgb, var(--color-gold) 20%, transparent);
-  }
-
-  .section-heading {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    flex-wrap: wrap;
-  }
-
-  .section-heading h2 {
-    font-family: var(--font-display);
-    font-size: 2rem;
-    color: var(--color-gold);
-    margin: 0;
-  }
-
-  /* Badges */
-  .badge-normative,
-  .badge-informative {
-    display: inline-block;
-    font-family: var(--font-body);
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 0.25em 0.75em;
-    border-radius: 4px;
-  }
-
-  .badge-normative {
-    background: var(--color-navy);
-    color: var(--color-cream);
-  }
-
-  .badge-informative {
-    background: var(--color-gold);
-    color: var(--color-slate);
-  }
-
-  /* Subsections */
-  .spec-subsection {
-    margin-top: 2rem;
-    padding-top: 1.5rem;
-  }
-
-  .spec-subsection h3 {
-    font-family: var(--font-body);
-    font-size: 1.35rem;
-    font-weight: 600;
-    color: var(--color-cream);
-    margin-bottom: 1rem;
-  }
-
-  /* Typography */
-  .content-area p {
-    font-family: var(--font-body);
-    font-size: 1rem;
-    line-height: 1.75;
-    color: color-mix(in srgb, var(--color-cream) 80%, transparent);
-    margin-bottom: 1rem;
-  }
-
-  .content-area h4 {
-    font-family: var(--font-body);
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: var(--color-cream);
-    margin-top: 1.5rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .content-area ul,
-  .content-area ol {
-    font-family: var(--font-body);
-    font-size: 1rem;
-    line-height: 1.75;
-    color: color-mix(in srgb, var(--color-cream) 80%, transparent);
-    margin-bottom: 1rem;
-    padding-left: 1.5rem;
-  }
-
-  .content-area li {
-    margin-bottom: 0.35rem;
-  }
-
-  .content-area strong {
-    color: var(--color-cream);
-  }
-
-  .content-area code {
-    font-size: 0.875em;
-    background: color-mix(in srgb, var(--color-navy) 50%, transparent);
-    padding: 0.15em 0.4em;
-    border-radius: 4px;
-    color: var(--color-gold);
-  }
-
-  .content-area blockquote {
-    border-left: 4px solid var(--color-gold);
-    padding: 1rem 1.5rem;
-    margin: 1.5rem 0;
-    background: color-mix(in srgb, var(--color-navy) 30%, transparent);
-    border-radius: 0 8px 8px 0;
-    font-size: 1.05rem;
-    color: var(--color-cream);
-    font-weight: 500;
-    font-style: italic;
-  }
-
-  /* RFC 2119 keywords */
-  .rfc {
-    font-weight: 700;
-    color: var(--color-gold);
-  }
-
-  /* Term lists */
-  .term-list {
-    margin: 1rem 0 1.5rem;
-  }
-
-  .term-list dt {
-    font-family: var(--font-body);
-    font-weight: 600;
-    color: var(--color-cream);
-    margin-top: 1rem;
-    font-size: 0.95rem;
-  }
-
-  .term-list dd {
-    font-family: var(--font-body);
-    font-size: 0.9rem;
-    line-height: 1.65;
-    color: color-mix(in srgb, var(--color-cream) 75%, transparent);
-    margin-left: 0;
-    padding-left: 1rem;
-    border-left: 2px solid color-mix(in srgb, var(--color-gold) 20%, transparent);
-    margin-top: 0.25rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .field-type {
-    font-family: monospace;
-    font-size: 0.8em;
-    color: var(--color-gray);
-    font-weight: 400;
-  }
 
   /* Rating bands */
   .rating-bands {
@@ -1347,151 +1000,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     white-space: pre-wrap;
   }
 
-  /* Mobile TOC */
-  .mobile-toc {
-    display: none;
-    position: sticky;
-    top: var(--header-height, 64px);
-    z-index: 40;
-    background: color-mix(in srgb, var(--color-slate) 100%, black 15%);
-    border-bottom: 1px solid color-mix(in srgb, var(--color-gold) 20%, transparent);
-  }
-
-  .mobile-toc-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    padding: 1rem 1.5rem;
-    background: none;
-    border: none;
-    color: var(--color-gold);
-    font-family: var(--font-body);
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .mobile-toc-toggle .chevron {
-    transition: transform 0.2s;
-  }
-
-  .mobile-toc-toggle[aria-expanded="true"] .chevron {
-    transform: rotate(180deg);
-  }
-
-  .mobile-toc-list {
-    display: none;
-    max-height: 60vh;
-    overflow-y: auto;
-    padding: 0 1rem 1rem;
-  }
-
-  .mobile-toc-list[aria-hidden="false"] {
-    display: block;
-  }
-
-  .toc-link {
-    display: block;
-    padding: 0.4rem 0.75rem;
-    font-family: var(--font-body);
-    font-size: 0.85rem;
-    color: color-mix(in srgb, var(--color-cream) 70%, transparent);
-    text-decoration: none;
-    border-radius: 4px;
-  }
-
-  .toc-link:hover {
-    color: var(--color-cream);
-    background: color-mix(in srgb, var(--color-gold) 8%, transparent);
-  }
-
-  .toc-h2 {
-    padding-left: 1.5rem;
-    font-size: 0.8rem;
-  }
-
-  /* Responsive */
+  /* Responsive - page-specific */
   @media (max-width: 1024px) {
-    .sidebar {
-      display: none;
-    }
-
-    .mobile-toc {
-      display: block;
-    }
-
-    .content-area {
-      padding: 1.5rem 1.25rem 3rem;
-    }
-
-    .spec-title {
-      font-size: 1.75rem;
-    }
-
-    .section-heading h2 {
-      font-size: 1.5rem;
-    }
-
-    .dimension-card {
-      padding: 1.25rem;
-    }
-
-    .technique-grid {
-      grid-template-columns: 1fr;
-    }
+    .dimension-card { padding: 1.25rem; }
+    .technique-grid { grid-template-columns: 1fr; }
   }
 </style>
-
-<script>
-  // Scroll spy
-  document.addEventListener('DOMContentLoaded', () => {
-    const sidebarLinks = document.querySelectorAll('[data-section]');
-    const sections = new Map();
-
-    sidebarLinks.forEach(link => {
-      const id = link.getAttribute('data-section');
-      const section = document.getElementById(id);
-      if (section) sections.set(id, { el: section, link });
-    });
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            sidebarLinks.forEach(l => l.classList.remove('active'));
-            const id = entry.target.id;
-            const data = sections.get(id);
-            if (data) {
-              data.link.classList.add('active');
-              data.link.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-            }
-          }
-        });
-      },
-      { rootMargin: '-80px 0px -70% 0px', threshold: 0 }
-    );
-
-    sections.forEach(({ el }) => observer.observe(el));
-
-    // Mobile TOC toggle
-    const toggle = document.getElementById('mobile-toc-toggle');
-    const list = document.getElementById('mobile-toc-list');
-
-    if (toggle && list) {
-      toggle.addEventListener('click', () => {
-        const expanded = toggle.getAttribute('aria-expanded') === 'true';
-        toggle.setAttribute('aria-expanded', String(!expanded));
-        list.setAttribute('aria-hidden', String(expanded));
-      });
-
-      // Close on link click
-      list.querySelectorAll('a').forEach(link => {
-        link.addEventListener('click', () => {
-          toggle.setAttribute('aria-expanded', 'false');
-          list.setAttribute('aria-hidden', 'true');
-        });
-      });
-    }
-  });
-</script>
