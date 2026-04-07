@@ -8,6 +8,147 @@
   --color-gray: #6B7280;
   --font-display: 'Playfair Display', serif;
   --font-body: 'Source Sans 3', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ===== Dark theme base ===== */
+html {
+  background-color: var(--color-slate);
+  color: var(--color-cream);
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-slate);
+  color: var(--color-cream);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  color: var(--color-gold);
+}
+
+a {
+  color: var(--color-gold);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* ===== Semantic design tokens ===== */
+:root {
+  --color-bg: #0F1219;
+  --color-bg-alt: #151B28;
+  --color-surface: #1E2536;
+  --color-border: rgba(196, 162, 101, 0.15);
+  --color-accent: #C4A265;
+  --color-accent-glow: rgba(196, 162, 101, 0.15);
+  --color-text: #F5F1EB;
+  --color-text-muted: #9CA3AF;
+  --color-text-dim: #6B7280;
+  --color-warning: #F59E0B;
+  --color-danger: #F97316;
+  --header-height: 64px;
+}
+
+/* ===== Global element styles ===== */
+code {
+  font-family: var(--font-mono);
+}
+
+/* Container utility */
+.container {
+  max-width: 72rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+/* Section utility */
+.section {
+  padding: 4rem 0;
+}
+
+/* Badge utility */
+.badge {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.35em 1em;
+  border: 1px solid var(--color-accent);
+  color: var(--color-accent);
+  border-radius: 9999px;
+}
+
+/* Section headings */
+.section-label {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin-bottom: 0.75rem;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  color: var(--color-gold);
+  margin-bottom: 1rem;
+}
+
+.section-subtitle {
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  color: var(--color-text-muted);
+  max-width: 640px;
+  line-height: 1.7;
+}
+
+/* Button styles */
+.btn {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.75em 1.75em;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.btn:hover {
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--color-gold);
+  color: var(--color-slate);
+}
+
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--color-gold) 85%, #fff);
+  color: var(--color-slate);
+}
+
+.btn-outline {
+  border: 1px solid var(--color-gold);
+  color: var(--color-gold);
+  background: transparent;
+}
+
+.btn-outline:hover {
+  background: color-mix(in srgb, var(--color-gold) 10%, transparent);
+  color: var(--color-gold);
 }
 
 /* Grain texture overlay utility */
