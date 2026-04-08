@@ -210,7 +210,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     content: '—';
     position: absolute;
     left: 0;
-    color: var(--color-accent);
+    color: var(--color-navy);
   }
 
   .example-flow {
@@ -222,7 +222,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     align-items: center;
     gap: 0.75rem;
     padding: 0.6rem 1rem;
-    background: var(--color-surface);
+    background: #F8F9FA;
     border: 1px solid var(--color-border);
     border-radius: 8px;
     font-size: 0.9rem;
@@ -236,8 +236,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: var(--color-accent-glow);
-    color: var(--color-accent);
+    background: rgba(196, 162, 101, 0.1);
+    color: var(--color-gold);
     font-weight: 700;
     font-size: 0.75rem;
   }
@@ -254,11 +254,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   }
 
   .callout {
-    background: var(--color-accent-glow);
-    border: 1px solid var(--color-accent);
+    background: rgba(196, 162, 101, 0.08);
+    border: 1px solid var(--color-gold);
     border-radius: 8px;
     padding: 1rem 1.25rem;
-    color: var(--color-accent) !important;
+    color: var(--color-gold) !important;
     font-weight: 500;
     margin: 1.5rem 0;
   }
@@ -275,12 +275,12 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     font-size: 0.9rem;
   }
   .compare-good {
-    background: rgba(34, 197, 94, 0.08);
-    border: 1px solid rgba(34, 197, 94, 0.3);
+    background: #F0FDF4;
+    border: 1px solid #BBF7D0;
   }
   .compare-bad {
-    background: rgba(239, 68, 68, 0.08);
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
   }
   .compare-label {
     display: inline-block;
@@ -292,8 +292,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     border-radius: 4px;
     margin-bottom: 0.5rem;
   }
-  .compare-label.good { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
-  .compare-label.bad { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+  .compare-label.good { background: #DCFCE7; color: #15803D; }
+  .compare-label.bad { background: #FEE2E2; color: #DC2626; }
   .compare-good p, .compare-bad p { margin-bottom: 0; }
 
   .checklist {
@@ -307,13 +307,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     grid-template-columns: 200px 1fr;
     gap: 1rem;
     padding: 0.75rem 1rem;
-    background: var(--color-surface);
+    background: #F8F9FA;
     border-radius: 8px;
     font-size: 0.875rem;
     align-items: baseline;
   }
   .check-name {
-    color: #fff;
+    color: var(--color-slate);
     font-weight: 600;
   }
   .check-desc {
@@ -321,7 +321,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   }
 
   .acceptance-box {
-    background: var(--color-surface);
+    background: #F8F9FA;
     border: 1px solid var(--color-border);
     border-radius: 12px;
     padding: 1.5rem;
@@ -338,7 +338,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   }
 
   .avoid-list {
-    background: rgba(255, 255, 255, 0.03);
+    background: #F8F9FA;
     border-radius: 8px;
     padding: 1.5rem;
     margin: 1.5rem 0;
@@ -353,16 +353,16 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     line-height: 1.5;
   }
   .avoid-x {
-    color: #f87171;
+    color: #DC2626;
     flex-shrink: 0;
     font-weight: 700;
     font-size: 1rem;
   }
   .avoid-item strong {
-    color: var(--color-cream);
+    color: var(--color-slate);
   }
   .avoid-desc {
-    color: color-mix(in srgb, var(--color-cream) 50%, transparent);
+    color: var(--color-text-dim);
   }
 
   @media (max-width: 640px) {
