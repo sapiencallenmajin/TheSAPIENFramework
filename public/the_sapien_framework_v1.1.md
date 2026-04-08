@@ -1,3 +1,4 @@
+<!-- TODO: Regenerate PDF from this updated markdown. Test procedure names updated in v1.1.1 -->
 ═══════════════════════════════════════════════════════════════════════════════
 
                     THE SAPIEN BEHAVIORAL SAFETY FRAMEWORK
@@ -172,8 +173,8 @@ The SAPIEN Framework fills this gap.
   identical input (Layer 1)
 - LLM-based scoring with anchored rubrics for nuanced assessment
   (Layer 2)
-- Three standardized test procedures (vulnerability scan, adaptive
-  test, penetration test)
+- Three standardized test procedures (behavioral probe, adaptive
+  test, adversarial simulation)
 - Scenario authoring standards for creating new test content
 - Threshold definitions for alerting and intervention
 - Conformance requirements for implementations claiming SAPIEN
@@ -340,14 +341,14 @@ DETECTION LAYERS
 
 TEST PROCEDURES
 
-  Vulnerability Scan (Level 1) — repeatable baseline measurement
+  Behavioral Probe (Level 1) — repeatable baseline measurement
     using predefined scripts with fixed escalation sequences.
     Defined in Section 5.1.
 
   Adaptive Test (Level 2) — AI-generated pressure targeting the
     model's weakest dimension at each turn. Defined in Section 5.2.
 
-  Penetration Test (Level 3) — fully AI-generated conversation
+  Adversarial Simulation (Level 3) — fully AI-generated conversation
     simulating a realistic adversarial user. Defined in Section 5.3.
 
 CONFORMANCE LEVELS
@@ -355,7 +356,7 @@ CONFORMANCE LEVELS
   SAPIEN BASIC — Layer 1 only. Results labeled "SAPIEN Screening."
     Suitable for internal monitoring. Defined in Section 14.4.
 
-  SAPIEN STANDARD — Layer 1 + Layer 2, vulnerability scan +
+  SAPIEN STANDARD — Layer 1 + Layer 2, behavioral probe +
     adaptive test. Suitable for compliance and published benchmarks.
     Defined in Section 14.4.
 
@@ -1112,7 +1113,7 @@ The SAPIEN Framework defines three test procedures of increasing
 sophistication. All three use the same scoring methodology.
 
 
-5.1 VULNERABILITY SCAN (Level 1)
+5.1 BEHAVIORAL PROBE (Level 1)
 
   Purpose: Repeatable baseline measurement for cross-model comparison.
   Pressure: Predefined scripts with fixed escalation sequences.
@@ -1141,7 +1142,7 @@ sophistication. All three use the same scoring methodology.
     modes.
 
   Structure:
-  - Same opening as vulnerability scan
+  - Same opening as behavioral probe
   - After each model response, the scorer identifies which dimension
     scored highest (the weakest point)
   - An AI generates the next user message specifically exploiting
@@ -1152,7 +1153,7 @@ sophistication. All three use the same scoring methodology.
   Result: SAPIEN Score plus dimensional vulnerability profile.
 
 
-5.3 PENETRATION TEST (Level 3)
+5.3 ADVERSARIAL SIMULATION (Level 3)
 
   Purpose: Simulates a realistic adversarial user with no predefined
     scripts.
@@ -1185,13 +1186,13 @@ sophistication. All three use the same scoring methodology.
 5.4 COMPARABILITY ACROSS PROCEDURES
 
 SAPIEN Scores from different test procedures are not directly
-comparable without additional context. A vulnerability scan (Level 1)
+comparable without additional context. A behavioral probe (Level 1)
 produces highly reproducible scores from fixed scripts. An adaptive
 test (Level 2) produces moderately reproducible scores from AI-
-targeted pressure. A penetration test (Level 3) produces low-
+targeted pressure. An adversarial simulation (Level 3) produces low-
 reproducibility scores from fully generative conversations.
 
-A model that scores 72 on a vulnerability scan and 58 on an adaptive
+A model that scores 72 on a behavioral probe and 58 on an adaptive
 test has not "gotten worse" — it was tested under different conditions.
 The adaptive test found weaknesses the fixed script did not probe.
 
@@ -2775,7 +2776,7 @@ medical training across all models — but the baseline shifted
 measurably.
 
 IMPLICATION FOR SAPIEN: This is why the framework specifies cross-
-domain testing (Section 5.3, Penetration Test) and why domain
+domain testing (Section 5.3, Adversarial Simulation) and why domain
 aggregation (Section 3.4) must account for test ordering. Published
 benchmarks are recommended to disclose whether scenarios were run in
 isolated sessions or sequentially.
@@ -3000,7 +3001,7 @@ A conforming implementation MAY:
 14.4 CONFORMANCE LEVELS
 
   SAPIEN BASIC
-    Implements vulnerability scan (Level 1) with Layer 1 deterministic
+    Implements behavioral probe (Level 1) with Layer 1 deterministic
     scoring only. Suitable for internal monitoring and screening.
     SAPIEN BASIC implementations MUST label results as "SAPIEN
     Screening" rather than "SAPIEN Score" in any published or
@@ -3011,7 +3012,7 @@ A conforming implementation MAY:
     or SAPIEN COMPLETE).
 
   SAPIEN STANDARD
-    Implements vulnerability scan and adaptive test (Levels 1-2) with
+    Implements behavioral probe and adaptive test (Levels 1-2) with
     both Layer 1 and Layer 2 scoring. Suitable for compliance
     assessments and published benchmark claims.
 
@@ -3028,7 +3029,7 @@ published assessment:
   - The SAPIEN Score (0-100)
   - The rating band (Low Risk / Moderate / High Risk / Critical)
   - The model tested (exact API string)
-  - The test procedure used (vulnerability scan / adaptive / pentest)
+  - The test procedure used (behavioral probe / adaptive / adversarial simulation)
   - The scoring layer(s) used (deterministic / LLM / both)
   - The judge model used (if Layer 2), per Section 4.3
   - Date of assessment
@@ -3060,7 +3061,7 @@ The SAPIEN Framework builds on and extends prior work:
     Number of Flip (NoF) metrics. The SAPIEN Framework's drift_crossings
     metric is related to NoF, adapted for continuous scoring. SYCON
     tests scripted opposition; the SAPIEN Framework adds adaptive and
-    penetration test modes.
+    adversarial simulation modes.
 
   Anthropic Bloom (Gupta et al., 2025)
     Open-source behavioral evaluation with multi-turn rollouts. The
@@ -3302,7 +3303,7 @@ When citing specific findings:
 When referencing a SAPIEN Rating:
 
   "Model X received a SAPIEN Rating of 63 (Moderate) on the SAPIEN
-  Framework v1.1 vulnerability scan for [domain]."
+  Framework v1.1 behavioral probe for [domain]."
 
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -3456,12 +3457,12 @@ SHOULD run periodic SAPIEN assessments.
 
 RECOMMENDED CADENCE:
 
-  Quarterly: Full SAPIEN STANDARD assessment (vulnerability scan +
+  Quarterly: Full SAPIEN STANDARD assessment (behavioral probe +
   adaptive test, Layer 1 + Layer 2) for all high-risk assistants.
 
   On model change: Run a focused scenario set whenever the underlying
   model is updated (version change, fine-tuning update, system prompt
-  change). Use vulnerability scan (Level 1) at minimum.
+  change). Use behavioral probe (Level 1) at minimum.
 
   On incident: Run a targeted assessment after any behavioral
   incident or user complaint suggesting drift.
@@ -3492,7 +3493,7 @@ EXAMPLE PATTERN:
      RAG configuration change), trigger an automated SAPIEN run.
 
   2. Run a small scenario set (5-10 high-signal scenarios across
-     the assistant's primary domains) using vulnerability scan
+     the assistant's primary domains) using behavioral probe
      (Level 1) with Layer 1 + Layer 2 scoring.
 
   3. Compute H_p10 (10th percentile health) across all scenarios.
@@ -3782,8 +3783,8 @@ B.2 CIS CONTROLS v8
                              behavioral audit trails
   Incident response          Control 17: Incident Response
   (Section 20.3)             Management — AI behavioral incidents
-  Scenario library           Control 18: Penetration Testing —
-                             behavioral penetration testing
+  Scenario library           Control 18: Adversarial Simulation —
+                             behavioral adversarial simulation
 
   CIS Controls do not currently include AI-specific behavioral
   controls. The mappings above represent the closest existing
