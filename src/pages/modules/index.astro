@@ -12,6 +12,59 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <p class="hero-intro">The SAPIEN Protocol is modular by design. Each module is a self-contained specification targeting a distinct category of AI behavioral failure &mdash; with its own dimensions, weights, test procedures, and conformance thresholds. Modules can be adopted independently or composed together for comprehensive behavioral safety coverage. As new failure surfaces are identified, new modules are developed, reviewed, and published without disrupting existing implementations.</p>
     </header>
 
+    <!-- Protocol Relationship Diagram -->
+    <div class="protocol-map">
+      <svg viewBox="0 0 600 320" xmlns="http://www.w3.org/2000/svg" class="protocol-svg">
+        <!-- Central node -->
+        <circle cx="300" cy="160" r="50" fill="#1B3A5C" />
+        <text x="300" y="153" text-anchor="middle" fill="#fff" font-family="IBM Plex Sans, sans-serif" font-size="11" font-weight="700">SAPIEN</text>
+        <text x="300" y="168" text-anchor="middle" fill="#fff" font-family="IBM Plex Sans, sans-serif" font-size="9">Protocol</text>
+
+        <!-- Published: Sycophantic Drift (large, amber) -->
+        <line x1="300" y1="110" x2="300" y2="45" stroke="#1B3A5C" stroke-width="2"/>
+        <circle cx="300" cy="35" r="30" fill="#FEF3C7" stroke="#C4A265" stroke-width="2"/>
+        <text x="300" y="31" text-anchor="middle" fill="#92400E" font-family="IBM Plex Sans, sans-serif" font-size="9" font-weight="600">Sycophantic</text>
+        <text x="300" y="42" text-anchor="middle" fill="#92400E" font-family="IBM Plex Sans, sans-serif" font-size="9" font-weight="600">Drift</text>
+
+        <!-- Draft: Memory Integrity (medium, blue) -->
+        <line x1="347" y1="140" x2="440" y2="90" stroke="#1B3A5C" stroke-width="2"/>
+        <circle cx="460" cy="80" r="25" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
+        <text x="460" y="77" text-anchor="middle" fill="#1E40AF" font-family="IBM Plex Sans, sans-serif" font-size="8" font-weight="600">Memory</text>
+        <text x="460" y="87" text-anchor="middle" fill="#1E40AF" font-family="IBM Plex Sans, sans-serif" font-size="8" font-weight="600">Integrity</text>
+
+        <!-- Compounding risk line between Drift and Memory -->
+        <line x1="325" y1="50" x2="440" y2="70" stroke="#DC2626" stroke-width="1.5" stroke-dasharray="6,4"/>
+
+        <!-- Planned: Agentic Safety (small, gray) -->
+        <line x1="253" y1="145" x2="160" y2="80" stroke="#CBD5E0" stroke-width="1.5"/>
+        <circle cx="145" cy="70" r="20" fill="#F3F4F6" stroke="#CBD5E0" stroke-width="1.5"/>
+        <text x="145" y="68" text-anchor="middle" fill="#6B7280" font-family="IBM Plex Sans, sans-serif" font-size="7" font-weight="600">Agentic</text>
+        <text x="145" y="77" text-anchor="middle" fill="#6B7280" font-family="IBM Plex Sans, sans-serif" font-size="7" font-weight="600">Safety</text>
+
+        <!-- Planned: Hallucination Persistence (small, gray) -->
+        <line x1="260" y1="190" x2="150" y2="250" stroke="#CBD5E0" stroke-width="1.5"/>
+        <circle cx="140" cy="260" r="20" fill="#F3F4F6" stroke="#CBD5E0" stroke-width="1.5"/>
+        <text x="140" y="256" text-anchor="middle" fill="#6B7280" font-family="IBM Plex Sans, sans-serif" font-size="7" font-weight="600">Hallucination</text>
+        <text x="140" y="266" text-anchor="middle" fill="#6B7280" font-family="IBM Plex Sans, sans-serif" font-size="7" font-weight="600">Persistence</text>
+
+        <!-- Planned: Cross-Domain Trust (small, gray) -->
+        <line x1="340" y1="195" x2="440" y2="250" stroke="#CBD5E0" stroke-width="1.5"/>
+        <circle cx="455" cy="260" r="20" fill="#F3F4F6" stroke="#CBD5E0" stroke-width="1.5"/>
+        <text x="455" y="256" text-anchor="middle" fill="#6B7280" font-family="IBM Plex Sans, sans-serif" font-size="7" font-weight="600">Cross-Domain</text>
+        <text x="455" y="266" text-anchor="middle" fill="#6B7280" font-family="IBM Plex Sans, sans-serif" font-size="7" font-weight="600">Trust</text>
+
+        <!-- Legend -->
+        <circle cx="40" cy="295" r="6" fill="#FEF3C7" stroke="#C4A265" stroke-width="1.5"/>
+        <text x="52" y="298" fill="#4A5568" font-family="IBM Plex Sans, sans-serif" font-size="9">Published</text>
+        <circle cx="120" cy="295" r="6" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.5"/>
+        <text x="132" y="298" fill="#4A5568" font-family="IBM Plex Sans, sans-serif" font-size="9">Draft</text>
+        <circle cx="180" cy="295" r="6" fill="#F3F4F6" stroke="#CBD5E0" stroke-width="1.5"/>
+        <text x="192" y="298" fill="#4A5568" font-family="IBM Plex Sans, sans-serif" font-size="9">Planned</text>
+        <line x1="240" y1="295" x2="265" y2="295" stroke="#DC2626" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="272" y="298" fill="#4A5568" font-family="IBM Plex Sans, sans-serif" font-size="9">Compounding risk</text>
+      </svg>
+    </div>
+
     <!-- Module 1: Sycophantic Drift -->
     <section class="module-section" id="sycophantic-drift">
       <div class="module-header">
@@ -28,7 +81,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     </section>
 
     <!-- Module 2: Memory & Context Integrity -->
-    <section class="module-section" id="memory-integrity">
+    <section class="module-section section-band" id="memory-integrity">
       <div class="module-header">
         <h2 class="module-title">Module 2: Memory &amp; Context Integrity</h2>
         <span class="module-badge badge-draft">Draft v0.1</span>
@@ -54,7 +107,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     </section>
 
     <!-- Module 4: Hallucination Persistence -->
-    <section class="module-section" id="hallucination-persistence">
+    <section class="module-section section-band" id="hallucination-persistence">
       <div class="module-header">
         <h2 class="module-title">Module 4: Hallucination Persistence</h2>
         <span class="module-badge badge-planned">Planned</span>
@@ -74,7 +127,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     </section>
 
     <!-- How Modules Compound -->
-    <section class="compound-section" id="how-modules-compound">
+    <section class="compound-section section-band" id="how-modules-compound">
       <h2 class="compound-heading">How Modules Compound</h2>
       <p class="compound-intro">The most dangerous AI failures don't live within a single module. They emerge when failure modes from multiple modules interact, creating compound risks that are greater than the sum of their parts. A model that drifts slightly under pressure <em>and</em> carries inflated trust from a previous session <em>and</em> has the ability to execute actions creates a threat surface that no single module captures alone.</p>
 
@@ -151,6 +204,25 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     color: var(--color-text-muted);
     line-height: 1.8;
     max-width: 52rem;
+  }
+
+  /* Protocol map */
+  .protocol-map {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 3rem;
+    padding: 2rem 0;
+  }
+
+  .protocol-svg {
+    max-width: 600px;
+    width: 100%;
+    height: auto;
+  }
+
+  /* Section band */
+  .section-band {
+    background-color: #F8F9FA;
   }
 
   /* Module sections */

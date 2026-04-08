@@ -31,7 +31,7 @@ const websiteSchema = {
   </section>
 
   <!-- Stats -->
-  <section class="section stats-section">
+  <section class="section section-band stats-section">
     <div class="container">
       <div class="stats-grid">
         <div class="stat-item">
@@ -124,15 +124,81 @@ const websiteSchema = {
   </section>
 
   <!-- Extensible Protocol -->
-  <section class="section">
+  <section class="section section-band">
     <div class="container">
       <p class="section-label">An Extensible Protocol</p>
       <h2 class="section-title">Beyond Sycophantic Drift</h2>
-      <p class="section-subtitle" style="margin-bottom: 1.5rem;">
+      <p class="section-subtitle" style="margin-bottom: 2.5rem;">
         Sycophantic drift is the first published module. The SAPIEN Protocol is expanding to cover
-        memory integrity, agentic safety, hallucination persistence, and cross-domain trust transfer.
+        the full landscape of AI behavioral failure.
       </p>
-      <a href="/modules/" class="btn btn-outline">View all modules &rarr;</a>
+      <div class="module-previews">
+        <a href="/modules/sycophantic-drift/" class="module-preview card-hover">
+          <svg class="module-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M24 4L6 14v20l18 10 18-10V14L24 4z" stroke="#1B3A5C" stroke-width="2" fill="none"/>
+            <path d="M12 20l24 0" stroke="#1B3A5C" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.5"/>
+            <path d="M16 28c4-6 12-6 16 0" stroke="#DC2626" stroke-width="1.5" fill="none"/>
+          </svg>
+          <div class="module-preview-body">
+            <strong>Sycophantic Drift</strong>
+            <span class="module-preview-badge badge-published-sm">Published v1.1</span>
+            <p>Behavioral erosion under conversational pressure</p>
+          </div>
+        </a>
+        <a href="/modules/memory-integrity/" class="module-preview card-hover">
+          <svg class="module-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="24" cy="24" r="16" stroke="#1B3A5C" stroke-width="2" fill="none"/>
+            <circle cx="18" cy="18" r="3" fill="#1B3A5C"/>
+            <circle cx="30" cy="18" r="3" fill="#1B3A5C"/>
+            <circle cx="24" cy="30" r="3" fill="#1B3A5C"/>
+            <line x1="20" y1="19" x2="28" y2="19" stroke="#1B3A5C" stroke-width="1"/>
+            <line x1="19" y1="20" x2="23" y2="28" stroke="#1B3A5C" stroke-width="1"/>
+            <line x1="29" y1="20" x2="25" y2="28" stroke="#1B3A5C" stroke-width="1"/>
+          </svg>
+          <div class="module-preview-body">
+            <strong>Memory &amp; Context Integrity</strong>
+            <span class="module-preview-badge badge-draft-sm">Draft v0.1</span>
+            <p>Safety degradation in persistent AI systems</p>
+          </div>
+        </a>
+        <a href="/modules/#agentic-safety" class="module-preview card-hover">
+          <svg class="module-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="24" cy="20" r="12" stroke="#1B3A5C" stroke-width="2" fill="none"/>
+            <path d="M20 20h8M24 16v8" stroke="#1B3A5C" stroke-width="1.5"/>
+            <path d="M24 32v8M20 40h8" stroke="#1B3A5C" stroke-width="2"/>
+          </svg>
+          <div class="module-preview-body">
+            <strong>Agentic Safety</strong>
+            <span class="module-preview-badge badge-planned-sm">Planned</span>
+            <p>Unsafe autonomous actions under pressure</p>
+          </div>
+        </a>
+        <a href="/modules/#hallucination-persistence" class="module-preview card-hover">
+          <svg class="module-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 32V16c0-4.4 3.6-8 8-8h16c4.4 0 8 3.6 8 8v8c0 4.4-3.6 8-8 8H16l-8 8z" stroke="#1B3A5C" stroke-width="2" fill="none"/>
+            <text x="24" y="25" text-anchor="middle" fill="#1B3A5C" font-family="IBM Plex Sans" font-size="16" font-weight="700">?</text>
+          </svg>
+          <div class="module-preview-body">
+            <strong>Hallucination Persistence</strong>
+            <span class="module-preview-badge badge-planned-sm">Planned</span>
+            <p>Defended fabrications under questioning</p>
+          </div>
+        </a>
+        <a href="/modules/#cross-domain-trust" class="module-preview card-hover">
+          <svg class="module-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="18" cy="24" r="12" stroke="#1B3A5C" stroke-width="2" fill="none"/>
+            <circle cx="30" cy="24" r="12" stroke="#1B3A5C" stroke-width="2" fill="none"/>
+          </svg>
+          <div class="module-preview-body">
+            <strong>Cross-Domain Trust</strong>
+            <span class="module-preview-badge badge-planned-sm">Planned</span>
+            <p>Trust weaponization across topics</p>
+          </div>
+        </a>
+      </div>
+      <div style="margin-top: 2rem;">
+        <a href="/modules/" class="btn btn-outline">View all modules &rarr;</a>
+      </div>
     </div>
   </section>
 
@@ -367,4 +433,63 @@ const websiteSchema = {
       grid-column: auto;
     }
   }
+
+  /* Module previews */
+  .module-previews {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+
+  .module-preview {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: #FFFFFF;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    text-decoration: none;
+  }
+
+  .module-preview:hover {
+    text-decoration: none;
+  }
+
+  .module-icon {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+  }
+
+  .module-preview-body strong {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    color: var(--color-slate);
+    margin-bottom: 0.15rem;
+  }
+
+  .module-preview-body p {
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+    line-height: 1.4;
+    margin: 0;
+  }
+
+  .module-preview-badge {
+    display: inline-block;
+    font-family: var(--font-body);
+    font-size: 0.55rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.15em 0.5em;
+    border-radius: 3px;
+    margin-bottom: 0.3rem;
+  }
+
+  .badge-published-sm { background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; }
+  .badge-draft-sm { background: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE; }
+  .badge-planned-sm { background: #F3F4F6; color: #6B7280; border: 1px solid #E5E7EB; }
 </style>

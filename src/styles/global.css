@@ -152,6 +152,11 @@ code {
   color: #fff;
 }
 
+/* Section band — alternating gray backgrounds */
+.section-band {
+  background-color: #F8F9FA;
+}
+
 /* ===== Card hover effects ===== */
 .card-hover {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
