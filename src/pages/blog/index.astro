@@ -17,7 +17,7 @@ const posts = (await getCollection('blog'))
 
     <div class="post-list">
       {posts.map(post => (
-        <a href={`/blog/${post.id.replace(/\.md$/, '')}/`} class="post-card">
+        <a href={`/blog/${post.id.replace(/\.md$/, '')}/`} class="post-card animate-on-scroll">
           <div class="post-card-inner">
             <h2 class="post-card-title">{post.data.title}</h2>
             <time class="post-card-date" datetime={post.data.date.toISOString()}>
