@@ -25,7 +25,8 @@ const year = new Date().getFullYear();
 
 <style>
   .footer {
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: #1A1F2E;
+    color: #F5F1EB;
     padding: 3rem 0;
     margin-top: 4rem;
   }
@@ -51,23 +52,29 @@ const year = new Date().getFullYear();
   }
   .footer-tagline {
     font-size: 0.875rem;
-    color: var(--color-text-muted);
+    color: #9CA3AF;
     margin-bottom: 0.75rem;
   }
   .footer-version {
     font-family: var(--font-mono);
     font-size: 0.75rem;
-    color: var(--color-text-dim);
+    color: #6B7280;
     margin-bottom: 0.5rem;
   }
   .footer-copy {
     font-size: 0.8rem;
-    color: var(--color-text-dim);
+    color: #6B7280;
   }
   .footer-contact {
     font-size: 0.8rem;
-    color: var(--color-text-dim);
+    color: #6B7280;
     margin-top: 0.25rem;
+  }
+  .footer-contact a {
+    color: #9CA3AF;
+  }
+  .footer-contact a:hover {
+    color: var(--color-gold);
   }
   .footer-nav {
     display: flex;
@@ -76,7 +83,7 @@ const year = new Date().getFullYear();
   }
   .footer-nav a {
     font-size: 0.85rem;
-    color: var(--color-text-muted);
+    color: #9CA3AF;
     text-decoration: none;
   }
   .footer-nav a:hover {

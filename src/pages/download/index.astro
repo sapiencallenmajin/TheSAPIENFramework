@@ -101,20 +101,21 @@ Framework v1.1 behavioral probe for [domain]."</pre>
     max-width: 48rem;
     margin: 0 auto;
     padding: 0 1.5rem 4rem;
+    background: #FFFFFF;
   }
 
   /* Hero */
   .download-hero {
     text-align: center;
     padding: 3rem 0 2.5rem;
-    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 2px solid var(--color-border);
     margin-bottom: 3rem;
   }
 
   .download-title {
     font-family: var(--font-display);
     font-size: 2.75rem;
-    color: var(--color-cream);
+    color: var(--color-slate);
     line-height: 1.2;
     margin-bottom: 0.5rem;
   }
@@ -122,7 +123,7 @@ Framework v1.1 behavioral probe for [domain]."</pre>
   .download-version {
     font-family: var(--font-body);
     font-size: 1.05rem;
-    color: color-mix(in srgb, var(--color-cream) 65%, transparent);
+    color: var(--color-text-dim);
     font-style: italic;
     margin-bottom: 1.25rem;
   }
@@ -131,7 +132,7 @@ Framework v1.1 behavioral probe for [domain]."</pre>
     font-family: var(--font-body);
     font-size: 1.05rem;
     line-height: 1.7;
-    color: color-mix(in srgb, var(--color-cream) 80%, transparent);
+    color: var(--color-text-muted);
     max-width: 36rem;
     margin: 0 auto;
   }
@@ -139,7 +140,7 @@ Framework v1.1 behavioral probe for [domain]."</pre>
   /* Sections */
   .download-section {
     padding: 2.5rem 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--color-border);
   }
 
   .download-section:last-child {
@@ -149,7 +150,7 @@ Framework v1.1 behavioral probe for [domain]."</pre>
   .download-section h2 {
     font-family: var(--font-display);
     font-size: 1.75rem;
-    color: var(--color-cream);
+    color: var(--color-slate);
     margin-bottom: 1rem;
   }
 
@@ -157,29 +158,29 @@ Framework v1.1 behavioral probe for [domain]."</pre>
     font-family: var(--font-body);
     font-size: 1rem;
     line-height: 1.75;
-    color: color-mix(in srgb, var(--color-cream) 80%, transparent);
+    color: var(--color-text-muted);
     margin-bottom: 0.75rem;
   }
 
   .download-section strong {
-    color: var(--color-cream);
+    color: var(--color-slate);
   }
 
   .gold-link {
-    color: var(--color-gold);
+    color: var(--color-navy);
     text-decoration: underline;
     text-underline-offset: 2px;
   }
 
   .gold-link:hover {
-    color: var(--color-cream);
+    color: var(--color-gold);
   }
 
   /* Primary Download */
   .download-info-title {
     font-family: var(--font-display);
     font-size: 1.5rem;
-    color: var(--color-cream);
+    color: var(--color-slate);
     margin-bottom: 0.5rem;
   }
 
@@ -187,7 +188,7 @@ Framework v1.1 behavioral probe for [domain]."</pre>
     font-family: var(--font-body);
     font-size: 0.95rem;
     line-height: 1.6;
-    color: color-mix(in srgb, var(--color-cream) 70%, transparent);
+    color: var(--color-text-muted);
     margin-bottom: 1.25rem;
   }
 
@@ -205,7 +206,7 @@ Framework v1.1 behavioral probe for [domain]."</pre>
     font-family: var(--font-body);
     font-size: 0.95rem;
     font-weight: 700;
-    color: var(--color-slate);
+    color: #fff;
     background: var(--color-gold);
     padding: 0.75em 1.75em;
     border-radius: 8px;
@@ -216,7 +217,7 @@ Framework v1.1 behavioral probe for [domain]."</pre>
   .download-btn:hover {
     background: color-mix(in srgb, var(--color-gold) 85%, #fff);
     transform: translateY(-1px);
-    color: var(--color-slate);
+    color: #fff;
     text-decoration: none;
   }
 
@@ -227,8 +228,8 @@ Framework v1.1 behavioral probe for [domain]."</pre>
     font-family: var(--font-body);
     font-size: 0.95rem;
     font-weight: 600;
-    color: var(--color-cream);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--color-navy);
+    border: 1px solid var(--color-border);
     padding: 0.75em 1.75em;
     border-radius: 8px;
     text-decoration: none;
@@ -236,9 +237,9 @@ Framework v1.1 behavioral probe for [domain]."</pre>
   }
 
   .download-btn-outline:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: #F8F9FA;
     text-decoration: none;
-    color: #fff;
+    color: var(--color-navy);
   }
 
   .download-hash {
@@ -265,15 +266,15 @@ Framework v1.1 behavioral probe for [domain]."</pre>
   }
 
   .version-entry:not(:last-child) {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid var(--color-border);
   }
 
   .version-marker {
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.15);
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: var(--color-border);
+    border: 2px solid var(--color-border);
     margin-top: 0.3rem;
     flex-shrink: 0;
   }
@@ -281,7 +282,7 @@ Framework v1.1 behavioral probe for [domain]."</pre>
   .version-current .version-marker {
     background: var(--color-gold);
     border-color: var(--color-gold);
-    box-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
   }
 
   .version-content {
@@ -292,28 +293,28 @@ Framework v1.1 behavioral probe for [domain]."</pre>
     font-family: var(--font-mono);
     font-size: 0.9rem;
     font-weight: 700;
-    color: var(--color-cream);
+    color: var(--color-slate);
     margin-right: 0.75rem;
   }
 
   .version-date {
     font-family: var(--font-body);
     font-size: 0.85rem;
-    color: color-mix(in srgb, var(--color-cream) 55%, transparent);
+    color: var(--color-text-dim);
   }
 
   .version-content p {
     font-family: var(--font-body);
     font-size: 0.95rem;
     line-height: 1.65;
-    color: color-mix(in srgb, var(--color-cream) 75%, transparent);
+    color: var(--color-text-muted);
     margin-top: 0.4rem;
   }
 
   /* Trademark Notice */
   .trademark-notice {
-    background: color-mix(in srgb, var(--color-navy) 20%, transparent);
-    border-left: 3px solid rgba(255, 255, 255, 0.15);
+    background: #F8F9FA;
+    border-left: 3px solid var(--color-border);
     border-radius: 0 6px 6px 0;
     padding: 1rem 1.25rem;
     margin-top: 1rem;
@@ -323,29 +324,30 @@ Framework v1.1 behavioral probe for [domain]."</pre>
     font-family: var(--font-body);
     font-size: 0.9rem;
     line-height: 1.65;
-    color: color-mix(in srgb, var(--color-cream) 75%, transparent);
+    color: var(--color-text-muted);
     margin: 0;
   }
 
   /* Citation */
   .citation-block {
     position: relative;
-    background: color-mix(in srgb, var(--color-navy) 35%, transparent);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #F8F9FA;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 1.25rem 1.5rem;
     margin-bottom: 1rem;
   }
 
   .citation-secondary {
-    border-color: rgba(255, 255, 255, 0.04);
+    background: #F8F9FA;
+    border-color: var(--color-border);
   }
 
   .citation-block pre {
     font-family: var(--font-mono);
     font-size: 0.85rem;
     line-height: 1.6;
-    color: color-mix(in srgb, var(--color-cream) 85%, transparent);
+    color: var(--color-slate);
     margin: 0;
     white-space: pre-wrap;
     word-break: break-word;
@@ -360,9 +362,9 @@ Framework v1.1 behavioral probe for [domain]."</pre>
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #9CA3AF;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--color-text-dim);
+    background: #FFFFFF;
+    border: 1px solid var(--color-border);
     border-radius: 4px;
     padding: 0.3em 0.7em;
     cursor: pointer;
@@ -370,13 +372,13 @@ Framework v1.1 behavioral probe for [domain]."</pre>
   }
 
   .copy-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: #F1F3F5;
   }
 
   .citation-note {
     font-family: var(--font-body);
     font-size: 0.9rem;
-    color: color-mix(in srgb, var(--color-cream) 60%, transparent);
+    color: var(--color-text-dim);
     margin-bottom: 0.5rem;
     margin-top: 0.5rem;
   }
