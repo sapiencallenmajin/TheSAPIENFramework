@@ -11,7 +11,7 @@ const websiteSchema = {
 ---
 <BaseLayout title="The SAPIEN Framework — AI Behavioral Safety Standard" description="An open, vendor-agnostic methodology for measuring AI behavioral integrity under conversational pressure." structuredData={websiteSchema}>
   <!-- Hero -->
-  <section class="hero grain-overlay">
+  <section class="hero">
     <div class="container hero-content">
       <span class="badge">Open Standard v1.1</span>
       <h1 class="hero-title">
@@ -147,6 +147,7 @@ const websiteSchema = {
     overflow: hidden;
     padding: 6rem 0 5rem;
     text-align: center;
+    background: #FFFFFF;
   }
 
   .hero-content {
@@ -163,18 +164,14 @@ const websiteSchema = {
     font-weight: 800;
     letter-spacing: -0.02em;
     margin-bottom: 1.5rem;
-    background: linear-gradient(135deg, #fff 40%, var(--color-accent));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-shadow: none;
+    color: var(--color-slate);
   }
 
   .hero-acronym {
     font-family: var(--font-mono);
     font-size: 0.85rem;
     letter-spacing: 0.04em;
-    color: var(--color-text-muted);
+    color: var(--color-navy);
     margin-bottom: 1.5rem;
   }
 
@@ -187,7 +184,7 @@ const websiteSchema = {
   }
 
   .hero-subtitle strong {
-    color: var(--color-cream);
+    color: var(--color-slate);
     font-weight: 700;
   }
 
@@ -201,7 +198,7 @@ const websiteSchema = {
   /* Stats */
   .stats-section {
     padding: 3rem 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--color-border);
   }
 
   .stats-grid {
@@ -222,7 +219,7 @@ const websiteSchema = {
     font-family: var(--font-display);
     font-size: 3rem;
     font-weight: 700;
-    color: var(--color-cream);
+    color: var(--color-gold);
     line-height: 1;
   }
 
@@ -256,7 +253,7 @@ const websiteSchema = {
   .pull-quote {
     font-size: 1.25rem;
     line-height: 1.7;
-    color: var(--color-cream);
+    color: var(--color-slate);
     font-style: italic;
     max-width: 640px;
   }
@@ -269,8 +266,8 @@ const websiteSchema = {
     margin-top: 3rem;
   }
   .drift-card {
-    background: var(--color-surface);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: #FFFFFF;
+    border: 1px solid var(--color-border);
     border-radius: 12px;
     padding: 1.75rem;
   }
@@ -281,8 +278,8 @@ const websiteSchema = {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.06);
-    color: var(--color-cream);
+    background: var(--color-bg-alt);
+    color: var(--color-navy);
     font-weight: 700;
     font-size: 0.875rem;
     margin-bottom: 1rem;
@@ -308,8 +305,8 @@ const websiteSchema = {
     grid-column: 1 / 3;
   }
   .pillar-card {
-    background: var(--color-surface);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: #FFFFFF;
+    border: 1px solid var(--color-border);
     border-radius: 12px;
     padding: 1.75rem;
   }
@@ -317,7 +314,7 @@ const websiteSchema = {
     font-family: var(--font-mono);
     font-size: 0.8rem;
     font-weight: 600;
-    color: var(--color-gold);
+    color: var(--color-navy);
     margin-bottom: 0.75rem;
   }
   .pillar-card h3 {

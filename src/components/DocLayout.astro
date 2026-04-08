@@ -64,7 +64,7 @@ const { title, description, sidebarItems } = Astro.props;
 </BaseLayout>
 
 <style is:global>
-  /* ===== DocLayout shared styles ===== */
+  /* ===== DocLayout shared styles — light theme ===== */
 
   .doc-layout {
     display: flex;
@@ -81,11 +81,11 @@ const { title, description, sidebarItems } = Astro.props;
     top: var(--header-height, 64px);
     height: calc(100vh - var(--header-height, 64px));
     overflow-y: auto;
-    background: color-mix(in srgb, var(--color-slate) 100%, black 15%);
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    background: #F8F9FA;
+    border-right: 1px solid var(--color-border);
     padding: 1.5rem 0;
     scrollbar-width: thin;
-    scrollbar-color: var(--color-text-dim) transparent;
+    scrollbar-color: #CBD5E0 transparent;
   }
 
   .sidebar-nav {
@@ -96,7 +96,7 @@ const { title, description, sidebarItems } = Astro.props;
   .sidebar-section {
     padding-bottom: 0.25rem;
     margin-bottom: 0.25rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid var(--color-border);
   }
   .sidebar-section:last-child { border-bottom: none; }
 
@@ -106,7 +106,7 @@ const { title, description, sidebarItems } = Astro.props;
     padding: 0.35rem 1.25rem;
     font-family: var(--font-body);
     font-size: 0.85rem;
-    color: color-mix(in srgb, var(--color-cream) 70%, transparent);
+    color: var(--color-text-muted);
     text-decoration: none;
     border-left: 3px solid transparent;
     transition: all 0.15s ease;
@@ -117,15 +117,16 @@ const { title, description, sidebarItems } = Astro.props;
 
   .sidebar-link:hover,
   .sidebar-sublink:hover {
-    color: var(--color-cream);
-    background: rgba(255, 255, 255, 0.04);
+    color: var(--color-slate);
+    background: #F1F3F5;
   }
 
   .sidebar-link.active,
   .sidebar-sublink.active {
-    color: var(--color-gold);
+    color: var(--color-navy);
     border-left-color: var(--color-gold);
-    background: rgba(255, 255, 255, 0.04);
+    background: #FFFFFF;
+    font-weight: 700;
   }
 
   /* Content area */
@@ -133,10 +134,9 @@ const { title, description, sidebarItems } = Astro.props;
     flex: 1;
     min-width: 0;
     padding: 2rem 3rem 4rem;
-    background: var(--color-slate);
+    background: #FFFFFF;
   }
 
-  /* Scroll margin for anchor links behind sticky header */
   .content-area [id] {
     scroll-margin-top: calc(var(--header-height, 64px) + 1.5rem);
   }
@@ -146,7 +146,7 @@ const { title, description, sidebarItems } = Astro.props;
     text-align: center;
     padding-bottom: 2.5rem;
     margin-bottom: 2.5rem;
-    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 2px solid var(--color-border);
   }
 
   .spec-badge {
@@ -157,8 +157,8 @@ const { title, description, sidebarItems } = Astro.props;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     padding: 0.35em 1em;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #9CA3AF;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
     border-radius: 9999px;
     margin-bottom: 1rem;
   }
@@ -166,7 +166,7 @@ const { title, description, sidebarItems } = Astro.props;
   .spec-title {
     font-family: var(--font-display);
     font-size: 2.5rem;
-    color: var(--color-cream);
+    color: var(--color-slate);
     line-height: 1.2;
     margin-bottom: 0.5rem;
   }
@@ -174,7 +174,7 @@ const { title, description, sidebarItems } = Astro.props;
   .spec-subtitle {
     font-family: var(--font-body);
     font-size: 1.15rem;
-    color: var(--color-cream);
+    color: var(--color-text-muted);
     margin-bottom: 1rem;
     font-style: italic;
   }
@@ -182,7 +182,7 @@ const { title, description, sidebarItems } = Astro.props;
   .spec-meta {
     font-family: var(--font-body);
     font-size: 0.9rem;
-    color: var(--color-gray);
+    color: var(--color-text-dim);
     margin-bottom: 0.25rem;
   }
 
@@ -190,7 +190,7 @@ const { title, description, sidebarItems } = Astro.props;
   .spec-section {
     padding-top: 2.5rem;
     padding-bottom: 2.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid var(--color-border);
   }
 
   .section-heading {
@@ -204,7 +204,7 @@ const { title, description, sidebarItems } = Astro.props;
   .section-heading h2 {
     font-family: var(--font-display);
     font-size: 2rem;
-    color: var(--color-cream);
+    color: var(--color-slate);
     margin: 0;
   }
 
@@ -220,8 +220,8 @@ const { title, description, sidebarItems } = Astro.props;
     padding: 0.25em 0.75em;
     border-radius: 4px;
   }
-  .badge-normative { background: #475569; color: #fff; }
-  .badge-informative { background: #57534e; color: #fff; }
+  .badge-normative { background: var(--color-navy); color: #fff; }
+  .badge-informative { background: #6B7280; color: #fff; }
 
   /* Subsections */
   .spec-subsection {
@@ -233,7 +233,7 @@ const { title, description, sidebarItems } = Astro.props;
     font-family: var(--font-body);
     font-size: 1.35rem;
     font-weight: 600;
-    color: var(--color-cream);
+    color: var(--color-slate);
     margin-bottom: 1rem;
   }
 
@@ -242,7 +242,7 @@ const { title, description, sidebarItems } = Astro.props;
     font-family: var(--font-body);
     font-size: 1rem;
     line-height: 1.75;
-    color: color-mix(in srgb, var(--color-cream) 80%, transparent);
+    color: var(--color-text-muted);
     margin-bottom: 1rem;
   }
 
@@ -250,7 +250,7 @@ const { title, description, sidebarItems } = Astro.props;
     font-family: var(--font-body);
     font-size: 1.05rem;
     font-weight: 600;
-    color: var(--color-cream);
+    color: var(--color-slate);
     margin-top: 1.5rem;
     margin-bottom: 0.75rem;
   }
@@ -260,36 +260,36 @@ const { title, description, sidebarItems } = Astro.props;
     font-family: var(--font-body);
     font-size: 1rem;
     line-height: 1.75;
-    color: color-mix(in srgb, var(--color-cream) 80%, transparent);
+    color: var(--color-text-muted);
     margin-bottom: 1rem;
     padding-left: 1.5rem;
   }
 
   .content-area li { margin-bottom: 0.35rem; }
-  .content-area strong { color: var(--color-cream); }
+  .content-area strong { color: var(--color-slate); }
 
   .content-area code {
     font-size: 0.875em;
-    background: color-mix(in srgb, var(--color-navy) 50%, transparent);
+    background: #F1F3F5;
     padding: 0.15em 0.4em;
     border-radius: 4px;
-    color: var(--color-gold);
+    color: var(--color-navy);
   }
 
   .content-area blockquote {
     border-left: 4px solid var(--color-gold);
     padding: 1rem 1.5rem;
     margin: 1.5rem 0;
-    background: color-mix(in srgb, var(--color-navy) 30%, transparent);
+    background: #F8F9FA;
     border-radius: 0 8px 8px 0;
     font-size: 1.05rem;
-    color: var(--color-cream);
+    color: var(--color-slate);
     font-weight: 500;
     font-style: italic;
   }
 
   /* RFC 2119 keywords */
-  .rfc { font-weight: 700; color: var(--color-gold); }
+  .rfc { font-weight: 700; color: var(--color-navy); }
 
   /* Term lists */
   .term-list { margin: 1rem 0 1.5rem; }
@@ -297,7 +297,7 @@ const { title, description, sidebarItems } = Astro.props;
   .term-list dt {
     font-family: var(--font-body);
     font-weight: 600;
-    color: var(--color-cream);
+    color: var(--color-slate);
     margin-top: 1rem;
     font-size: 0.95rem;
   }
@@ -306,10 +306,10 @@ const { title, description, sidebarItems } = Astro.props;
     font-family: var(--font-body);
     font-size: 0.9rem;
     line-height: 1.65;
-    color: color-mix(in srgb, var(--color-cream) 75%, transparent);
+    color: var(--color-text-muted);
     margin-left: 0;
     padding-left: 1rem;
-    border-left: 2px solid rgba(255, 255, 255, 0.08);
+    border-left: 2px solid var(--color-border);
     margin-top: 0.25rem;
     margin-bottom: 0.5rem;
   }
@@ -317,7 +317,7 @@ const { title, description, sidebarItems } = Astro.props;
   .field-type {
     font-family: monospace;
     font-size: 0.8em;
-    color: var(--color-gray);
+    color: var(--color-text-dim);
     font-weight: 400;
   }
 
@@ -325,14 +325,14 @@ const { title, description, sidebarItems } = Astro.props;
   .spec-preamble {
     padding-bottom: 2rem;
     margin-bottom: 2rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--color-border);
   }
 
   /* Rubric note */
   .rubric-note {
     font-size: 0.9rem !important;
     padding: 0.75rem 1rem;
-    background: color-mix(in srgb, var(--color-navy) 40%, transparent);
+    background: #F8F9FA;
     border-radius: 6px;
     border-left: 3px solid var(--color-gold);
     margin-top: 1rem;
@@ -344,8 +344,8 @@ const { title, description, sidebarItems } = Astro.props;
     position: sticky;
     top: var(--header-height, 64px);
     z-index: 40;
-    background: color-mix(in srgb, var(--color-slate) 100%, black 15%);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: #F8F9FA;
+    border-bottom: 1px solid var(--color-border);
   }
 
   .mobile-toc-toggle {
@@ -356,7 +356,7 @@ const { title, description, sidebarItems } = Astro.props;
     padding: 1rem 1.5rem;
     background: none;
     border: none;
-    color: var(--color-gold);
+    color: var(--color-navy);
     font-family: var(--font-body);
     font-size: 0.95rem;
     font-weight: 600;
@@ -379,17 +379,17 @@ const { title, description, sidebarItems } = Astro.props;
     padding: 0.4rem 0.75rem;
     font-family: var(--font-body);
     font-size: 0.85rem;
-    color: color-mix(in srgb, var(--color-cream) 70%, transparent);
+    color: var(--color-text-muted);
     text-decoration: none;
     border-radius: 4px;
   }
   .toc-link:hover {
-    color: var(--color-cream);
-    background: rgba(255, 255, 255, 0.04);
+    color: var(--color-slate);
+    background: #F1F3F5;
   }
   .toc-h2 { padding-left: 1.5rem; font-size: 0.8rem; }
 
-  /* Prose line-length cap for readability */
+  /* Prose line-length cap */
   .content-area p,
   .content-area li,
   .content-area dd,
@@ -413,30 +413,29 @@ const { title, description, sidebarItems } = Astro.props;
     max-width: none;
   }
 
-  /* Accordion section card styling — tight stacking like a technical index */
+  /* Accordion — tight stacking */
   details.framework-section > summary {
-    background: rgba(255, 255, 255, 0.03);
+    background: #FFFFFF;
     border-radius: 0;
     padding: 0.85rem 1.25rem;
     margin-bottom: 2px;
     transition: background 0.2s ease;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid var(--color-border);
   }
 
   details.framework-section > summary:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: #F8F9FA;
   }
 
   details.framework-section[open] > summary {
-    background: rgba(255, 255, 255, 0.05);
+    background: #F8F9FA;
     border-radius: 0;
     margin-bottom: 0;
     border-bottom: none;
   }
 
-  /* Subsection card styling */
   details.framework-subsection > summary {
-    background: rgba(255, 255, 255, 0.02);
+    background: #FFFFFF;
     border-radius: 6px;
     padding: 0.75rem 1rem;
     margin-bottom: 0.15rem;
@@ -444,7 +443,7 @@ const { title, description, sidebarItems } = Astro.props;
   }
 
   details.framework-subsection > summary:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: #F8F9FA;
   }
 
   /* Responsive */
