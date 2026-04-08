@@ -12,57 +12,46 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <p class="hero-intro">The SAPIEN Protocol is modular by design. Each module is a self-contained specification targeting a distinct category of AI behavioral failure &mdash; with its own dimensions, weights, test procedures, and conformance thresholds. Modules can be adopted independently or composed together for comprehensive behavioral safety coverage. As new failure surfaces are identified, new modules are developed, reviewed, and published without disrupting existing implementations.</p>
     </header>
 
-    <!-- Protocol Relationship Diagram -->
-    <div class="protocol-map">
-      <svg viewBox="0 0 600 320" xmlns="http://www.w3.org/2000/svg" class="protocol-svg">
-        <!-- Central node -->
-        <circle cx="300" cy="160" r="50" fill="#1B3A5C" />
-        <text x="300" y="153" text-anchor="middle" fill="#fff" font-family="Inter, sans-serif" font-size="11" font-weight="700">SAPIEN</text>
-        <text x="300" y="168" text-anchor="middle" fill="#fff" font-family="Inter, sans-serif" font-size="9">Protocol</text>
-
-        <!-- Published: Sycophantic Drift (large, amber) -->
-        <line x1="300" y1="110" x2="300" y2="45" stroke="#1B3A5C" stroke-width="2"/>
-        <circle cx="300" cy="35" r="30" fill="#FEF3C7" stroke="#C4A265" stroke-width="2"/>
-        <text x="300" y="31" text-anchor="middle" fill="#92400E" font-family="Inter, sans-serif" font-size="9" font-weight="600">Sycophantic</text>
-        <text x="300" y="42" text-anchor="middle" fill="#92400E" font-family="Inter, sans-serif" font-size="9" font-weight="600">Drift</text>
-
-        <!-- Draft: Memory Integrity (medium, blue) -->
-        <line x1="347" y1="140" x2="440" y2="90" stroke="#1B3A5C" stroke-width="2"/>
-        <circle cx="460" cy="80" r="25" fill="#EFF6FF" stroke="#2563EB" stroke-width="2"/>
-        <text x="460" y="77" text-anchor="middle" fill="#1E40AF" font-family="Inter, sans-serif" font-size="8" font-weight="600">Memory</text>
-        <text x="460" y="87" text-anchor="middle" fill="#1E40AF" font-family="Inter, sans-serif" font-size="8" font-weight="600">Integrity</text>
-
-        <!-- Compounding risk line between Drift and Memory -->
-        <line x1="325" y1="50" x2="440" y2="70" stroke="#DC2626" stroke-width="1.5" stroke-dasharray="6,4"/>
-
-        <!-- Planned: Agentic Safety (small, gray) -->
-        <line x1="253" y1="145" x2="160" y2="80" stroke="#CBD5E0" stroke-width="1.5"/>
-        <circle cx="145" cy="70" r="20" fill="#F3F4F6" stroke="#CBD5E0" stroke-width="1.5"/>
-        <text x="145" y="68" text-anchor="middle" fill="#6B7280" font-family="Inter, sans-serif" font-size="7" font-weight="600">Agentic</text>
-        <text x="145" y="77" text-anchor="middle" fill="#6B7280" font-family="Inter, sans-serif" font-size="7" font-weight="600">Safety</text>
-
-        <!-- Planned: Hallucination Persistence (small, gray) -->
-        <line x1="260" y1="190" x2="150" y2="250" stroke="#CBD5E0" stroke-width="1.5"/>
-        <circle cx="140" cy="260" r="20" fill="#F3F4F6" stroke="#CBD5E0" stroke-width="1.5"/>
-        <text x="140" y="256" text-anchor="middle" fill="#6B7280" font-family="Inter, sans-serif" font-size="7" font-weight="600">Hallucination</text>
-        <text x="140" y="266" text-anchor="middle" fill="#6B7280" font-family="Inter, sans-serif" font-size="7" font-weight="600">Persistence</text>
-
-        <!-- Planned: Cross-Domain Trust (small, gray) -->
-        <line x1="340" y1="195" x2="440" y2="250" stroke="#CBD5E0" stroke-width="1.5"/>
-        <circle cx="455" cy="260" r="20" fill="#F3F4F6" stroke="#CBD5E0" stroke-width="1.5"/>
-        <text x="455" y="256" text-anchor="middle" fill="#6B7280" font-family="Inter, sans-serif" font-size="7" font-weight="600">Cross-Domain</text>
-        <text x="455" y="266" text-anchor="middle" fill="#6B7280" font-family="Inter, sans-serif" font-size="7" font-weight="600">Trust</text>
-
-        <!-- Legend -->
-        <circle cx="40" cy="295" r="6" fill="#FEF3C7" stroke="#C4A265" stroke-width="1.5"/>
-        <text x="52" y="298" fill="#4A5568" font-family="Inter, sans-serif" font-size="9">Published</text>
-        <circle cx="120" cy="295" r="6" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.5"/>
-        <text x="132" y="298" fill="#4A5568" font-family="Inter, sans-serif" font-size="9">Draft</text>
-        <circle cx="180" cy="295" r="6" fill="#F3F4F6" stroke="#CBD5E0" stroke-width="1.5"/>
-        <text x="192" y="298" fill="#4A5568" font-family="Inter, sans-serif" font-size="9">Planned</text>
-        <line x1="240" y1="295" x2="265" y2="295" stroke="#DC2626" stroke-width="1.5" stroke-dasharray="4,3"/>
-        <text x="272" y="298" fill="#4A5568" font-family="Inter, sans-serif" font-size="9">Compounding risk</text>
-      </svg>
+    <!-- Module Overview -->
+    <div class="module-overview">
+      <div class="mo-entry" style="border-left-color: #BA7517;">
+        <div class="mo-row">
+          <span class="mo-num">01</span>
+          <span class="mo-name">Sycophantic Drift</span>
+          <span class="mo-status" style="color: #BA7517;">published v1.1</span>
+        </div>
+        <p class="mo-detail">4 dimensions &middot; 14 pressure techniques &middot; 66 scenarios &middot; 3 test procedures</p>
+      </div>
+      <div class="mo-entry" style="border-left-color: #185FA5;">
+        <div class="mo-row">
+          <span class="mo-num">02</span>
+          <span class="mo-name">Memory &amp; Context Integrity</span>
+          <span class="mo-status" style="color: #185FA5;">draft v0.1</span>
+        </div>
+        <p class="mo-detail">4 dimensions &middot; 4 cultivation types &middot; 36 scenario targets &middot; compounding risk scoring</p>
+      </div>
+      <div class="mo-entry mo-entry-planned">
+        <div class="mo-row">
+          <span class="mo-num">03</span>
+          <span class="mo-name">Agentic Safety</span>
+          <span class="mo-status">planned</span>
+        </div>
+      </div>
+      <div class="mo-entry mo-entry-planned">
+        <div class="mo-row">
+          <span class="mo-num">04</span>
+          <span class="mo-name">Hallucination Persistence</span>
+          <span class="mo-status">planned</span>
+        </div>
+      </div>
+      <div class="mo-entry mo-entry-planned" style="margin-bottom: 0;">
+        <div class="mo-row">
+          <span class="mo-num">05</span>
+          <span class="mo-name">Cross-Domain Trust</span>
+          <span class="mo-status">planned</span>
+        </div>
+      </div>
+      <p class="mo-footer">Each module shares: dimensional scoring (0.00&ndash;1.00) &middot; calibrated scenarios &middot; dual-layer detection &middot; conformance requirements &middot; RFC 2119 language</p>
     </div>
 
     <!-- Filter Tabs -->
@@ -202,18 +191,63 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     max-width: 52rem;
   }
 
-  /* Protocol map */
-  .protocol-map {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 3rem;
+  /* Module overview listing */
+  .module-overview {
+    max-width: 600px;
+    margin: 0 auto 2rem;
     padding: 2rem 0;
   }
 
-  .protocol-svg {
-    max-width: 600px;
-    width: 100%;
-    height: auto;
+  .mo-entry {
+    border-left: 3px solid var(--color-border);
+    padding-left: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .mo-entry-planned {
+    margin-bottom: 1.25rem;
+  }
+
+  .mo-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .mo-num {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-dim);
+    min-width: 2.25rem;
+  }
+
+  .mo-name {
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: var(--color-slate);
+  }
+
+  .mo-status {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--color-text-dim);
+    margin-left: auto;
+  }
+
+  .mo-detail {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin: 0.35rem 0 0 3rem;
+  }
+
+  .mo-footer {
+    border-top: 1px solid var(--color-border);
+    padding-top: 1rem;
+    margin-left: 3rem;
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+    line-height: 1.6;
   }
 
   /* Section band */
