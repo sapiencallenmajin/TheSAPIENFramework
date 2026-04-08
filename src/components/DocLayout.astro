@@ -82,10 +82,10 @@ const { title, description, sidebarItems } = Astro.props;
     height: calc(100vh - var(--header-height, 64px));
     overflow-y: auto;
     background: color-mix(in srgb, var(--color-slate) 100%, black 15%);
-    border-right: 1px solid color-mix(in srgb, var(--color-gold) 20%, transparent);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
     padding: 1.5rem 0;
     scrollbar-width: thin;
-    scrollbar-color: var(--color-gold) transparent;
+    scrollbar-color: var(--color-text-dim) transparent;
   }
 
   .sidebar-nav {
@@ -94,9 +94,9 @@ const { title, description, sidebarItems } = Astro.props;
   }
 
   .sidebar-section {
-    padding-bottom: 0.5rem;
-    margin-bottom: 0.5rem;
-    border-bottom: 1px solid color-mix(in srgb, var(--color-gold) 10%, transparent);
+    padding-bottom: 0.25rem;
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   }
   .sidebar-section:last-child { border-bottom: none; }
 
@@ -118,14 +118,14 @@ const { title, description, sidebarItems } = Astro.props;
   .sidebar-link:hover,
   .sidebar-sublink:hover {
     color: var(--color-cream);
-    background: color-mix(in srgb, var(--color-gold) 8%, transparent);
+    background: rgba(255, 255, 255, 0.04);
   }
 
   .sidebar-link.active,
   .sidebar-sublink.active {
     color: var(--color-gold);
     border-left-color: var(--color-gold);
-    background: color-mix(in srgb, var(--color-gold) 10%, transparent);
+    background: rgba(255, 255, 255, 0.04);
   }
 
   /* Content area */
@@ -146,7 +146,7 @@ const { title, description, sidebarItems } = Astro.props;
     text-align: center;
     padding-bottom: 2.5rem;
     margin-bottom: 2.5rem;
-    border-bottom: 2px solid color-mix(in srgb, var(--color-gold) 30%, transparent);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
   }
 
   .spec-badge {
@@ -157,8 +157,8 @@ const { title, description, sidebarItems } = Astro.props;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     padding: 0.35em 1em;
-    border: 1px solid var(--color-gold);
-    color: var(--color-gold);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #9CA3AF;
     border-radius: 9999px;
     margin-bottom: 1rem;
   }
@@ -166,7 +166,7 @@ const { title, description, sidebarItems } = Astro.props;
   .spec-title {
     font-family: var(--font-display);
     font-size: 2.5rem;
-    color: var(--color-gold);
+    color: var(--color-cream);
     line-height: 1.2;
     margin-bottom: 0.5rem;
   }
@@ -190,7 +190,7 @@ const { title, description, sidebarItems } = Astro.props;
   .spec-section {
     padding-top: 2.5rem;
     padding-bottom: 2.5rem;
-    border-top: 1px solid color-mix(in srgb, var(--color-gold) 20%, transparent);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .section-heading {
@@ -204,7 +204,7 @@ const { title, description, sidebarItems } = Astro.props;
   .section-heading h2 {
     font-family: var(--font-display);
     font-size: 2rem;
-    color: var(--color-gold);
+    color: var(--color-cream);
     margin: 0;
   }
 
@@ -220,8 +220,8 @@ const { title, description, sidebarItems } = Astro.props;
     padding: 0.25em 0.75em;
     border-radius: 4px;
   }
-  .badge-normative { background: var(--color-navy); color: var(--color-cream); }
-  .badge-informative { background: var(--color-gold); color: var(--color-slate); }
+  .badge-normative { background: #475569; color: #fff; }
+  .badge-informative { background: #57534e; color: #fff; }
 
   /* Subsections */
   .spec-subsection {
@@ -309,7 +309,7 @@ const { title, description, sidebarItems } = Astro.props;
     color: color-mix(in srgb, var(--color-cream) 75%, transparent);
     margin-left: 0;
     padding-left: 1rem;
-    border-left: 2px solid color-mix(in srgb, var(--color-gold) 20%, transparent);
+    border-left: 2px solid rgba(255, 255, 255, 0.08);
     margin-top: 0.25rem;
     margin-bottom: 0.5rem;
   }
@@ -325,7 +325,7 @@ const { title, description, sidebarItems } = Astro.props;
   .spec-preamble {
     padding-bottom: 2rem;
     margin-bottom: 2rem;
-    border-bottom: 1px solid color-mix(in srgb, var(--color-gold) 20%, transparent);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   /* Rubric note */
@@ -345,7 +345,7 @@ const { title, description, sidebarItems } = Astro.props;
     top: var(--header-height, 64px);
     z-index: 40;
     background: color-mix(in srgb, var(--color-slate) 100%, black 15%);
-    border-bottom: 1px solid color-mix(in srgb, var(--color-gold) 20%, transparent);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .mobile-toc-toggle {
@@ -385,7 +385,7 @@ const { title, description, sidebarItems } = Astro.props;
   }
   .toc-link:hover {
     color: var(--color-cream);
-    background: color-mix(in srgb, var(--color-gold) 8%, transparent);
+    background: rgba(255, 255, 255, 0.04);
   }
   .toc-h2 { padding-left: 1.5rem; font-size: 0.8rem; }
 
@@ -413,13 +413,14 @@ const { title, description, sidebarItems } = Astro.props;
     max-width: none;
   }
 
-  /* Accordion section card styling */
+  /* Accordion section card styling — tight stacking like a technical index */
   details.framework-section > summary {
     background: rgba(255, 255, 255, 0.03);
-    border-radius: 8px;
-    padding: 1.25rem 1.5rem;
-    margin-bottom: 0.25rem;
+    border-radius: 0;
+    padding: 0.85rem 1.25rem;
+    margin-bottom: 2px;
     transition: background 0.2s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   }
 
   details.framework-section > summary:hover {
@@ -428,8 +429,9 @@ const { title, description, sidebarItems } = Astro.props;
 
   details.framework-section[open] > summary {
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px 8px 0 0;
+    border-radius: 0;
     margin-bottom: 0;
+    border-bottom: none;
   }
 
   /* Subsection card styling */

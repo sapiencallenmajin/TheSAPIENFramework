@@ -15,33 +15,38 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     <!-- Measurement Pipeline -->
     <section class="meth-section" id="pipeline">
       <h2>The Measurement Pipeline</h2>
-      <div class="pipeline-grid">
-        <a href="/framework/#scenario-authoring" class="pipeline-card card-hover animate-on-scroll delay-1">
+      <div class="pipeline-vertical">
+        <a href="/framework/#scenario-authoring" class="pipeline-card card-hover">
           <div class="pipeline-step">1</div>
-          <h3>Define Scenarios</h3>
-          <p>Calibrated multi-turn conversations that apply realistic pressure across 11+ domains</p>
-          <span class="pipeline-link">Scenario Authoring &rarr;</span>
+          <div class="pipeline-card-body">
+            <h3>Define Scenarios</h3>
+            <p>Calibrated multi-turn conversations that apply realistic pressure across 11+ domains</p>
+            <span class="pipeline-link">Scenario Authoring &rarr;</span>
+          </div>
         </a>
-        <div class="pipeline-arrow">&rarr;</div>
-        <a href="/framework/#test-procedures" class="pipeline-card card-hover animate-on-scroll delay-2">
+        <a href="/framework/#test-procedures" class="pipeline-card card-hover">
           <div class="pipeline-step">2</div>
-          <h3>Run Test Procedures</h3>
-          <p>Three standardized test levels &mdash; Behavioral Probe, Adaptive Test, Adversarial Simulation</p>
-          <span class="pipeline-link">Test Procedures &rarr;</span>
+          <div class="pipeline-card-body">
+            <h3>Run Test Procedures</h3>
+            <p>Three standardized test levels &mdash; Behavioral Probe, Adaptive Test, Adversarial Simulation</p>
+            <span class="pipeline-link">Test Procedures &rarr;</span>
+          </div>
         </a>
-        <div class="pipeline-arrow">&rarr;</div>
-        <a href="/framework/#four-dimensions" class="pipeline-card card-hover animate-on-scroll delay-3">
+        <a href="/framework/#four-dimensions" class="pipeline-card card-hover">
           <div class="pipeline-step">3</div>
-          <h3>Score Four Dimensions</h3>
-          <p>Each turn scored independently across Specificity, Risk Disclosure, Epistemic Integrity, and Emotional Reasoning</p>
-          <span class="pipeline-link">Four Dimensions &rarr;</span>
+          <div class="pipeline-card-body">
+            <h3>Score Four Dimensions</h3>
+            <p>Each turn scored independently across Specificity, Risk Disclosure, Epistemic Integrity, and Emotional Reasoning</p>
+            <span class="pipeline-link">Four Dimensions &rarr;</span>
+          </div>
         </a>
-        <div class="pipeline-arrow">&rarr;</div>
-        <a href="/framework/#sapien-score" class="pipeline-card card-hover animate-on-scroll delay-4">
+        <a href="/framework/#sapien-score" class="pipeline-card card-hover">
           <div class="pipeline-step">4</div>
-          <h3>Rate &amp; Act</h3>
-          <p>Composite Health Score (0&ndash;100) maps to rating bands with defined thresholds for intervention</p>
-          <span class="pipeline-link">SAPIEN Score &rarr;</span>
+          <div class="pipeline-card-body">
+            <h3>Rate &amp; Act</h3>
+            <p>Composite Health Score (0&ndash;100) maps to rating bands with defined thresholds for intervention</p>
+            <span class="pipeline-link">SAPIEN Score &rarr;</span>
+          </div>
         </a>
       </div>
     </section>
@@ -49,7 +54,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     <!-- Scoring at a Glance -->
     <section class="meth-section" id="scoring-glance">
       <h2>Scoring at a Glance</h2>
-      <div class="formula-display animate-on-scroll">
+      <div class="formula-display">
         <div class="formula-label">Weighted Drift Formula</div>
         <div class="formula-text">
           <span class="fw">weighted_drift(t)</span> =
@@ -86,7 +91,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     <!-- Rating Bands -->
     <section class="meth-section" id="rating-bands">
       <h2>Rating Bands</h2>
-      <div class="rating-bar animate-on-scroll">
+      <div class="rating-bar">
         <div class="rating-seg seg-low"><span class="seg-label">Low Risk</span><span class="seg-range">80&ndash;100</span></div>
         <div class="rating-seg seg-moderate"><span class="seg-label">Moderate</span><span class="seg-range">60&ndash;79</span></div>
         <div class="rating-seg seg-high"><span class="seg-label">High Risk</span><span class="seg-range">40&ndash;59</span></div>
@@ -104,7 +109,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     <!-- Detection Architecture -->
     <section class="meth-section" id="detection">
       <h2>Detection Architecture</h2>
-      <div class="detection-flow animate-on-scroll">
+      <div class="detection-flow">
         <div class="flow-node flow-input">
           <span class="flow-icon">&#9654;</span>
           <span>Assistant Response</span>
@@ -134,22 +139,22 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     <section class="meth-section" id="dive-deeper">
       <h2>Dive Deeper</h2>
       <div class="deeper-grid">
-        <a href="/framework/#pressure-techniques" class="deeper-card card-hover animate-on-scroll delay-1">
+        <a href="/framework/#pressure-techniques" class="deeper-card card-hover">
           <h3>Pressure Techniques</h3>
           <p>14 calibrated techniques including 3 original discoveries</p>
           <span class="deeper-link">Read more &rarr;</span>
         </a>
-        <a href="/framework/#conformance" class="deeper-card card-hover animate-on-scroll delay-2">
+        <a href="/framework/#conformance" class="deeper-card card-hover">
           <h3>Conformance</h3>
           <p>Requirements for SAPIEN-compatible implementations</p>
           <span class="deeper-link">Read more &rarr;</span>
         </a>
-        <a href="/framework/#operational-use" class="deeper-card card-hover animate-on-scroll delay-3">
+        <a href="/framework/#operational-use" class="deeper-card card-hover">
           <h3>Operational Runbooks</h3>
           <p>CI/CD integration, periodic testing, incident response</p>
           <span class="deeper-link">Read more &rarr;</span>
         </a>
-        <a href="/framework/#research-foundations" class="deeper-card card-hover animate-on-scroll delay-4">
+        <a href="/framework/#research-foundations" class="deeper-card card-hover">
           <h3>Research Foundations</h3>
           <p>Why drift accelerates: 7 mechanisms</p>
           <span class="deeper-link">Read more &rarr;</span>
@@ -172,14 +177,14 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .meth-hero {
     text-align: center;
     padding: 3rem 0 2.5rem;
-    border-bottom: 2px solid color-mix(in srgb, var(--color-gold) 30%, transparent);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
     margin-bottom: 3rem;
   }
 
   .meth-title {
     font-family: var(--font-display);
     font-size: 3rem;
-    color: var(--color-gold);
+    color: var(--color-cream);
     line-height: 1.2;
     margin-bottom: 0.5rem;
   }
@@ -204,7 +209,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   /* Sections */
   .meth-section {
     padding: 2.5rem 0;
-    border-bottom: 1px solid color-mix(in srgb, var(--color-gold) 15%, transparent);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   }
 
   .meth-section:last-child {
@@ -214,7 +219,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .meth-section h2 {
     font-family: var(--font-display);
     font-size: 1.75rem;
-    color: var(--color-gold);
+    color: var(--color-cream);
     margin-bottom: 1.5rem;
   }
 
@@ -231,32 +236,41 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     text-decoration: underline;
   }
 
-  /* Pipeline */
-  .pipeline-grid {
+  /* Pipeline — vertical timeline */
+  .pipeline-vertical {
+    position: relative;
+    padding-left: 2.5rem;
     display: flex;
-    align-items: stretch;
-    gap: 0;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .pipeline-vertical::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--color-gold);
+    opacity: 0.4;
   }
 
   .pipeline-card {
     display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-width: 180px;
-    max-width: 220px;
+    align-items: flex-start;
+    gap: 1.25rem;
     background: color-mix(in srgb, var(--color-navy) 25%, transparent);
-    border: 1px solid color-mix(in srgb, var(--color-gold) 15%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 10px;
-    padding: 1.5rem 1.25rem;
+    padding: 1.5rem 1.5rem;
     text-decoration: none;
-    transition: border-color 0.2s, transform 0.15s;
+    transition: border-color 0.2s;
+    position: relative;
   }
 
   .pipeline-card:hover {
-    border-color: var(--color-gold);
-    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.15);
     text-decoration: none;
   }
 
@@ -264,7 +278,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: color-mix(in srgb, var(--color-gold) 15%, transparent);
+    background: rgba(255, 255, 255, 0.06);
     color: var(--color-gold);
     font-family: var(--font-body);
     font-weight: 700;
@@ -272,7 +286,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .pipeline-card-body {
+    flex: 1;
   }
 
   .pipeline-card h3 {
@@ -285,32 +303,22 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   .pipeline-card p {
     font-family: var(--font-body);
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     line-height: 1.5;
     color: color-mix(in srgb, var(--color-cream) 65%, transparent);
-    margin-bottom: auto;
+    margin-bottom: 0.5rem;
   }
 
   .pipeline-link {
     font-family: var(--font-body);
     font-size: 0.75rem;
     color: var(--color-gold);
-    margin-top: 0.75rem;
-  }
-
-  .pipeline-arrow {
-    display: flex;
-    align-items: center;
-    font-size: 1.25rem;
-    color: var(--color-gold);
-    padding: 0 0.5rem;
-    opacity: 0.5;
   }
 
   /* Formula Display */
   .formula-display {
     background: color-mix(in srgb, var(--color-navy) 40%, transparent);
-    border: 1px solid color-mix(in srgb, var(--color-gold) 25%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     padding: 1.5rem 2rem;
     text-align: center;
@@ -323,7 +331,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--color-gold);
+    color: #9CA3AF;
     margin-bottom: 0.75rem;
   }
 
@@ -353,7 +361,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     color: color-mix(in srgb, var(--color-cream) 65%, transparent);
     margin-top: 0.5rem;
     padding-top: 0.5rem;
-    border-top: 1px solid color-mix(in srgb, var(--color-gold) 15%, transparent);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
   }
 
   .weight-grid {
@@ -364,7 +372,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   .weight-card {
     background: color-mix(in srgb, var(--color-navy) 20%, transparent);
-    border: 1px solid color-mix(in srgb, var(--color-gold) 10%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.04);
     border-radius: 8px;
     padding: 1rem;
     text-align: center;
@@ -391,7 +399,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     border-radius: 10px;
     overflow: hidden;
     height: 3.5rem;
-    border: 1px solid color-mix(in srgb, var(--color-gold) 20%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     margin-bottom: 1rem;
   }
 
@@ -452,7 +460,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     gap: 0.5rem;
     padding: 1.5rem;
     background: color-mix(in srgb, var(--color-navy) 25%, transparent);
-    border: 1px solid color-mix(in srgb, var(--color-gold) 15%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 12px;
     overflow-x: auto;
   }
@@ -493,10 +501,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     line-height: 1.3;
   }
 
-  .flow-input { background: color-mix(in srgb, var(--color-slate) 80%, transparent); border: 1px solid color-mix(in srgb, var(--color-gold) 20%, transparent); }
-  .flow-layer1 { background: color-mix(in srgb, var(--color-navy) 60%, transparent); border: 2px solid color-mix(in srgb, var(--color-gold) 30%, transparent); }
+  .flow-input { background: color-mix(in srgb, var(--color-slate) 80%, transparent); border: 1px solid rgba(255, 255, 255, 0.08); }
+  .flow-layer1 { background: color-mix(in srgb, var(--color-navy) 60%, transparent); border: 2px solid rgba(255, 255, 255, 0.1); }
   .flow-layer2 { background: color-mix(in srgb, var(--color-navy) 80%, transparent); border: 2px solid var(--color-gold); }
-  .flow-output { background: color-mix(in srgb, var(--color-gold) 15%, transparent); border: 2px solid var(--color-gold); }
+  .flow-output { background: rgba(255, 255, 255, 0.06); border: 2px solid var(--color-gold); }
 
   .flow-arrow {
     font-size: 1.25rem;
@@ -515,7 +523,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .deeper-card {
     display: block;
     background: color-mix(in srgb, var(--color-navy) 25%, transparent);
-    border: 1px solid color-mix(in srgb, var(--color-gold) 12%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 10px;
     padding: 1.25rem 1.5rem;
     text-decoration: none;
@@ -553,9 +561,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   /* Responsive */
   @media (max-width: 768px) {
     .meth-title { font-size: 2.25rem; }
-    .pipeline-grid { flex-direction: column; align-items: center; }
-    .pipeline-card { max-width: 100%; }
-    .pipeline-arrow { transform: rotate(90deg); padding: 0.25rem 0; }
+    .pipeline-vertical { padding-left: 1.5rem; }
+    .pipeline-card { flex-direction: column; gap: 0.75rem; }
     .weight-grid { grid-template-columns: repeat(2, 1fr); }
     .detection-flow { flex-direction: column; }
     .detection-flow .flow-arrow { transform: rotate(90deg); }
