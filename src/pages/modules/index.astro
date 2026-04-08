@@ -564,6 +564,18 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         modules.forEach(mod => {
           if (filter === 'all' || mod.getAttribute('data-status') === filter) {
             mod.classList.remove('hidden-by-filter');
+            // Re-observe for fade-up if not yet visible
+            if (mod.classList.contains('fade-up') && !mod.classList.contains('visible')) {
+              const fadeObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                  if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    fadeObserver.unobserve(entry.target);
+                  }
+                });
+              }, { threshold: 0.15 });
+              fadeObserver.observe(mod);
+            }
           } else {
             mod.classList.add('hidden-by-filter');
           }
