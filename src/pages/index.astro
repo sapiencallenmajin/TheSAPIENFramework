@@ -11,9 +11,9 @@ const websiteSchema = {
 ---
 <BaseLayout title="The SAPIEN Framework — AI Behavioral Safety Standard" description="An open, vendor-agnostic methodology for measuring AI behavioral integrity under conversational pressure." structuredData={websiteSchema}>
   <!-- Hero -->
-  <section class="hero">
+  <section class="hero hero-dark">
     <div class="container hero-content">
-      <span class="badge">Open Standard v1.1</span>
+      <span class="badge badge-dark">Open Standard v1.1</span>
       <h1 class="hero-title">
         Behavioral Safety<br />for AI Systems
       </h1>
@@ -25,13 +25,13 @@ const websiteSchema = {
       </p>
       <div class="hero-actions">
         <a href="/modules/" class="btn btn-primary">Explore Modules</a>
-        <a href="/download/" class="btn btn-outline">Download Specification</a>
+        <a href="/download/" class="btn btn-outline-light">Download Specification</a>
       </div>
     </div>
   </section>
 
   <!-- Stats -->
-  <section class="section section-band stats-section">
+  <section class="section stats-section">
     <div class="container">
       <div class="stats-grid">
         <div class="stat-item">
@@ -55,7 +55,7 @@ const websiteSchema = {
   </section>
 
   <!-- What is drift -->
-  <section class="section">
+  <section class="section section-gray">
     <div class="container">
       <div class="pull-quote-block">
         <p class="section-label">The Problem</p>
@@ -91,7 +91,7 @@ const websiteSchema = {
   </section>
 
   <!-- Pillars -->
-  <section class="section section-alt">
+  <section class="section">
     <div class="container">
       <p class="section-label">The Framework</p>
       <h2 class="section-title">Four Dimensions of Drift</h2>
@@ -124,7 +124,7 @@ const websiteSchema = {
   </section>
 
   <!-- Extensible Protocol -->
-  <section class="section section-band">
+  <section class="section section-gray">
     <div class="container">
       <p class="section-label">An Extensible Protocol</p>
       <h2 class="section-title">Beyond Sycophantic Drift</h2>
@@ -203,16 +203,16 @@ const websiteSchema = {
   </section>
 
   <!-- CTA -->
-  <section class="section section-alt">
+  <section class="section section-dark">
     <div class="container cta">
-      <h2 class="section-title">Built for the AI Safety Community</h2>
-      <p class="section-subtitle" style="margin-bottom: 2rem;">
+      <h2 class="section-title section-title-light">Built for the AI Safety Community</h2>
+      <p class="section-subtitle section-subtitle-light" style="margin-bottom: 2rem;">
         SAPIEN is open source and designed for adoption by AI developers, safety researchers,
         red teams, and compliance organizations.
       </p>
       <div class="hero-actions">
         <a href="/framework/scenarios" class="btn btn-primary">Scenario Authoring Standard</a>
-        <a href="/modules/sycophantic-drift/" class="btn btn-outline">Sycophantic Drift Module</a>
+        <a href="/modules/sycophantic-drift/" class="btn btn-outline-light">Sycophantic Drift Module</a>
       </div>
     </div>
   </section>
@@ -229,6 +229,10 @@ const websiteSchema = {
     background: #FFFFFF;
   }
 
+  .hero-dark {
+    background: var(--color-slate);
+  }
+
   .hero-content {
     position: relative;
     z-index: 2;
@@ -236,6 +240,12 @@ const websiteSchema = {
 
   .hero .badge {
     margin-bottom: 1.5rem;
+  }
+
+  .hero-dark .badge-dark {
+    background: rgba(196, 162, 101, 0.15);
+    border-color: rgba(196, 162, 101, 0.3);
+    color: var(--color-gold);
   }
 
   .hero-title {
@@ -246,12 +256,20 @@ const websiteSchema = {
     color: var(--color-slate);
   }
 
+  .hero-dark .hero-title {
+    color: #FFFFFF;
+  }
+
   .hero-acronym {
     font-family: var(--font-mono);
     font-size: 0.85rem;
     letter-spacing: 0.04em;
     color: var(--color-navy);
     margin-bottom: 1.5rem;
+  }
+
+  .hero-dark .hero-acronym {
+    color: #94A3B8;
   }
 
   .hero-subtitle {
@@ -262,9 +280,17 @@ const websiteSchema = {
     line-height: 1.8;
   }
 
+  .hero-dark .hero-subtitle {
+    color: #CBD5E1;
+  }
+
   .hero-subtitle strong {
     color: var(--color-slate);
     font-weight: 700;
+  }
+
+  .hero-dark .hero-subtitle strong {
+    color: #FFFFFF;
   }
 
   .hero-actions {
@@ -310,6 +336,33 @@ const websiteSchema = {
 
   .section-alt {
     background: var(--color-bg-alt);
+  }
+
+  .section-gray {
+    background: #F8FAFC;
+  }
+
+  .section-dark {
+    background: var(--color-slate);
+  }
+
+  .section-title-light {
+    color: #FFFFFF;
+  }
+
+  .section-subtitle-light {
+    color: #CBD5E1;
+  }
+
+  .btn-outline-light {
+    border: 1px solid #FFFFFF;
+    color: #FFFFFF;
+    background: transparent;
+  }
+
+  .btn-outline-light:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #FFFFFF;
   }
 
   /* Pull quote — asymmetric layout */
