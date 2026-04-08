@@ -1,7 +1,23 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
+import DocLayout from '../../components/DocLayout.astro';
+
+const sidebarItems = [
+  { label: 'Sycophantic Drift', anchor: 'sycophantic-drift' },
+  { label: 'Agentic Safety', anchor: 'agentic-safety' },
+  { label: 'Memory Integrity', anchor: 'memory-integrity' },
+  { label: 'Hallucination Persistence', anchor: 'hallucination-persistence' },
+  { label: 'Cross-Domain Trust', anchor: 'cross-domain-trust' },
+  { label: 'Prompt Injection', anchor: 'prompt-injection' },
+  { label: 'Jailbreaking', anchor: 'jailbreaking' },
+  { label: 'Alignment', anchor: 'alignment' },
+  { label: 'Data Poisoning', anchor: 'data-poisoning' },
+  { label: 'Bias & Fairness', anchor: 'bias-fairness' },
+  { label: 'Summary', anchor: 'summary' },
+  { label: 'The Protocol', anchor: 'protocol' },
+  { label: 'Contributors', anchor: 'contributors' },
+];
 ---
-<BaseLayout title="AI Behavioral Safety Landscape — Threats, Protocols & Research" description="A comprehensive map of AI behavioral failure modes: sycophantic drift, agentic safety, memory exploitation, hallucination persistence, prompt injection, and more. SAPIEN protocol coverage and open call for contributors.">
+<DocLayout title="AI Behavioral Safety Landscape — Threats, Protocols & Research" description="A comprehensive map of AI behavioral failure modes: sycophantic drift, agentic safety, memory exploitation, hallucination persistence, prompt injection, and more. SAPIEN protocol coverage and open call for contributors." sidebarItems={sidebarItems}>
 
   <div class="landscape-page">
 
@@ -385,13 +401,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   </div>
 
-</BaseLayout>
+</DocLayout>
 
 <style>
   .landscape-page {
     max-width: 64rem;
-    margin: 0 auto;
-    padding: 0 1.5rem 4rem;
   }
 
   /* Hero */
