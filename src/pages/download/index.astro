@@ -62,18 +62,20 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     <section class="download-section" id="citation">
       <h2>How to Cite</h2>
       <div class="citation-block animate-on-scroll">
-        <button class="copy-btn" id="copy-citation" aria-label="Copy citation to clipboard">Copy</button>
-        <pre id="citation-text">Sapien, C. (2026). "The SAPIEN Behavioral Safety Framework: Safety
+        <button class="copy-btn copy-cite-btn" aria-label="Copy citation to clipboard">Copy</button>
+        <pre>Sapien, C. (2026). "The SAPIEN Behavioral Safety Framework: Safety
 Assessment Protocol for Intelligent Entity Networks." Version 1.1.
 https://sapienframework.org</pre>
       </div>
       <p class="citation-note">For specific findings:</p>
       <div class="citation-block citation-secondary">
+        <button class="copy-btn copy-cite-btn" aria-label="Copy citation to clipboard">Copy</button>
         <pre>Sapien, C. (2026). "Cross-model sycophantic drift profiling using
 the SAPIEN Framework." SAPIEN Project Research.</pre>
       </div>
       <p class="citation-note">For SAPIEN Ratings:</p>
       <div class="citation-block citation-secondary">
+        <button class="copy-btn copy-cite-btn" aria-label="Copy citation to clipboard">Copy</button>
         <pre>"Model X received a SAPIEN Rating of 63 (Moderate) on the SAPIEN
 Framework v1.1 behavioral probe for [domain]."</pre>
       </div>
@@ -84,15 +86,15 @@ Framework v1.1 behavioral probe for [domain]."</pre>
 </BaseLayout>
 
 <script>
-  document.getElementById('copy-citation')?.addEventListener('click', () => {
-    const text = document.getElementById('citation-text')?.textContent ?? '';
-    navigator.clipboard.writeText(text).then(() => {
-      const btn = document.getElementById('copy-citation');
-      if (btn) {
+  document.querySelectorAll('.copy-cite-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const pre = btn.parentElement?.querySelector('pre');
+      if (!pre) return;
+      navigator.clipboard.writeText(pre.textContent ?? '').then(() => {
         btn.textContent = 'Copied!';
         setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
-      }
-    }).catch(() => {});
+      }).catch(() => {});
+    });
   });
 </script>
 
