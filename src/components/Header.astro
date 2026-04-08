@@ -15,6 +15,7 @@ const navItems = [
     <a href="/" class="logo">
       <img src="/logos/logo_sapien.svg" alt="SAPIEN Framework" class="logo-img" />
       <span class="logo-text">THE SAPIEN FRAMEWORK</span>
+      <span class="version-pill">v1.1</span>
     </a>
     <nav class="nav" id="nav-menu">
       {navItems.map(item => (
@@ -71,6 +72,16 @@ const navItems = [
     font-weight: 700;
     color: var(--color-navy);
     letter-spacing: 0.08em;
+  }
+  .version-pill {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: 700;
+    background: #FEF3C7;
+    color: #92400E;
+    padding: 0.15em 0.5em;
+    border-radius: 9999px;
+    letter-spacing: 0.02em;
   }
   .nav {
     display: flex;
