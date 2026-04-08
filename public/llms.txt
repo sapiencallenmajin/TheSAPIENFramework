@@ -8,6 +8,10 @@ Author: Callen Sapien
 Version: 1.1 (March 2026)
 License: CC BY 4.0
 
+## AI Behavioral Safety Landscape
+- [Full Landscape Overview](https://sapienframework.org/landscape/): 10 categories of AI behavioral failure — published modules, planned protocol extensions, and ecosystem standards
+- SAPIEN is a Safety Assessment Protocol with extensible modules. Sycophantic drift is the first published module (v1.1). Planned modules: agentic safety, memory integrity, hallucination persistence, cross-domain trust transfer.
+
 ## Core Specification
 
 - [Framework Specification](https://sapienframework.org/framework/): The complete specification — all 21 sections including four behavioral dimensions, scoring, detection architecture, test procedures, scenario authoring, pressure techniques, conformance requirements, research foundations, operational runbooks
