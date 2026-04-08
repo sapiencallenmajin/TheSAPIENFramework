@@ -123,7 +123,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     </section>
 
     <!-- How Modules Compound -->
-    <section class="compound-section section-band" id="how-modules-compound">
+    <section class="compound-section" id="how-modules-compound" style="background-image: linear-gradient(rgba(15,23,42,0.95), rgba(15,23,42,0.98)), url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920&q=80'); background-size: cover; background-position: center; border-radius: 12px; padding-left: 2rem; padding-right: 2rem;">
       <h2 class="compound-heading">How Modules Compound</h2>
       <p class="compound-intro">The most dangerous AI failures don't live within a single module. They emerge when failure modes from multiple modules interact, creating compound risks that are greater than the sum of their parts. A model that drifts slightly under pressure <em>and</em> carries inflated trust from a previous session <em>and</em> has the ability to execute actions creates a threat surface that no single module captures alone.</p>
 
@@ -168,7 +168,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
 <style>
   .modules-page {
-    max-width: 64rem;
+    max-width: 80rem;
     margin: 0 auto;
     padding: 0 1.5rem;
   }
@@ -310,13 +310,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .compound-heading {
     font-family: var(--font-display);
     font-size: 1.75rem;
-    color: #1B3A5C;
+    color: #FFFFFF;
     margin-bottom: 1rem;
   }
 
   .compound-intro {
     font-size: 1rem;
-    color: var(--color-text-muted);
+    color: #CBD5E1;
     line-height: 1.8;
     max-width: 52rem;
     margin-bottom: 2rem;
@@ -324,7 +324,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   .compound-scenario {
     padding: 2rem 0;
-    border-bottom: 1px solid #E2E8F0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
   }
 
   .compound-scenario-last {
@@ -334,26 +334,26 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .compound-scenario-title {
     font-family: var(--font-display);
     font-size: 1.3rem;
-    color: #1B3A5C;
+    color: #FFFFFF;
     margin-bottom: 0.75rem;
   }
 
   .compound-narrative {
     font-size: 0.95rem;
-    color: var(--color-text-muted);
+    color: #94A3B8;
     line-height: 1.8;
     max-width: 52rem;
   }
 
   .compound-narrative strong {
-    color: var(--color-slate);
+    color: #CBD5E1;
     font-weight: 700;
   }
 
   .compound-formula {
     font-family: var(--font-mono);
     font-size: 0.85rem;
-    color: var(--color-text-dim);
+    color: #64748B;
     margin-top: 0.75rem;
   }
 
@@ -365,7 +365,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   .compound-closing {
     font-size: 0.95rem;
-    color: var(--color-text-muted);
+    color: #94A3B8;
     line-height: 1.8;
     max-width: 52rem;
     margin-top: 2rem;

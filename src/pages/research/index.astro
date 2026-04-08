@@ -16,7 +16,7 @@ const sidebarItems = [
   <div class="research-page">
 
     <!-- Hero -->
-    <header class="research-hero">
+    <header class="research-hero research-hero-bg">
       <h1 class="research-title">Research</h1>
       <p class="research-subtitle">Original contributions to AI behavioral safety measurement</p>
       <p class="research-intro">The SAPIEN Framework emerged from hands-on testing of production AI systems in the MSP channel. The research below represents novel findings &mdash; pressure techniques, behavioral patterns, and measurement approaches not previously documented in a unified methodology. These contributions are published openly to advance the field, not to gatekeep it.</p>
@@ -291,7 +291,7 @@ const sidebarItems = [
 
 <style>
   .research-page {
-    max-width: 64rem;
+    max-width: 80rem;
   }
 
   /* Hero */
@@ -300,6 +300,27 @@ const sidebarItems = [
     padding: 3rem 0 2.5rem;
     border-bottom: 2px solid var(--color-border);
     margin-bottom: 3rem;
+  }
+
+  .research-hero-bg {
+    background-image: linear-gradient(rgba(15,23,42,0.9), rgba(255,255,255,1) 70%), url('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1920&q=80');
+    background-size: cover;
+    background-position: center;
+    padding: 4rem 2rem 3rem;
+    border-radius: 12px;
+    border-bottom: none;
+  }
+
+  .research-hero-bg .research-title {
+    color: #FFFFFF;
+  }
+
+  .research-hero-bg .research-subtitle {
+    color: #CBD5E1;
+  }
+
+  .research-hero-bg .research-intro {
+    color: #94A3B8;
   }
 
   .research-title {

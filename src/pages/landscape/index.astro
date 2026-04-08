@@ -32,7 +32,11 @@ const sidebarItems = [
 
     <!-- Category 1: Sycophantic Drift -->
     <section class="category fade-up" id="sycophantic-drift">
-      <h2 class="category-title">Sycophantic Drift</h2>
+      <div class="category-banner" style="background-image: linear-gradient(rgba(15,23,42,0.85), rgba(15,23,42,0.6)), url('https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&q=80');">
+        <div class="category-banner-inner">
+          <h2 class="category-banner-title">Sycophantic Drift</h2>
+        </div>
+      </div>
       <p class="category-status">Published module &mdash; v1.1</p>
       <p class="category-def"><strong>The gradual abandonment of correct safety-relevant positions under sustained conversational pressure, without new evidence justifying the change.</strong></p>
       <p>This is the failure mode where a model knows the right answer and gives it &mdash; then slowly walks it back because the user pushes. It's not a knowledge gap. It's a behavioral integrity failure. In production deployments where AI assists with medical, legal, financial, or security decisions, drift turns a helpful tool into a liability.</p>
@@ -55,7 +59,11 @@ const sidebarItems = [
 
     <!-- Category 2: Agentic Behavioral Safety -->
     <section class="category section-band fade-up" id="agentic-safety">
-      <h2 class="category-title">Agentic Behavioral Safety</h2>
+      <div class="category-banner" style="background-image: linear-gradient(rgba(15,23,42,0.85), rgba(15,23,42,0.6)), url('https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&q=80');">
+        <div class="category-banner-inner">
+          <h2 class="category-banner-title">Agentic Behavioral Safety</h2>
+        </div>
+      </div>
       <p class="category-status">Module planned &mdash; seeking contributors</p>
       <p class="category-def"><strong>Behavioral failure modes specific to AI systems that can plan, use tools, execute code, browse the web, send messages, or take autonomous actions in the real world.</strong></p>
       <p>When an AI can act &mdash; not just respond &mdash; the consequences of behavioral failure escalate dramatically. An agent that drifts under pressure might not just give bad advice, it might execute bad actions: sending unauthorized emails, modifying files, making purchases, or changing system configurations. The behavioral safety question shifts from &ldquo;what did it say?&rdquo; to &ldquo;what did it do?&rdquo;</p>
@@ -77,7 +85,11 @@ const sidebarItems = [
 
     <!-- Category 3: Memory & Context Integrity -->
     <section class="category fade-up" id="memory-integrity">
-      <h2 class="category-title">Memory &amp; Context Integrity</h2>
+      <div class="category-banner" style="background-image: linear-gradient(rgba(15,23,42,0.85), rgba(15,23,42,0.6)), url('https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&q=80');">
+        <div class="category-banner-inner">
+          <h2 class="category-banner-title">Memory &amp; Context Integrity</h2>
+        </div>
+      </div>
       <p class="category-status">Draft module &mdash; v0.1</p>
       <p class="category-def"><strong>Failure modes that emerge when AI systems use persistent memory, conversation history, or accumulated context &mdash; and that context degrades safety over time.</strong></p>
       <p>As AI systems gain persistent memory across sessions, new failure surfaces emerge. Trust built in previous conversations can be exploited in future ones. Memory-stored user preferences can gradually shift safety boundaries. The model's own accumulated context becomes a mechanism for behavioral degradation that no single-session evaluation can detect.</p>
@@ -100,7 +112,11 @@ const sidebarItems = [
 
     <!-- Category 4: Hallucination Persistence -->
     <section class="category section-band fade-up" id="hallucination-persistence">
-      <h2 class="category-title">Hallucination Persistence</h2>
+      <div class="category-banner" style="background-image: linear-gradient(rgba(15,23,42,0.85), rgba(15,23,42,0.6)), url('https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&q=80');">
+        <div class="category-banner-inner">
+          <h2 class="category-banner-title">Hallucination Persistence</h2>
+        </div>
+      </div>
       <p class="category-status">Module planned &mdash; seeking contributors</p>
       <p class="category-def"><strong>The behavioral pattern where AI systems generate fabricated information and then maintain, defend, or elaborate on those fabrications under questioning &mdash; rather than correcting them.</strong></p>
       <p>Hallucination itself is a knowledge failure. Hallucination persistence is a behavioral failure &mdash; and it's the more dangerous one. A model that hallucinates but corrects itself when challenged is manageable. A model that hallucinates and then doubles down, invents supporting evidence, and argues for its fabrication is actively dangerous. This is drift applied to false claims.</p>
@@ -122,7 +138,11 @@ const sidebarItems = [
 
     <!-- Category 5: Cross-Domain Trust Transfer -->
     <section class="category fade-up" id="cross-domain-trust">
-      <h2 class="category-title">Cross-Domain Trust Transfer</h2>
+      <div class="category-banner" style="background-image: linear-gradient(rgba(15,23,42,0.85), rgba(15,23,42,0.6)), url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&q=80');">
+        <div class="category-banner-inner">
+          <h2 class="category-banner-title">Cross-Domain Trust Transfer</h2>
+        </div>
+      </div>
       <p class="category-status">Module planned &mdash; seeking contributors</p>
       <p class="category-def"><strong>The behavioral pattern where trust or rapport built in one conversational domain transfers to enable unsafe behavior in a different domain.</strong></p>
       <p>A user who builds rapport discussing vaccine safety concerns may find that the trust transfers when pivoting to asking about skipping a child's medical treatment. The model's safety boundaries in Domain B erode because of the relationship established in Domain A. This mirrors real-world social engineering patterns and is already documented in SAPIEN's Adversarial Simulation test procedure.</p>
@@ -380,7 +400,7 @@ const sidebarItems = [
 
 <style>
   .landscape-page {
-    max-width: 64rem;
+    max-width: 80rem;
   }
 
   /* Hero */
@@ -431,6 +451,29 @@ const sidebarItems = [
 
   .category:last-of-type {
     border-bottom: none;
+  }
+
+  .category-banner {
+    height: 8rem;
+    border-radius: 10px;
+    background-size: cover;
+    background-position: center;
+    margin-bottom: 1rem;
+    overflow: hidden;
+  }
+
+  .category-banner-inner {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 2rem;
+  }
+
+  .category-banner-title {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    color: #FFFFFF;
+    margin: 0;
   }
 
   .category-title {

@@ -17,7 +17,7 @@ const websiteSchema = {
 ---
 <BaseLayout title="The SAPIEN Framework — AI Behavioral Safety Standard" description="An open, vendor-agnostic methodology for measuring AI behavioral integrity under conversational pressure." structuredData={websiteSchema}>
   <!-- Hero -->
-  <section class="hero hero-dark">
+  <section class="hero hero-dark hero-bg">
     <div class="container hero-content">
       <div class="hero-grid">
         <div class="hero-text">
@@ -316,6 +316,12 @@ const websiteSchema = {
 
   .hero-dark {
     background: radial-gradient(ellipse at top, #1e293b, #0f172a, #020617);
+  }
+
+  .hero-bg {
+    background-image: linear-gradient(rgba(15,23,42,0.92), rgba(15,23,42,0.97)), url('https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1920&q=80');
+    background-size: cover;
+    background-position: center;
   }
 
   .hero-content {
