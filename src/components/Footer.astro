@@ -10,7 +10,6 @@ const year = new Date().getFullYear();
       </a>
       <p class="footer-tagline">An open behavioral safety standard for AI systems.</p>
       <p class="footer-version">v1.1 &middot; March 2026 &middot; CC BY 4.0</p>
-      <p class="footer-copy">&copy; {year} The SAPIEN Framework Project.</p>
     </div>
     <div class="footer-col">
       <h4 class="footer-heading">Navigate</h4>
@@ -36,11 +35,16 @@ const year = new Date().getFullYear();
     <div class="footer-col">
       <h4 class="footer-heading">Community</h4>
       <nav class="footer-nav">
-        <a href="https://github.com/sapiencallenmajin/TheSAPIENFramework/issues" target="_blank" rel="noopener noreferrer">Contribute &nearr;</a>
-        <a href="mailto:contact@sapienframework.org">contact@sapienframework.org</a>
+        <a href="https://github.com/sapiencallenmajin/TheSAPIENFramework/issues" target="_blank" rel="noopener noreferrer">Report an Issue &nearr;</a>
+        <a href="https://github.com/sapiencallenmajin/TheSAPIENFramework/discussions" target="_blank" rel="noopener noreferrer">GitHub Discussions &nearr;</a>
         <a href="mailto:contributors@sapienframework.org">contributors@sapienframework.org</a>
+        <a href="mailto:contact@sapienframework.org">contact@sapienframework.org</a>
       </nav>
     </div>
+  </div>
+  <div class="container footer-bottom">
+    <p>&copy; {year} The SAPIEN Framework Project. Content licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.</p>
+    <p class="footer-disclaimer">SAPIEN is an independent open standard. Not affiliated with any AI vendor.</p>
   </div>
 </footer>
 
@@ -86,10 +90,6 @@ const year = new Date().getFullYear();
     color: #6B7280;
     margin-bottom: 0.35rem;
   }
-  .footer-copy {
-    font-size: 0.75rem;
-    color: #6B7280;
-  }
   .footer-heading {
     font-family: var(--font-body);
     font-size: 0.7rem;
@@ -112,6 +112,30 @@ const year = new Date().getFullYear();
   }
   .footer-nav a:hover {
     color: #FFFFFF;
+  }
+  .footer-bottom {
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: center;
+  }
+  .footer-bottom p {
+    font-size: 0.75rem;
+    color: #6B7280;
+    margin-bottom: 0.25rem;
+  }
+  .footer-bottom a {
+    color: #9CA3AF;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .footer-bottom a:hover {
+    color: var(--color-gold);
+  }
+  .footer-disclaimer {
+    font-size: 0.7rem !important;
+    color: #4B5563 !important;
+    font-style: italic;
   }
   @media (max-width: 768px) {
     .footer-grid {
