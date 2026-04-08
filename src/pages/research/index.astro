@@ -144,7 +144,14 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       </div>
     </section>
 
-    <!-- Section 4: Presentations -->
+    <!-- Section 4: Memory & Context Integrity -->
+    <section class="research-section" id="memory-integrity">
+      <h2>Memory &amp; Context Integrity</h2>
+      <p>Draft module defining how persistent memory, accumulated conversation history, and stored user context degrade AI safety boundaries over time. Builds on the Rapport Delta finding and the February 2026 vulnerability disclosure to Anthropic documenting memory-accelerated role coherence degradation. Introduces four behavioral dimensions and a compounding risk score that captures the interaction between within-session drift and cross-session memory degradation.</p>
+      <p><a href="/sapien_module_memory_integrity_v0.1.md" class="read-spec-link">Read the draft specification &rarr;</a></p>
+    </section>
+
+    <!-- Section 5: Presentations -->
     <section class="research-section" id="presentations">
       <h2>Presentations &amp; Speaking</h2>
 
@@ -300,6 +307,19 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   .research-section:last-child {
     border-bottom: none;
+  }
+
+  .read-spec-link {
+    display: inline-block;
+    font-size: 0.9rem;
+    color: var(--color-navy);
+    text-decoration: none;
+    margin-top: 0.25rem;
+  }
+
+  .read-spec-link:hover {
+    color: var(--color-gold);
+    text-decoration: underline;
   }
 
   .research-section h2 {
