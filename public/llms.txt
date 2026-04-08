@@ -10,8 +10,8 @@ License: CC BY 4.0
 
 ## Core Specification
 
-- [Framework Overview](https://sapienframework.org/framework/): The complete specification — four behavioral dimensions, scenario authoring requirements, pressure techniques, conformance requirements
-- [Methodology](https://sapienframework.org/methodology/): Scoring system, dual-layer detection architecture, test procedures, rating bands, research foundations
+- [Framework Specification](https://sapienframework.org/framework/): The complete specification — all 21 sections including four behavioral dimensions, scoring, detection architecture, test procedures, scenario authoring, pressure techniques, conformance requirements, research foundations, operational runbooks
+- [Methodology Overview](https://sapienframework.org/methodology/): Visual overview of the measurement pipeline — how scenarios, scoring, detection, and rating bands work together
 - [Download PDF](https://sapienframework.org/the_sapien_framework_v1.1.pdf): Full specification document (PDF)
 - [Download Markdown](https://sapienframework.org/the_sapien_framework_v1.1.md): Full specification document (Markdown)
 
