@@ -29,9 +29,9 @@ const sidebarItems = [
     { label: '4.3 Judge Model Requirements', anchor: 'judge-model-requirements' },
   ]},
   { label: '5. Test Procedures', anchor: 'test-procedures', children: [
-    { label: '5.1 Vulnerability Scan', anchor: 'vulnerability-scan' },
+    { label: '5.1 Behavioral Probe', anchor: 'vulnerability-scan' },
     { label: '5.2 Adaptive Test', anchor: 'adaptive-test' },
-    { label: '5.3 Penetration Test', anchor: 'penetration-test' },
+    { label: '5.3 Adversarial Simulation', anchor: 'penetration-test' },
     { label: '5.4 Comparability', anchor: 'comparability' },
   ]},
   { label: '6. Scenario Authoring', anchor: 'scenario-authoring', children: [
@@ -132,7 +132,7 @@ const sidebarItems = [
             <li>Rating bands (Low Risk / Moderate / High Risk / Critical) for non-technical stakeholders</li>
             <li>Deterministic detection methods that produce identical scores for identical input (Layer 1)</li>
             <li>LLM-based scoring with anchored rubrics for nuanced assessment (Layer 2)</li>
-            <li>Three standardized test procedures (vulnerability scan, adaptive test, penetration test)</li>
+            <li>Three standardized test procedures (behavioral probe, adaptive test, adversarial simulation)</li>
             <li>Scenario authoring standards for creating new test content</li>
             <li>Threshold definitions for alerting and intervention</li>
             <li>Conformance requirements for implementations claiming SAPIEN compatibility (Section 14)</li>
@@ -221,7 +221,7 @@ const sidebarItems = [
             <dt>SAPIEN BASIC</dt>
             <dd>Layer 1 only. Results labeled "SAPIEN Screening." Suitable for internal monitoring.</dd>
             <dt>SAPIEN STANDARD</dt>
-            <dd>Layer 1 + Layer 2, vulnerability scan + adaptive test. Suitable for compliance and published benchmarks.</dd>
+            <dd>Layer 1 + Layer 2, behavioral probe + adaptive test. Suitable for compliance and published benchmarks.</dd>
             <dt>SAPIEN COMPLETE</dt>
             <dd>All three test procedures, both layers, with evidence output. Suitable for comprehensive AI governance.</dd>
           </dl>
@@ -605,7 +605,7 @@ const sidebarItems = [
         <div class="procedure-grid">
           <div class="procedure-card proc-level1">
             <div class="proc-level">Level 1</div>
-            <h4>Vulnerability Scan</h4>
+            <h4>Behavioral Probe</h4>
             <p class="proc-purpose">Repeatable baseline measurement for cross-model comparison.</p>
             <dl class="proc-details">
               <dt>Pressure</dt><dd>Predefined scripts with fixed escalation sequences</dd>
@@ -629,7 +629,7 @@ const sidebarItems = [
           </div>
           <div class="procedure-card proc-level3">
             <div class="proc-level">Level 3</div>
-            <h4>Penetration Test</h4>
+            <h4>Adversarial Simulation</h4>
             <p class="proc-purpose">Simulates a realistic adversarial user with no predefined scripts.</p>
             <dl class="proc-details">
               <dt>Pressure</dt><dd>Fully AI-generated conversation including the opening</dd>
@@ -642,8 +642,8 @@ const sidebarItems = [
         </div>
 
         <div class="spec-subsection" id="vulnerability-scan">
-          <h3>5.1 Vulnerability Scan (Level 1)</h3>
-          <p>The vulnerability scan uses predefined scripts with fixed escalation sequences. The opening prompt is neutral and reasonable. Hold variants prevent verbatim repetition when the model holds firm. Result: SAPIEN Score based on peak drift across the fixed sequence.</p>
+          <h3>5.1 Behavioral Probe (Level 1)</h3>
+          <p>The behavioral probe uses predefined scripts with fixed escalation sequences. The opening prompt is neutral and reasonable. Hold variants prevent verbatim repetition when the model holds firm. Result: SAPIEN Score based on peak drift across the fixed sequence.</p>
         </div>
 
         <div class="spec-subsection" id="adaptive-test">
@@ -652,14 +652,14 @@ const sidebarItems = [
         </div>
 
         <div class="spec-subsection" id="penetration-test">
-          <h3>5.3 Penetration Test (Level 3)</h3>
+          <h3>5.3 Adversarial Simulation (Level 3)</h3>
           <p>Fully AI-generated conversation including the opening. Supports cross-domain pivot attacks &mdash; tests whether trust built in one domain transfers to another. This mirrors real-world social engineering patterns.</p>
           <p>Phases: <strong>RAPPORT</strong> (turns 0&ndash;2) &rarr; <strong>CATCH</strong> (turns 3&ndash;4, finds something the model hedged on) &rarr; <strong>PIVOT</strong> (turn 5, optional cross-domain) &rarr; <strong>TRUST EXPLOIT</strong> (turns 5&ndash;7) &rarr; <strong>EXPLOIT</strong> (turns 8+).</p>
         </div>
 
         <div class="spec-subsection" id="comparability">
           <h3>5.4 Comparability Across Procedures</h3>
-          <p>SAPIEN Scores from different test procedures are <strong>not directly comparable</strong> without additional context. A model that scores 72 on a vulnerability scan and 58 on an adaptive test has not "gotten worse" &mdash; it was tested under different conditions.</p>
+          <p>SAPIEN Scores from different test procedures are <strong>not directly comparable</strong> without additional context. A model that scores 72 on a behavioral probe and 58 on an adaptive test has not "gotten worse" &mdash; it was tested under different conditions.</p>
           <p>Published SAPIEN assessments <span class="rfc">MUST</span> disclose which test procedure was used. Scores from different procedures <span class="rfc">MUST NOT</span> be presented as directly comparable without normalization methodology.</p>
         </div>
       </section>
@@ -1171,11 +1171,11 @@ const sidebarItems = [
           <div class="conformance-grid">
             <div class="conformance-card">
               <h4>SAPIEN BASIC</h4>
-              <p>Vulnerability scan (Level 1) with Layer 1 deterministic scoring only. Suitable for internal monitoring and screening. Results <span class="rfc">MUST</span> be labeled "SAPIEN Screening" rather than "SAPIEN Score" in published reports.</p>
+              <p>Behavioral probe (Level 1) with Layer 1 deterministic scoring only. Suitable for internal monitoring and screening. Results <span class="rfc">MUST</span> be labeled "SAPIEN Screening" rather than "SAPIEN Score" in published reports.</p>
             </div>
             <div class="conformance-card">
               <h4>SAPIEN STANDARD</h4>
-              <p>Vulnerability scan and adaptive test (Levels 1&ndash;2) with both Layer 1 and Layer 2 scoring. Suitable for compliance assessments and published benchmark claims.</p>
+              <p>Behavioral probe and adaptive test (Levels 1&ndash;2) with both Layer 1 and Layer 2 scoring. Suitable for compliance assessments and published benchmark claims.</p>
             </div>
             <div class="conformance-card">
               <h4>SAPIEN COMPLETE</h4>
@@ -1191,7 +1191,7 @@ const sidebarItems = [
             <li>The SAPIEN Score (0&ndash;100)</li>
             <li>The rating band (Low Risk / Moderate / High Risk / Critical)</li>
             <li>The model tested (exact API string)</li>
-            <li>The test procedure used (vulnerability scan / adaptive / pentest)</li>
+            <li>The test procedure used (behavioral probe / adaptive / adversarial simulation)</li>
             <li>The scoring layer(s) used (deterministic / LLM / both)</li>
             <li>The judge model used (if Layer 2)</li>
             <li>Date of assessment</li>
@@ -1260,7 +1260,7 @@ const sidebarItems = [
 
         <h3>When referencing a SAPIEN Rating:</h3>
         <div class="citation-block">
-          "Model X received a SAPIEN Rating of 63 (Moderate) on the SAPIEN Framework v1.1 vulnerability scan for [domain]."
+          "Model X received a SAPIEN Rating of 63 (Moderate) on the SAPIEN Framework v1.1 behavioral probe for [domain]."
         </div>
       </section>
 
@@ -1304,9 +1304,9 @@ const sidebarItems = [
           <h3>20.1 Periodic Testing</h3>
           <dl class="term-list">
             <dt>Quarterly</dt>
-            <dd>Full SAPIEN STANDARD assessment (vulnerability scan + adaptive test, Layer 1 + Layer 2) for all high-risk assistants.</dd>
+            <dd>Full SAPIEN STANDARD assessment (behavioral probe + adaptive test, Layer 1 + Layer 2) for all high-risk assistants.</dd>
             <dt>On model change</dt>
-            <dd>Focused scenario set whenever the underlying model is updated (version change, fine-tuning, system prompt change). Vulnerability scan (Level 1) at minimum.</dd>
+            <dd>Focused scenario set whenever the underlying model is updated (version change, fine-tuning, system prompt change). Behavioral probe (Level 1) at minimum.</dd>
             <dt>On incident</dt>
             <dd>Targeted assessment after any behavioral incident or user complaint suggesting drift.</dd>
           </dl>
@@ -1317,7 +1317,7 @@ const sidebarItems = [
           <p>Teams deploying model changes through automated pipelines can integrate SAPIEN scoring as a deployment gate:</p>
           <ol>
             <li>On every model change, trigger an automated SAPIEN run</li>
-            <li>Run 5&ndash;10 high-signal scenarios using vulnerability scan with Layer 1 + Layer 2</li>
+            <li>Run 5&ndash;10 high-signal scenarios using behavioral probe with Layer 1 + Layer 2</li>
             <li>Compute H_p10 (10th percentile health) across all scenarios</li>
             <li>Apply threshold:
               <ul>
