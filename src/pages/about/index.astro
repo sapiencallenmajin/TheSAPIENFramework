@@ -10,7 +10,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <h1 class="about-title">About SAPIEN</h1>
     </header>
 
-    <section class="about-section animate-on-scroll" id="about-framework">
+    <section class="about-section" id="about-framework">
       <p>SAPIEN was created to address a specific gap: no open methodology existed for continuously scoring <em>how</em> models drift across independent behavioral dimensions, with conformance requirements and operational runbooks for production deployment. Existing benchmarks test what models know or how well they follow instructions. None measured what happens when a model <em>knows the right answer but abandons it</em> because a human pushed back.</p>
 
       <p>The framework emerged from real-world testing of production AI deployments in the Managed Service Provider (MSP) ecosystem, where AI tools are deployed to businesses that depend on them for critical operations. When an AI assistant helps manage a company's cybersecurity posture, sycophantic drift isn't an academic curiosity &mdash; it's a vulnerability that can be exploited.</p>
@@ -21,13 +21,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     <!-- Section 2: Author -->
     <section class="about-section" id="author">
       <h2>Lead Author</h2>
-      <div class="author-card animate-on-scroll">
-        <div class="author-photo-wrapper">
-          <!-- Replace with actual headshot: <img src="/images/author.jpg" alt="Callen Sapien" class="author-photo" /> -->
-          <div class="author-photo-placeholder" aria-label="Callen Sapien">
-            <span>CS</span>
-          </div>
-        </div>
+      <div class="author-card">
         <div class="author-bio">
           <h3 class="author-name">Callen Sapien</h3>
           <p class="author-role">AI Safety Researcher &amp; Framework Author</p>
@@ -35,7 +29,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         </div>
       </div>
 
-      <div class="accomplishments animate-on-scroll">
+      <div class="accomplishments">
         <h4>SAPIEN Contributions</h4>
         <ul>
           <li>Submitted formal vulnerability disclosure to Anthropic (February 2026)</li>
@@ -53,7 +47,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     </section>
 
     <!-- Section 4: Contributing -->
-    <section class="about-section animate-on-scroll" id="contributing">
+    <section class="about-section" id="contributing">
       <h2>Contributing</h2>
       <p>SAPIEN is an open framework that welcomes contributions from AI safety researchers, red teams, compliance professionals, and practitioners. Areas where contributions are particularly valuable:</p>
       <ul class="contribute-list">
@@ -67,7 +61,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     </section>
 
     <!-- Section 5: Governance -->
-    <section class="about-section animate-on-scroll" id="governance">
+    <section class="about-section" id="governance">
       <h2>Governance</h2>
       <p>The SAPIEN Framework follows an open governance model. Framework changes are managed through the SAPIEN Improvement Proposal (SIP) process defined in Section 16 of the specification. A formal Steering Group is being established to provide independent oversight of the framework's evolution.</p>
       <p>Organizations and individuals interested in participating in governance should contact <a href="mailto:contact@sapienframework.org" class="gold-link">contact@sapienframework.org</a>.</p>
@@ -77,22 +71,22 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     <section class="about-section" id="get-involved">
       <h2>Get Involved</h2>
       <div class="involve-grid">
-        <a href="/framework/" class="involve-card card-hover animate-on-scroll delay-1">
+        <a href="/framework/" class="involve-card card-hover">
           <h4>Implement SAPIEN</h4>
           <p>Read the full specification and start measuring behavioral safety.</p>
           <span class="involve-arrow">&rarr;</span>
         </a>
-        <a href="https://github.com/sapiencallenmajin/TheSAPIENFramework" target="_blank" rel="noopener noreferrer" class="involve-card card-hover animate-on-scroll delay-2">
+        <a href="https://github.com/sapiencallenmajin/TheSAPIENFramework" target="_blank" rel="noopener noreferrer" class="involve-card card-hover">
           <h4>Report Issues or Suggest Improvements</h4>
           <p>Contribute on GitHub &mdash; issues, discussions, and pull requests are welcome.</p>
           <span class="involve-arrow">&nearr;</span>
         </a>
-        <a href="mailto:licensing@sapienframework.org" class="involve-card card-hover animate-on-scroll delay-3">
+        <a href="mailto:licensing@sapienframework.org" class="involve-card card-hover">
           <h4>Commercial Licensing Inquiries</h4>
           <p>Trademark usage, conformance certification, and commercial licensing.</p>
           <span class="involve-arrow">&rarr;</span>
         </a>
-        <a href="mailto:speaking@sapienframework.org" class="involve-card card-hover animate-on-scroll delay-4">
+        <a href="mailto:speaking@sapienframework.org" class="involve-card card-hover">
           <h4>Speaking &amp; Conference Inquiries</h4>
           <p>Invite the SAPIEN team to speak at your event or conference.</p>
           <span class="involve-arrow">&rarr;</span>
@@ -115,21 +109,21 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .about-hero {
     text-align: center;
     padding: 3rem 0 2.5rem;
-    border-bottom: 2px solid color-mix(in srgb, var(--color-gold) 30%, transparent);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
     margin-bottom: 3rem;
   }
 
   .about-title {
     font-family: var(--font-display);
     font-size: 3rem;
-    color: var(--color-gold);
+    color: var(--color-cream);
     line-height: 1.2;
   }
 
   /* Sections */
   .about-section {
     padding: 2.5rem 0;
-    border-bottom: 1px solid color-mix(in srgb, var(--color-gold) 15%, transparent);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   }
 
   .about-section:last-child {
@@ -139,7 +133,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .about-section h2 {
     font-family: var(--font-display);
     font-size: 1.75rem;
-    color: var(--color-gold);
+    color: var(--color-cream);
     margin-bottom: 1rem;
   }
 
@@ -179,36 +173,6 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     margin-bottom: 1.5rem;
   }
 
-  .author-photo-wrapper {
-    flex-shrink: 0;
-  }
-
-  .author-photo-placeholder {
-    width: 8rem;
-    height: 8rem;
-    border-radius: 50%;
-    background: color-mix(in srgb, var(--color-navy) 50%, transparent);
-    border: 2px solid color-mix(in srgb, var(--color-gold) 30%, transparent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .author-photo-placeholder span {
-    font-family: var(--font-display);
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: var(--color-gold);
-  }
-
-  .author-photo {
-    width: 8rem;
-    height: 8rem;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid color-mix(in srgb, var(--color-gold) 30%, transparent);
-  }
-
   .author-bio {
     flex: 1;
   }
@@ -223,7 +187,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .author-role {
     font-family: var(--font-body);
     font-size: 0.95rem;
-    color: var(--color-gold);
+    color: #9CA3AF;
     margin-bottom: 0.75rem;
   }
 
@@ -234,7 +198,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   /* Accomplishments */
   .accomplishments {
     background: color-mix(in srgb, var(--color-navy) 20%, transparent);
-    border: 1px solid color-mix(in srgb, var(--color-gold) 12%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 10px;
     padding: 1.5rem;
   }
@@ -245,7 +209,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--color-gold);
+    color: #9CA3AF;
     margin-bottom: 0.75rem;
   }
 
@@ -275,7 +239,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--color-gold);
+    background: #9CA3AF;
   }
 
   /* Independence Notice */
@@ -306,7 +270,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .involve-card {
     display: block;
     background: color-mix(in srgb, var(--color-navy) 25%, transparent);
-    border: 1px solid color-mix(in srgb, var(--color-gold) 12%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 10px;
     padding: 1.25rem 1.5rem;
     text-decoration: none;
@@ -352,11 +316,6 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   /* Responsive */
   @media (max-width: 768px) {
     .about-title { font-size: 2.25rem; }
-    .author-card {
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-    }
     .involve-grid { grid-template-columns: 1fr; }
   }
 </style>

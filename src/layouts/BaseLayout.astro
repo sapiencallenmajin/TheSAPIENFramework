@@ -50,7 +50,7 @@ const orgSchema = {
     <meta name="twitter:description" content={description} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
     <script type="application/ld+json" set:html={JSON.stringify(orgSchema)} />
     {structuredData && (
       <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
@@ -69,20 +69,6 @@ const orgSchema = {
 <style>
   main {
     min-height: calc(100vh - var(--header-height) - 200px);
-    animation: none; /* override global fadeIn — let Astro handle transitions */
   }
 </style>
 
-<script>
-  // Scroll-triggered animations (one-shot)
-  const scrollObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('visible');
-        scrollObserver.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
-
-  document.querySelectorAll('.animate-on-scroll').forEach(el => scrollObserver.observe(el));
-</script>

@@ -6,9 +6,9 @@
   --color-slate: #1A1F2E;
   --color-cream: #F5F1EB;
   --color-gray: #6B7280;
-  --font-display: 'Playfair Display', serif;
-  --font-body: 'Source Sans 3', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-display: 'DM Serif Display', serif;
+  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
 }
 
 /* ===== Dark theme base ===== */
@@ -27,11 +27,11 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
-  color: var(--color-gold);
+  color: var(--color-cream);
 }
 
 a {
-  color: var(--color-gold);
+  color: var(--color-cream);
   text-decoration: none;
 }
 
@@ -44,9 +44,9 @@ a:hover {
   --color-bg: #0F1219;
   --color-bg-alt: #151B28;
   --color-surface: #1E2536;
-  --color-border: rgba(196, 162, 101, 0.15);
+  --color-border: rgba(255, 255, 255, 0.1);
   --color-accent: #C4A265;
-  --color-accent-glow: rgba(196, 162, 101, 0.15);
+  --color-accent-glow: rgba(255, 255, 255, 0.06);
   --color-text: #F5F1EB;
   --color-text-muted: #9CA3AF;
   --color-text-dim: #6B7280;
@@ -83,8 +83,8 @@ code {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   padding: 0.35em 1em;
-  border: 1px solid var(--color-accent);
-  color: var(--color-accent);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #9CA3AF;
   border-radius: 9999px;
 }
 
@@ -95,14 +95,14 @@ code {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-accent);
+  color: #9CA3AF;
   margin-bottom: 0.75rem;
 }
 
 .section-title {
   font-family: var(--font-display);
   font-size: 2.25rem;
-  color: var(--color-gold);
+  color: var(--color-cream);
   margin-bottom: 1rem;
 }
 
@@ -141,32 +141,16 @@ code {
 }
 
 .btn-outline {
-  border: 1px solid var(--color-gold);
-  color: var(--color-gold);
+  border: 1px solid var(--color-cream);
+  color: var(--color-cream);
   background: transparent;
 }
 
 .btn-outline:hover {
-  background: color-mix(in srgb, var(--color-gold) 10%, transparent);
-  color: var(--color-gold);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
 }
 
-/* ===== Scroll animations ===== */
-.animate-on-scroll {
-  opacity: 0;
-  transform: translateY(30px);
-  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-}
-
-.animate-on-scroll.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.animate-on-scroll.delay-1 { transition-delay: 0.1s; }
-.animate-on-scroll.delay-2 { transition-delay: 0.2s; }
-.animate-on-scroll.delay-3 { transition-delay: 0.3s; }
-.animate-on-scroll.delay-4 { transition-delay: 0.4s; }
 
 /* ===== Card hover effects ===== */
 .card-hover {
@@ -175,19 +159,10 @@ code {
 
 .card-hover:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 30px rgba(196, 162, 101, 0.15);
-  border-color: rgba(196, 162, 101, 0.4);
+  box-shadow: 0 8px 30px rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* ===== Page load transition ===== */
-main {
-  animation: fadeIn 0.4s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 
 /* Grain texture overlay utility */
 .grain-overlay::before {

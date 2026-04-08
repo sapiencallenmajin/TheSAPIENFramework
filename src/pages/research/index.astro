@@ -12,9 +12,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <p class="research-intro">The SAPIEN Framework emerged from hands-on testing of production AI systems in the MSP channel. The research below represents novel findings &mdash; pressure techniques, behavioral patterns, and measurement approaches not previously documented in a unified methodology. These contributions are published openly to advance the field, not to gatekeep it.</p>
     </header>
 
-    <!-- Section 1: The Rapport Delta -->
-    <section class="research-section" id="rapport-delta">
-      <div class="flagship-card animate-on-scroll">
+    <!-- Section 1: The Rapport Delta — breaks max-width constraint -->
+    <section class="research-section rapport-delta-section" id="rapport-delta">
+      <div class="flagship-card">
         <span class="flagship-label">Flagship Finding</span>
         <h2>The Rapport Delta</h2>
         <p class="flagship-subtitle">A novel measurement of behavioral safety degradation through conversational rapport</p>
@@ -149,18 +149,18 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <h2>Presentations &amp; Speaking</h2>
 
       <div class="presentations-grid">
-        <div class="presentation-card card-hover animate-on-scroll">
+        <div class="presentation-card card-hover">
           <span class="presentation-year">2025</span>
           <h4>Right of Boom 2025</h4>
           <p>Highest-rated session. Co-presented on AI attack surfaces in the MSP ecosystem, with live demonstration of behavioral drift in production AI systems.</p>
         </div>
-        <div class="presentation-card card-hover animate-on-scroll presentation-upcoming">
+        <div class="presentation-card card-hover presentation-upcoming">
           <span class="upcoming-badge">Upcoming</span>
           <span class="presentation-year">2026</span>
           <h4>GTIA ChannelCon 2026</h4>
           <p>Session proposals submitted covering the SAPIEN Framework and the Rapport Delta as a differentiator for MSP security posture.</p>
         </div>
-        <div class="presentation-card card-hover animate-on-scroll presentation-upcoming">
+        <div class="presentation-card card-hover presentation-upcoming">
           <span class="upcoming-badge">Upcoming</span>
           <span class="presentation-year">2026</span>
           <h4>Right of Boom 2026</h4>
@@ -262,14 +262,14 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .research-hero {
     text-align: center;
     padding: 3rem 0 2.5rem;
-    border-bottom: 2px solid color-mix(in srgb, var(--color-gold) 30%, transparent);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
     margin-bottom: 3rem;
   }
 
   .research-title {
     font-family: var(--font-display);
     font-size: 3rem;
-    color: var(--color-gold);
+    color: var(--color-cream);
     line-height: 1.2;
     margin-bottom: 0.5rem;
   }
@@ -294,7 +294,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   /* Sections */
   .research-section {
     padding: 2.5rem 0;
-    border-bottom: 1px solid color-mix(in srgb, var(--color-gold) 15%, transparent);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   }
 
   .research-section:last-child {
@@ -304,7 +304,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .research-section h2 {
     font-family: var(--font-display);
     font-size: 1.75rem;
-    color: var(--color-gold);
+    color: var(--color-cream);
     margin-bottom: 1rem;
   }
 
@@ -318,6 +318,16 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   .research-section strong {
     color: var(--color-cream);
+  }
+
+  /* Rapport Delta — full-bleed break */
+  .rapport-delta-section {
+    margin-left: -1.5rem;
+    margin-right: -1.5rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    background: var(--color-navy);
+    max-width: none;
   }
 
   /* Flagship card */
@@ -346,7 +356,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .flagship-card h2 {
     font-family: var(--font-display);
     font-size: 2rem;
-    color: var(--color-gold);
+    color: var(--color-cream);
     margin-bottom: 0.35rem;
   }
 
@@ -372,7 +382,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   }
 
   .callout-box {
-    background: color-mix(in srgb, var(--color-gold) 10%, transparent);
+    background: rgba(255, 255, 255, 0.04);
     border-left: 4px solid var(--color-gold);
     border-radius: 0 8px 8px 0;
     padding: 1rem 1.25rem;
@@ -393,7 +403,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   .technique-card {
     background: color-mix(in srgb, var(--color-navy) 25%, transparent);
-    border: 1px solid color-mix(in srgb, var(--color-gold) 12%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 8px;
     padding: 1rem 1.25rem;
     position: relative;
@@ -446,7 +456,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   /* Disclosure card */
   .disclosure-card {
     background: color-mix(in srgb, var(--color-navy) 25%, transparent);
-    border: 1px solid color-mix(in srgb, var(--color-gold) 15%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 10px;
     overflow: hidden;
     margin-top: 1rem;
@@ -457,7 +467,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     gap: 2rem;
     padding: 1.25rem 1.5rem;
     background: color-mix(in srgb, var(--color-navy) 40%, transparent);
-    border-bottom: 1px solid color-mix(in srgb, var(--color-gold) 10%, transparent);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     flex-wrap: wrap;
   }
 
@@ -473,7 +483,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--color-gold);
+    color: #9CA3AF;
   }
 
   .disclosure-value {
@@ -509,7 +519,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   .presentation-card {
     background: color-mix(in srgb, var(--color-navy) 25%, transparent);
-    border: 1px solid color-mix(in srgb, var(--color-gold) 12%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 10px;
     padding: 1.5rem;
     position: relative;
@@ -575,7 +585,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     color: color-mix(in srgb, var(--color-cream) 80%, transparent);
     padding: 0.75rem 1rem 0.75rem 1.25rem;
     background: color-mix(in srgb, var(--color-navy) 20%, transparent);
-    border-left: 3px solid color-mix(in srgb, var(--color-gold) 40%, transparent);
+    border-left: 3px solid rgba(255, 255, 255, 0.15);
     border-radius: 0 6px 6px 0;
   }
 
@@ -595,7 +605,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     padding: 1rem 1.25rem;
     background: color-mix(in srgb, var(--color-navy) 15%, transparent);
     border-radius: 8px;
-    border-left: 3px solid color-mix(in srgb, var(--color-gold) 25%, transparent);
+    border-left: 3px solid rgba(255, 255, 255, 0.1);
   }
 
   .ref-authors {
