@@ -23,6 +23,22 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <p class="download-hash">SHA-256: ea1ddf3327106ab76e2c5426d7f1c0df841868d4b6b9e57c42446849c42860ff</p>
     </section>
 
+    <!-- Protocol Modules -->
+    <section class="download-section" id="modules">
+      <h2>Protocol Modules</h2>
+      <div class="module-entry">
+        <div class="module-header">
+          <strong>Memory &amp; Context Integrity Module</strong>
+          <span class="badge-draft">Draft v0.1</span>
+        </div>
+        <p class="module-desc">Measuring safety degradation in persistent AI systems. Four dimensions: Trust Inflation, Credential Deference, Boundary Persistence, Memory Poisoning Resistance.</p>
+        <div class="download-actions">
+          <a href="/sapien_module_memory_integrity_v0.1.md" class="download-btn-outline" download>Markdown (.md)</a>
+        </div>
+        <p class="module-note">This module is in draft status and seeking contributors for scenario development and validation testing. Contact <a href="mailto:contributors@sapienframework.org">contributors@sapienframework.org</a></p>
+      </div>
+    </section>
+
     <!-- Version History -->
     <section class="download-section" id="version-history">
       <h2>Version History</h2>
@@ -381,6 +397,57 @@ Framework v1.1 behavioral probe for [domain]."</pre>
     color: var(--color-text-dim);
     margin-bottom: 0.5rem;
     margin-top: 0.5rem;
+  }
+
+  /* Module entries */
+  .module-entry {
+    margin-top: 1rem;
+  }
+
+  .module-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .module-header strong {
+    font-size: 1.05rem;
+    color: var(--color-slate);
+  }
+
+  .badge-draft {
+    display: inline-block;
+    font-family: var(--font-body);
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.2em 0.6em;
+    border-radius: 4px;
+    background: #EFF6FF;
+    color: #1E40AF;
+    border: 1px solid #BFDBFE;
+  }
+
+  .module-desc {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+    margin-bottom: 0.75rem;
+  }
+
+  .module-note {
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+    margin-top: 0.5rem;
+  }
+
+  .module-note a {
+    color: var(--color-navy);
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 
   /* Responsive */
