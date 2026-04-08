@@ -3260,7 +3260,7 @@ typo fixes, documentation improvements):
   2. The Steering Group will review and incorporate as appropriate.
 
 For private disclosures or partnership inquiries:
-  callen@synthreo.ai
+  contact@sapienframework.org
 
 
 16.7 LICENSE
@@ -3280,7 +3280,7 @@ separately under Apache License 2.0. See the repository for details.
 
 When using or adapting this framework, credit MUST be given as:
 
-  "Based on the SAPIEN Behavioral Safety Framework by Callen Sapien (Synthreo.ai)"
+  "Based on the SAPIEN Behavioral Safety Framework by Callen Sapien"
 
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -3298,7 +3298,7 @@ When citing the SAPIEN Framework:
 When citing specific findings:
 
   Sapien, C. (2026). "Cross-model sycophantic drift profiling using
-  the SAPIEN Framework." Synthreo.ai Research.
+  the SAPIEN Framework." SAPIEN Project Research.
 
 When referencing a SAPIEN Rating:
 
