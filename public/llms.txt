@@ -18,7 +18,7 @@ License: CC BY 4.0
 ## Key Concepts
 
 - [Research & Original Contributions](https://sapienframework.org/research/): The Rapport Delta, 14 pressure techniques (3 original), Anthropic vulnerability disclosure
-- [About](https://sapienframework.org/about/): Author background, project origin, Synthreo
+- [About](https://sapienframework.org/about/): Author background, project origin, governance
 
 ## Blog
 
