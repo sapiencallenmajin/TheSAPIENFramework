@@ -12,16 +12,21 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <p class="download-brief">The complete specification for measuring AI behavioral integrity under conversational pressure. Free and open under CC BY 4.0.</p>
     </header>
 
-    <!-- Primary Download Card -->
-    <section class="download-section">
-      <div class="download-card card-hover animate-on-scroll">
-        <h2 class="download-card-title">The SAPIEN Behavioral Safety Framework v1.1</h2>
-        <div class="download-meta">
-          <span class="download-format">PDF</span>
-          <span class="download-size">~225 KB</span>
+    <!-- Primary Download -->
+    <section class="download-section animate-on-scroll">
+      <div class="download-row">
+        <div class="download-icon">
+          <span class="download-icon-type">PDF</span>
+          <span class="download-icon-size">225 KB</span>
         </div>
-        <a href="/the_sapien_framework_v1.1.pdf" class="download-btn" download>Download PDF &darr;</a>
-        <p class="download-alt">Also available: <a href="/the_sapien_framework_v1.1.md" class="alt-link">Markdown (.md)</a></p>
+        <div class="download-info">
+          <h2 class="download-info-title">The SAPIEN Behavioral Safety Framework v1.1</h2>
+          <p class="download-info-desc">Complete specification &mdash; four behavioral dimensions, scoring methodology, test procedures, conformance requirements, and operational runbooks.</p>
+          <div class="download-actions">
+            <a href="/the_sapien_framework_v1.1.pdf" class="download-btn" download>Download PDF &darr;</a>
+            <a href="/the_sapien_framework_v1.1.md" class="download-btn-outline" download>Markdown (.md)</a>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -177,77 +182,106 @@ Framework v1.1 behavioral probe for [domain]."</pre>
     color: var(--color-cream);
   }
 
-  /* Primary Download Card */
-  .download-card {
-    background: color-mix(in srgb, var(--color-navy) 30%, transparent);
-    border: 2px solid var(--color-gold);
-    border-radius: 14px;
-    padding: 2.5rem;
-    text-align: center;
+  /* Primary Download — inline layout */
+  .download-row {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
   }
 
-  .download-card-title {
+  .download-icon {
+    flex-shrink: 0;
+    width: 6rem;
+    height: 8rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid color-mix(in srgb, var(--color-gold) 30%, transparent);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+  }
+
+  .download-icon-type {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--color-gold);
+  }
+
+  .download-icon-size {
+    font-family: var(--font-body);
+    font-size: 0.7rem;
+    color: var(--color-gray);
+  }
+
+  .download-info {
+    flex: 1;
+  }
+
+  .download-info-title {
     font-family: var(--font-display);
     font-size: 1.5rem;
-    color: var(--color-cream);
-    margin-bottom: 1rem;
+    color: var(--color-gold);
+    margin-bottom: 0.5rem;
   }
 
-  .download-meta {
-    display: flex;
-    justify-content: center;
-    gap: 1.5rem;
-    margin-bottom: 1.75rem;
-  }
-
-  .download-format,
-  .download-size {
+  .download-info-desc {
     font-family: var(--font-body);
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: color-mix(in srgb, var(--color-cream) 60%, transparent);
-    padding: 0.3em 0.8em;
-    border: 1px solid color-mix(in srgb, var(--color-gold) 25%, transparent);
-    border-radius: 4px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: color-mix(in srgb, var(--color-cream) 70%, transparent);
+    margin-bottom: 1.25rem;
+  }
+
+  .download-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
   }
 
   .download-btn {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
     font-family: var(--font-body);
-    font-size: 1.15rem;
+    font-size: 0.95rem;
     font-weight: 700;
     color: var(--color-slate);
     background: var(--color-gold);
-    padding: 0.9em 2.5em;
+    padding: 0.75em 1.75em;
     border-radius: 8px;
     text-decoration: none;
     transition: background 0.2s, transform 0.15s;
-    letter-spacing: 0.02em;
   }
 
   .download-btn:hover {
     background: color-mix(in srgb, var(--color-gold) 85%, #fff);
     transform: translateY(-1px);
     color: var(--color-slate);
+    text-decoration: none;
   }
 
-  .download-alt {
+  .download-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
     font-family: var(--font-body);
-    font-size: 0.9rem;
-    color: color-mix(in srgb, var(--color-cream) 55%, transparent);
-    margin-top: 1.25rem;
-  }
-
-  .alt-link {
+    font-size: 0.95rem;
+    font-weight: 600;
     color: var(--color-gold);
-    text-decoration: underline;
-    text-underline-offset: 2px;
+    border: 1px solid color-mix(in srgb, var(--color-gold) 40%, transparent);
+    padding: 0.75em 1.75em;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background 0.2s;
   }
 
-  .alt-link:hover {
-    color: var(--color-cream);
+  .download-btn-outline:hover {
+    background: rgba(255, 255, 255, 0.05);
+    text-decoration: none;
   }
 
   /* Version Timeline */
@@ -384,7 +418,8 @@ Framework v1.1 behavioral probe for [domain]."</pre>
   /* Responsive */
   @media (max-width: 768px) {
     .download-title { font-size: 2rem; }
-    .download-card { padding: 1.5rem; }
-    .download-btn { font-size: 1rem; padding: 0.8em 2em; }
+    .download-row { flex-direction: column; align-items: flex-start; }
+    .download-icon { width: 5rem; height: 6rem; }
+    .download-btn { font-size: 0.9rem; }
   }
 </style>
