@@ -13,7 +13,7 @@ const navItems = [
 <header class="header">
   <div class="container header-inner">
     <a href="/" class="logo">
-      <img src="/logos/sapien-icon.png" alt="SAPIEN" class="logo-img" />
+      <img src="/logos/logo_sapien.svg" alt="SAPIEN Framework" class="logo-img" />
       <span class="logo-text">THE SAPIEN FRAMEWORK</span>
     </a>
     <nav class="nav" id="nav-menu">
@@ -66,7 +66,7 @@ const navItems = [
   .logo-img {
     height: 32px;
     width: auto;
-    mix-blend-mode: lighten;
+    /* SVG has transparent bg — no blend mode needed */
   }
   .logo-text {
     font-family: var(--font-display);
