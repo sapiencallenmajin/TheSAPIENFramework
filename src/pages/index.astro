@@ -35,6 +35,14 @@ const websiteSchema = {
             <a href="/modules/" class="btn btn-primary">Explore Modules</a>
             <a href="/download/" class="btn btn-outline-light">Download Specification</a>
           </div>
+          <div class="hero-trust">
+            <a href="https://github.com/sapiencallenmajin/TheSAPIENFramework" target="_blank" rel="noopener noreferrer">
+              <img src="https://img.shields.io/github/stars/sapiencallenmajin/TheSAPIENFramework?style=social" alt="GitHub stars" width="100" height="20" loading="lazy" />
+            </a>
+            <span class="trust-badge trust-badge-license">CC BY 4.0</span>
+            <span class="trust-badge trust-badge-conf">Presented at Right of Boom</span>
+            <span class="trust-badge trust-badge-disclosure">Anthropic Vulnerability Disclosure</span>
+          </div>
         </div>
         <div class="hero-visual" aria-hidden="true">
           <svg viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg" class="dimensions-diagram">
@@ -385,6 +393,45 @@ const websiteSchema = {
     display: flex;
     gap: 1rem;
     flex-wrap: wrap;
+  }
+
+  .hero-trust {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .hero-trust img {
+    display: block;
+  }
+
+  .trust-badge {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 0.2em 0.6em;
+    border-radius: 4px;
+    letter-spacing: 0.02em;
+  }
+
+  .trust-badge-license {
+    background: rgba(196, 162, 101, 0.15);
+    color: var(--color-gold);
+    border: 1px solid rgba(196, 162, 101, 0.3);
+  }
+
+  .trust-badge-conf {
+    background: rgba(255, 255, 255, 0.08);
+    color: #94A3B8;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .trust-badge-disclosure {
+    background: rgba(255, 255, 255, 0.08);
+    color: #94A3B8;
+    border: 1px solid rgba(255, 255, 255, 0.12);
   }
 
   /* Hero visual element */

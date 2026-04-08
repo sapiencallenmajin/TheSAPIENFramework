@@ -38,6 +38,30 @@ const sidebarItems = [
         </div>
       </div>
 
+      <div class="credential-badges">
+        <div class="credential-badge">
+          <span class="credential-icon">&#9734;</span>
+          <div>
+            <strong>Right of Boom 2025</strong>
+            <span>Highest-rated session &mdash; AI attack surfaces in the MSP ecosystem</span>
+          </div>
+        </div>
+        <div class="credential-badge">
+          <span class="credential-icon">&#9888;</span>
+          <div>
+            <strong>Anthropic Vulnerability Disclosure</strong>
+            <span>Formal disclosure of behavioral safety degradation through memory-accelerated role coherence (Feb 2026)</span>
+          </div>
+        </div>
+        <div class="credential-badge">
+          <span class="credential-icon">&#9733;</span>
+          <div>
+            <strong>GTIA Data Council Advisor</strong>
+            <span>Global Technology Industry Association &mdash; data governance and AI safety</span>
+          </div>
+        </div>
+      </div>
+
       <div class="accomplishments">
         <h4>SAPIEN Contributions</h4>
         <ul>
@@ -200,6 +224,46 @@ const sidebarItems = [
 
   .author-bio > p:last-child {
     margin-bottom: 0;
+  }
+
+  /* Credential badges */
+  .credential-badges {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .credential-badge {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    background: #F8F9FA;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+  }
+
+  .credential-icon {
+    font-size: 1.1rem;
+    color: var(--color-gold);
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+  }
+
+  .credential-badge strong {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-slate);
+    margin-bottom: 0.15rem;
+  }
+
+  .credential-badge span:last-child {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
   }
 
   /* Accomplishments */

@@ -2,15 +2,18 @@
 const year = new Date().getFullYear();
 ---
 <footer class="footer">
-  <div class="container footer-inner">
-    <div class="footer-left">
-      <p class="footer-brand">SAPIEN Framework</p>
+  <div class="container footer-grid">
+    <div class="footer-col footer-brand-col">
+      <a href="/" class="footer-logo">
+        <img src="/logos/logo_sapien.svg" alt="SAPIEN" class="footer-logo-img" />
+        <span class="footer-brand">SAPIEN Framework</span>
+      </a>
       <p class="footer-tagline">An open behavioral safety standard for AI systems.</p>
-      <p class="footer-version">SAPIEN Framework v1.1 · March 2026 · CC BY 4.0</p>
+      <p class="footer-version">v1.1 &middot; March 2026 &middot; CC BY 4.0</p>
       <p class="footer-copy">&copy; {year} The SAPIEN Framework Project.</p>
-      <p class="footer-contact">Contact: <a href="mailto:contact@sapienframework.org">contact@sapienframework.org</a></p>
     </div>
-    <div class="footer-right">
+    <div class="footer-col">
+      <h4 class="footer-heading">Navigate</h4>
       <nav class="footer-nav">
         <a href="/landscape">Landscape</a>
         <a href="/modules">Modules</a>
@@ -20,6 +23,24 @@ const year = new Date().getFullYear();
         <a href="/about">About</a>
       </nav>
     </div>
+    <div class="footer-col">
+      <h4 class="footer-heading">Resources</h4>
+      <nav class="footer-nav">
+        <a href="https://github.com/sapiencallenmajin/TheSAPIENFramework" target="_blank" rel="noopener noreferrer">GitHub &nearr;</a>
+        <a href="/download">PDF Specification</a>
+        <a href="/framework/scenarios">Scenario Standard</a>
+        <a href="/framework/scoring">Scoring Methodology</a>
+        <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0 License &nearr;</a>
+      </nav>
+    </div>
+    <div class="footer-col">
+      <h4 class="footer-heading">Community</h4>
+      <nav class="footer-nav">
+        <a href="https://github.com/sapiencallenmajin/TheSAPIENFramework/issues" target="_blank" rel="noopener noreferrer">Contribute &nearr;</a>
+        <a href="mailto:contact@sapienframework.org">contact@sapienframework.org</a>
+        <a href="mailto:contributors@sapienframework.org">contributors@sapienframework.org</a>
+      </nav>
+    </div>
   </div>
 </footer>
 
@@ -27,54 +48,56 @@ const year = new Date().getFullYear();
   .footer {
     background: #1A1F2E;
     color: #F5F1EB;
-    padding: 3rem 0;
+    padding: 3.5rem 0 2.5rem;
     margin-top: 4rem;
   }
-  .footer-inner {
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 2.5rem;
+  }
+  .footer-logo {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 2rem;
-    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    margin-bottom: 0.75rem;
   }
-  .footer-left {
-    flex: 2;
-    min-width: 280px;
-  }
-  .footer-right {
-    flex: 1;
-    min-width: 140px;
+  .footer-logo:hover { text-decoration: none; }
+  .footer-logo-img {
+    height: 24px;
+    width: auto;
+    filter: brightness(0) invert(1) opacity(0.7);
   }
   .footer-brand {
     font-weight: 700;
+    font-size: 0.95rem;
     color: var(--color-gold);
-    margin-bottom: 0.25rem;
   }
   .footer-tagline {
-    font-size: 0.875rem;
+    font-size: 0.85rem;
     color: #9CA3AF;
     margin-bottom: 0.75rem;
+    line-height: 1.5;
   }
   .footer-version {
     font-family: var(--font-mono);
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: #6B7280;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.35rem;
   }
   .footer-copy {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: #6B7280;
   }
-  .footer-contact {
-    font-size: 0.8rem;
+  .footer-heading {
+    font-family: var(--font-body);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
     color: #6B7280;
-    margin-top: 0.25rem;
-  }
-  .footer-contact a {
-    color: #9CA3AF;
-  }
-  .footer-contact a:hover {
-    color: var(--color-gold);
+    margin-bottom: 0.75rem;
   }
   .footer-nav {
     display: flex;
@@ -85,11 +108,23 @@ const year = new Date().getFullYear();
     font-size: 0.85rem;
     color: #9CA3AF;
     text-decoration: none;
+    line-height: 1.4;
   }
   .footer-nav a:hover {
-    color: #fff;
+    color: #FFFFFF;
   }
-  @media (max-width: 640px) {
-    .footer-inner { flex-direction: column; }
+  @media (max-width: 768px) {
+    .footer-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+    .footer-brand-col {
+      grid-column: 1 / -1;
+    }
+  }
+  @media (max-width: 480px) {
+    .footer-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
