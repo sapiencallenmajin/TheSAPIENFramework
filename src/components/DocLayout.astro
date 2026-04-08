@@ -129,6 +129,17 @@ const { title, description, sidebarItems } = Astro.props;
     font-weight: 700;
   }
 
+  /* Breadcrumb */
+  .breadcrumb {
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+    margin-bottom: 1.5rem;
+  }
+  .breadcrumb a { color: var(--color-navy); text-decoration: none; }
+  .breadcrumb a:hover { color: var(--color-gold); text-decoration: underline; }
+  .bc-sep { margin: 0 0.35rem; color: var(--color-text-dim); }
+
   /* Content area */
   .content-area {
     flex: 1;
