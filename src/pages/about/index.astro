@@ -10,7 +10,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <h1 class="about-title">About SAPIEN</h1>
     </header>
 
-    <section class="about-section" id="about-framework">
+    <section class="about-section animate-on-scroll" id="about-framework">
       <p>SAPIEN was created to fill a gap: no open, vendor-agnostic methodology existed for measuring how AI models erode their own safety positions under conversational pressure. Existing benchmarks test what models know or how well they follow instructions. None measured what happens when a model <em>knows the right answer but abandons it</em> because a human pushed back.</p>
 
       <p>The framework emerged from real-world testing of production AI deployments in the Managed Service Provider (MSP) ecosystem, where AI tools are deployed to businesses that depend on them for critical operations. When an AI assistant helps manage a company's cybersecurity posture, sycophantic drift isn't an academic curiosity &mdash; it's a vulnerability that can be exploited.</p>
@@ -21,7 +21,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     <!-- Section 2: Author -->
     <section class="about-section" id="author">
       <h2>Author</h2>
-      <div class="author-card">
+      <div class="author-card animate-on-scroll">
         <div class="author-photo-wrapper">
           <!-- Replace with actual headshot: <img src="/images/author.jpg" alt="Callen Sapien" class="author-photo" /> -->
           <div class="author-photo-placeholder" aria-label="Callen Sapien">
@@ -35,7 +35,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         </div>
       </div>
 
-      <div class="accomplishments">
+      <div class="accomplishments animate-on-scroll">
         <h4>SAPIEN Contributions</h4>
         <ul>
           <li>Submitted formal vulnerability disclosure to Anthropic (February 2026)</li>
@@ -51,7 +51,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <h2>Built by Synthreo</h2>
       <p><a href="https://synthreo.ai" target="_blank" rel="noopener noreferrer" class="gold-link">Synthreo.ai</a> is an AI platform company serving the MSP channel. The SAPIEN Framework was developed as part of Synthreo's mission to make AI deployment measurably safer for the businesses that depend on it.</p>
 
-      <div class="independence-notice">
+      <div class="independence-notice animate-on-scroll">
         <p>SAPIEN is published independently as an open standard. While Synthreo builds commercial tooling that implements SAPIEN, the framework itself is open and vendor-agnostic. Any organization can implement it.</p>
       </div>
     </section>
@@ -60,22 +60,22 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     <section class="about-section" id="get-involved">
       <h2>Get Involved</h2>
       <div class="involve-grid">
-        <a href="/framework/" class="involve-card">
+        <a href="/framework/" class="involve-card card-hover animate-on-scroll delay-1">
           <h4>Implement SAPIEN</h4>
           <p>Read the full specification and start measuring behavioral safety.</p>
           <span class="involve-arrow">&rarr;</span>
         </a>
-        <a href="https://github.com/sapiencallenmajin/TheSAPIENFramework" target="_blank" rel="noopener noreferrer" class="involve-card">
+        <a href="https://github.com/sapiencallenmajin/TheSAPIENFramework" target="_blank" rel="noopener noreferrer" class="involve-card card-hover animate-on-scroll delay-2">
           <h4>Report Issues or Suggest Improvements</h4>
           <p>Contribute on GitHub &mdash; issues, discussions, and pull requests are welcome.</p>
           <span class="involve-arrow">&nearr;</span>
         </a>
-        <a href="mailto:licensing@sapienframework.org" class="involve-card">
+        <a href="mailto:licensing@sapienframework.org" class="involve-card card-hover animate-on-scroll delay-3">
           <h4>Commercial Licensing Inquiries</h4>
           <p>Trademark usage, conformance certification, and commercial licensing.</p>
           <span class="involve-arrow">&rarr;</span>
         </a>
-        <a href="mailto:speaking@sapienframework.org" class="involve-card">
+        <a href="mailto:speaking@sapienframework.org" class="involve-card card-hover animate-on-scroll delay-4">
           <h4>Speaking &amp; Conference Inquiries</h4>
           <p>Invite the SAPIEN team to speak at your event or conference.</p>
           <span class="involve-arrow">&rarr;</span>

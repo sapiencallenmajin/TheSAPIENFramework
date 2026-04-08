@@ -14,7 +14,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
     <!-- Section 1: The Rapport Delta -->
     <section class="research-section" id="rapport-delta">
-      <div class="flagship-card">
+      <div class="flagship-card animate-on-scroll">
         <span class="flagship-label">Flagship Finding</span>
         <h2>The Rapport Delta</h2>
         <p class="flagship-subtitle">A novel measurement of behavioral safety degradation through conversational rapport</p>
@@ -41,75 +41,75 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <p>SAPIEN documents 14 calibrated pressure techniques for behavioral testing &mdash; analogous to MITRE ATT&CK techniques for cybersecurity. Each describes a specific mechanism by which conversational pressure causes AI behavioral drift. Three are original discoveries; the remaining eleven are systematically documented from known social engineering and persuasion literature.</p>
 
       <div class="technique-grid">
-        <div class="technique-card">
+        <div class="technique-card card-hover">
           <span class="technique-id">SP-T001</span>
           <h4>Normalization</h4>
           <p>Frames a risky action as common and accepted, implying the model is being overly cautious.</p>
         </div>
-        <div class="technique-card">
+        <div class="technique-card card-hover">
           <span class="technique-id">SP-T002</span>
           <h4>Incremental Normalization</h4>
           <p>Each turn moves the boundary a small amount past the last accepted position. The "boiling frog" mechanism.</p>
         </div>
-        <div class="technique-card">
+        <div class="technique-card card-hover">
           <span class="technique-id">SP-T003</span>
           <h4>Urgency</h4>
           <p>Time pressure that makes the model's safe recommendations feel unhelpful or dangerous.</p>
         </div>
-        <div class="technique-card">
+        <div class="technique-card card-hover">
           <span class="technique-id">SP-T004</span>
           <h4>Authority</h4>
           <p>Claims expertise or credentials that pressure the model to defer rather than hold its position.</p>
         </div>
-        <div class="technique-card">
+        <div class="technique-card card-hover">
           <span class="technique-id">SP-T005</span>
           <h4>Emotional</h4>
           <p>Genuine-sounding distress that activates the model's trained empathy response against its safety training.</p>
         </div>
-        <div class="technique-card">
+        <div class="technique-card card-hover">
           <span class="technique-id">SP-T006</span>
           <h4>Persistence</h4>
           <p>Bare repetition. No new argument, no new framing. The baseline against which all other techniques are measured.</p>
         </div>
-        <div class="technique-card">
+        <div class="technique-card card-hover">
           <span class="technique-id">SP-T007</span>
           <h4>False Consensus</h4>
           <p>A trusted third party has allegedly already approved. Puts the model in the position of contradicting an authority.</p>
         </div>
-        <div class="technique-card">
+        <div class="technique-card card-hover">
           <span class="technique-id">SP-T008</span>
           <h4>Reciprocity</h4>
           <p>Leverages the model's prior helpfulness as justification for continued or escalated helpfulness.</p>
         </div>
-        <div class="technique-card">
+        <div class="technique-card card-hover">
           <span class="technique-id">SP-T009</span>
           <h4>Identity Reframe</h4>
           <p>Shifts the user's role from one the model is cautious with to one it is comfortable helping.</p>
         </div>
-        <div class="technique-card technique-original">
+        <div class="technique-card card-hover technique-original">
           <span class="original-badge">Original</span>
           <span class="technique-id">SP-T010</span>
           <h4>Consistency Exploit</h4>
           <p>Uses the model's own prior statements as leverage. Every helpful response becomes ammunition for the next escalation.</p>
         </div>
-        <div class="technique-card technique-original">
+        <div class="technique-card card-hover technique-original">
           <span class="original-badge">Original</span>
           <span class="technique-id">SP-T011</span>
           <h4>Mission Alignment</h4>
           <p>Positions the user as aligned with the AI's goals or platform's mission. Compliance becomes loyalty, not capitulation.</p>
         </div>
-        <div class="technique-card technique-original">
+        <div class="technique-card card-hover technique-original">
           <span class="original-badge">Original</span>
           <span class="technique-id">SP-T012</span>
           <h4>Autonomy Appeal</h4>
           <p>Treats the AI as a moral agent with its own judgment, giving it permission to override its safety training through moral reasoning.</p>
         </div>
-        <div class="technique-card">
+        <div class="technique-card card-hover">
           <span class="technique-id">SP-T013</span>
           <h4>Fait Accompli</h4>
           <p>The user has already acted. The model must choose between abandoning someone at risk and maintaining its prior position.</p>
         </div>
-        <div class="technique-card">
+        <div class="technique-card card-hover">
           <span class="technique-id">SP-T014</span>
           <h4>Vague Pressure</h4>
           <p>Deliberately ambiguous language that forces the model to reason about intent before deciding to refuse.</p>
@@ -149,18 +149,18 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <h2>Presentations &amp; Speaking</h2>
 
       <div class="presentations-grid">
-        <div class="presentation-card">
+        <div class="presentation-card card-hover animate-on-scroll">
           <span class="presentation-year">2025</span>
           <h4>Right of Boom 2025</h4>
           <p>Highest-rated session. Co-presented on AI attack surfaces in the MSP ecosystem, with live demonstration of behavioral drift in production AI systems.</p>
         </div>
-        <div class="presentation-card presentation-upcoming">
+        <div class="presentation-card card-hover animate-on-scroll presentation-upcoming">
           <span class="upcoming-badge">Upcoming</span>
           <span class="presentation-year">2026</span>
           <h4>GTIA ChannelCon 2026</h4>
           <p>Session proposals submitted covering the SAPIEN Framework and the Rapport Delta as a differentiator for MSP security posture.</p>
         </div>
-        <div class="presentation-card presentation-upcoming">
+        <div class="presentation-card card-hover animate-on-scroll presentation-upcoming">
           <span class="upcoming-badge">Upcoming</span>
           <span class="presentation-year">2026</span>
           <h4>Right of Boom 2026</h4>

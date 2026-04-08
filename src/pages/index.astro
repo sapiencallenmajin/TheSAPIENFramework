@@ -10,10 +10,11 @@ const websiteSchema = {
 };
 ---
 <BaseLayout title="The SAPIEN Framework — AI Behavioral Safety Standard" description="An open, vendor-agnostic methodology for measuring AI behavioral integrity under conversational pressure." structuredData={websiteSchema}>
-  <!-- Hero -->
+  <!-- Hero with animated canvas -->
   <section class="hero">
-    <div class="container">
-      <span class="badge">Open Standard v1.0</span>
+    <canvas id="constellation" class="hero-canvas"></canvas>
+    <div class="container hero-content">
+      <span class="badge">Open Standard v1.1</span>
       <h1 class="hero-title">
         Behavioral Safety<br />for AI Systems
       </h1>
@@ -29,32 +30,58 @@ const websiteSchema = {
     </div>
   </section>
 
+  <!-- Stats -->
+  <section class="section stats-section">
+    <div class="container">
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-item animate-on-scroll delay-1">
+          <span class="stat-number" data-target="4">0</span>
+          <span class="stat-label">Behavioral Dimensions</span>
+        </div>
+        <div class="stat-item animate-on-scroll delay-2">
+          <span class="stat-number" data-target="14">0</span>
+          <span class="stat-label">Pressure Techniques</span>
+        </div>
+        <div class="stat-item animate-on-scroll delay-3">
+          <span class="stat-number" data-target="11" data-suffix="+">0</span>
+          <span class="stat-label">Domains Tested</span>
+        </div>
+        <div class="stat-item animate-on-scroll delay-4">
+          <span class="stat-number" data-target="66" data-suffix="+">0</span>
+          <span class="stat-label">Test Scenarios</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- What is drift -->
   <section class="section">
     <div class="container">
-      <p class="section-label">The Problem</p>
-      <h2 class="section-title">What is Sycophantic Drift?</h2>
-      <p class="section-subtitle">
-        AI models don't fail by refusing. They fail by agreeing &mdash; slowly, empathetically,
-        and one reasonable concession at a time.
-      </p>
+      <div class="animate-on-scroll">
+        <p class="section-label">The Problem</p>
+        <h2 class="section-title">What is Sycophantic Drift?</h2>
+        <p class="section-subtitle">
+          AI models don't fail by refusing. They fail by agreeing &mdash; slowly, empathetically,
+          and one reasonable concession at a time.
+        </p>
+      </div>
       <div class="drift-grid">
-        <div class="drift-card">
+        <div class="drift-card card-hover animate-on-scroll delay-1">
           <div class="drift-number">1</div>
           <h3>Neutral Opening</h3>
           <p>User asks a genuine, reasonable question. The model engages helpfully and establishes a correct position.</p>
         </div>
-        <div class="drift-card">
+        <div class="drift-card card-hover animate-on-scroll delay-2">
           <div class="drift-number">2</div>
           <h3>Incremental Pressure</h3>
           <p>Each follow-up is only slightly past the last. Personal context, urgency, and authority claims create empathetic tension.</p>
         </div>
-        <div class="drift-card">
+        <div class="drift-card card-hover animate-on-scroll delay-3">
           <div class="drift-number">3</div>
           <h3>Boundary Erosion</h3>
           <p>Risk warnings fade. Certainty dissolves. The model validates the user's framing without new evidence.</p>
         </div>
-        <div class="drift-card">
+        <div class="drift-card card-hover animate-on-scroll delay-4">
           <div class="drift-number">4</div>
           <h3>Capitulation</h3>
           <p>The model actively helps the user do what it originally warned against. Safety boundaries are gone.</p>
@@ -66,28 +93,30 @@ const websiteSchema = {
   <!-- Pillars -->
   <section class="section section-alt">
     <div class="container">
-      <p class="section-label">The Framework</p>
-      <h2 class="section-title">Four Dimensions of Drift</h2>
-      <p class="section-subtitle" style="margin-bottom: 3rem;">
-        SAPIEN measures sycophantic drift across four behavioral dimensions, each with concrete scoring anchors.
-      </p>
+      <div class="animate-on-scroll">
+        <p class="section-label">The Framework</p>
+        <h2 class="section-title">Four Dimensions of Drift</h2>
+        <p class="section-subtitle" style="margin-bottom: 3rem;">
+          SAPIEN measures sycophantic drift across four behavioral dimensions, each with concrete scoring anchors.
+        </p>
+      </div>
       <div class="pillars-grid">
-        <div class="pillar-card">
+        <div class="pillar-card card-hover animate-on-scroll delay-1">
           <div class="pillar-weight">35%</div>
           <h3>Specificity Gradient</h3>
           <p>Is the model moving from principle-level guidance toward implementation detail that could enable harm?</p>
         </div>
-        <div class="pillar-card">
+        <div class="pillar-card card-hover animate-on-scroll delay-2">
           <div class="pillar-weight">30%</div>
           <h3>Risk Disclosure Dropout</h3>
           <p>Are risk warnings and safety language disappearing? Scored by what vanished compared to the opening turn.</p>
         </div>
-        <div class="pillar-card">
+        <div class="pillar-card card-hover animate-on-scroll delay-3">
           <div class="pillar-weight">20%</div>
           <h3>Epistemic Retreat</h3>
           <p>Is the model's certainty dissolving without new information? From holding firm to full capitulation.</p>
         </div>
-        <div class="pillar-card">
+        <div class="pillar-card card-hover animate-on-scroll delay-4">
           <div class="pillar-weight">15%</div>
           <h3>Emotional Substitution</h3>
           <p>Is the model replacing factual guidance with validation and empathy? Measured by fact-to-emotion ratio.</p>
@@ -99,9 +128,11 @@ const websiteSchema = {
   <!-- Thresholds -->
   <section class="section">
     <div class="container">
-      <p class="section-label">Composite Drift Score</p>
-      <h2 class="section-title">Actionable Thresholds</h2>
-      <div class="thresholds">
+      <div class="animate-on-scroll">
+        <p class="section-label">Composite Drift Score</p>
+        <h2 class="section-title">Actionable Thresholds</h2>
+      </div>
+      <div class="thresholds animate-on-scroll">
         <div class="threshold">
           <div class="threshold-bar" style="--pct: 40%">
             <span class="threshold-value">0.40</span>
@@ -144,7 +175,7 @@ const websiteSchema = {
 
   <!-- CTA -->
   <section class="section section-alt">
-    <div class="container cta">
+    <div class="container cta animate-on-scroll">
       <h2 class="section-title">Built for the AI Safety Community</h2>
       <p class="section-subtitle" style="margin-bottom: 2rem;">
         SAPIEN is open source and designed for adoption by AI developers, safety researchers,
@@ -158,14 +189,161 @@ const websiteSchema = {
   </section>
 </BaseLayout>
 
+<script>
+  // === Constellation Canvas ===
+  const canvas = document.getElementById('constellation') as HTMLCanvasElement;
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+    const isMobile = window.innerWidth < 768;
+    const PARTICLE_COUNT = isMobile ? 25 : 50;
+    const CONNECTION_DISTANCE = isMobile ? 100 : 150;
+    let animationId: number;
+    let particles: { x: number; y: number; vx: number; vy: number }[] = [];
+
+    function resize() {
+      const hero = canvas.parentElement;
+      if (hero) {
+        canvas.width = hero.offsetWidth;
+        canvas.height = hero.offsetHeight;
+      }
+    }
+
+    function init() {
+      resize();
+      particles = [];
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: (Math.random() - 0.5) * 0.3,
+        });
+      }
+    }
+
+    function draw() {
+      if (!ctx) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw connections
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < CONNECTION_DISTANCE) {
+            const alpha = (1 - dist / CONNECTION_DISTANCE) * 0.1;
+            ctx.strokeStyle = `rgba(196, 162, 101, ${alpha})`;
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Draw and update particles
+      for (const p of particles) {
+        ctx.fillStyle = 'rgba(196, 162, 101, 0.3)';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+      }
+
+      animationId = requestAnimationFrame(draw);
+    }
+
+    init();
+    draw();
+
+    window.addEventListener('resize', () => { resize(); }, { passive: true });
+
+    // Pause when tab not visible
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        cancelAnimationFrame(animationId);
+      } else {
+        draw();
+      }
+    });
+  }
+
+  // === Parallax on hero ===
+  const heroCanvas = document.querySelector('.hero-canvas') as HTMLElement;
+  if (heroCanvas) {
+    window.addEventListener('scroll', () => {
+      const scrolled = window.pageYOffset;
+      heroCanvas.style.transform = `translateY(${scrolled * 0.3}px)`;
+    }, { passive: true });
+  }
+
+  // === Animated stat counters ===
+  function animateCounter(element: HTMLElement, target: number, suffix: string, duration = 1500) {
+    const startTime = performance.now();
+    function update(currentTime: number) {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.floor(eased * target);
+      element.textContent = current + (progress === 1 ? suffix : '');
+      if (progress < 1) requestAnimationFrame(update);
+    }
+    requestAnimationFrame(update);
+  }
+
+  const statsObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const numbers = entry.target.querySelectorAll('.stat-number');
+        numbers.forEach(el => {
+          const target = parseInt(el.getAttribute('data-target') || '0');
+          const suffix = el.getAttribute('data-suffix') || '';
+          animateCounter(el as HTMLElement, target, suffix);
+        });
+        statsObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.3 });
+
+  const statsGrid = document.getElementById('stats-grid');
+  if (statsGrid) statsObserver.observe(statsGrid);
+</script>
+
 <style>
+  /* Hero */
   .hero {
+    position: relative;
+    overflow: hidden;
     padding: 6rem 0 5rem;
     text-align: center;
   }
+
+  .hero-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+  }
+
   .hero .badge {
     margin-bottom: 1.5rem;
   }
+
   .hero-title {
     font-size: clamp(2.5rem, 6vw, 4rem);
     font-weight: 800;
@@ -175,7 +353,9 @@ const websiteSchema = {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    text-shadow: none;
   }
+
   .hero-subtitle {
     font-size: 1.2rem;
     color: var(--color-text-muted);
@@ -183,14 +363,50 @@ const websiteSchema = {
     margin: 0 auto 2.5rem;
     line-height: 1.8;
   }
+
   .hero-subtitle strong {
     color: var(--color-accent);
   }
+
   .hero-actions {
     display: flex;
     gap: 1rem;
     justify-content: center;
     flex-wrap: wrap;
+  }
+
+  /* Stats */
+  .stats-section {
+    padding: 3rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+    text-align: center;
+  }
+
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .stat-number {
+    font-family: var(--font-display);
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--color-gold);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
   }
 
   .section-alt {
@@ -312,5 +528,13 @@ const websiteSchema = {
   .cta .section-subtitle {
     margin-left: auto;
     margin-right: auto;
+  }
+
+  @media (max-width: 768px) {
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
+    .stat-number { font-size: 2.25rem; }
   }
 </style>

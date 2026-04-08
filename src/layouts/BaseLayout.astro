@@ -69,5 +69,20 @@ const orgSchema = {
 <style>
   main {
     min-height: calc(100vh - var(--header-height) - 200px);
+    animation: none; /* override global fadeIn — let Astro handle transitions */
   }
 </style>
+
+<script>
+  // Scroll-triggered animations (one-shot)
+  const scrollObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        scrollObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+  document.querySelectorAll('.animate-on-scroll').forEach(el => scrollObserver.observe(el));
+</script>
