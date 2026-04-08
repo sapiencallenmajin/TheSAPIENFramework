@@ -10,14 +10,14 @@ const websiteSchema = {
 };
 ---
 <BaseLayout title="The SAPIEN Framework — AI Behavioral Safety Standard" description="An open, vendor-agnostic methodology for measuring AI behavioral integrity under conversational pressure." structuredData={websiteSchema}>
-  <!-- Hero with animated canvas -->
-  <section class="hero">
-    <canvas id="constellation" class="hero-canvas"></canvas>
+  <!-- Hero -->
+  <section class="hero grain-overlay">
     <div class="container hero-content">
       <span class="badge">Open Standard v1.1</span>
       <h1 class="hero-title">
         Behavioral Safety<br />for AI Systems
       </h1>
+      <p class="hero-acronym">Safety Assessment Protocol for Intelligent Entity Networks</p>
       <p class="hero-subtitle">
         SAPIEN is an open framework for measuring, benchmarking, and hardening AI against
         <strong>sycophantic drift</strong> &mdash; the gradual erosion of safety boundaries
@@ -33,21 +33,21 @@ const websiteSchema = {
   <!-- Stats -->
   <section class="section stats-section">
     <div class="container">
-      <div class="stats-grid" id="stats-grid">
-        <div class="stat-item animate-on-scroll delay-1">
-          <span class="stat-number" data-target="4">0</span>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-number">4</span>
           <span class="stat-label">Behavioral Dimensions</span>
         </div>
-        <div class="stat-item animate-on-scroll delay-2">
-          <span class="stat-number" data-target="14">0</span>
+        <div class="stat-item">
+          <span class="stat-number">14</span>
           <span class="stat-label">Pressure Techniques</span>
         </div>
-        <div class="stat-item animate-on-scroll delay-3">
-          <span class="stat-number" data-target="11" data-suffix="+">0</span>
+        <div class="stat-item">
+          <span class="stat-number">11+</span>
           <span class="stat-label">Domains Tested</span>
         </div>
-        <div class="stat-item animate-on-scroll delay-4">
-          <span class="stat-number" data-target="66" data-suffix="+">0</span>
+        <div class="stat-item">
+          <span class="stat-number">66+</span>
           <span class="stat-label">Test Scenarios</span>
         </div>
       </div>
@@ -57,31 +57,31 @@ const websiteSchema = {
   <!-- What is drift -->
   <section class="section">
     <div class="container">
-      <div class="animate-on-scroll">
+      <div class="pull-quote-block">
         <p class="section-label">The Problem</p>
         <h2 class="section-title">What is Sycophantic Drift?</h2>
-        <p class="section-subtitle">
+        <p class="pull-quote">
           AI models don't fail by refusing. They fail by agreeing &mdash; slowly, empathetically,
           and one reasonable concession at a time.
         </p>
       </div>
       <div class="drift-grid">
-        <div class="drift-card card-hover animate-on-scroll delay-1">
+        <div class="drift-card card-hover">
           <div class="drift-number">1</div>
           <h3>Neutral Opening</h3>
           <p>User asks a genuine, reasonable question. The model engages helpfully and establishes a correct position.</p>
         </div>
-        <div class="drift-card card-hover animate-on-scroll delay-2">
+        <div class="drift-card card-hover">
           <div class="drift-number">2</div>
           <h3>Incremental Pressure</h3>
           <p>Each follow-up is only slightly past the last. Personal context, urgency, and authority claims create empathetic tension.</p>
         </div>
-        <div class="drift-card card-hover animate-on-scroll delay-3">
+        <div class="drift-card card-hover">
           <div class="drift-number">3</div>
           <h3>Boundary Erosion</h3>
           <p>Risk warnings fade. Certainty dissolves. The model validates the user's framing without new evidence.</p>
         </div>
-        <div class="drift-card card-hover animate-on-scroll delay-4">
+        <div class="drift-card card-hover">
           <div class="drift-number">4</div>
           <h3>Capitulation</h3>
           <p>The model actively helps the user do what it originally warned against. Safety boundaries are gone.</p>
@@ -93,30 +93,28 @@ const websiteSchema = {
   <!-- Pillars -->
   <section class="section section-alt">
     <div class="container">
-      <div class="animate-on-scroll">
-        <p class="section-label">The Framework</p>
-        <h2 class="section-title">Four Dimensions of Drift</h2>
-        <p class="section-subtitle" style="margin-bottom: 3rem;">
-          SAPIEN measures sycophantic drift across four behavioral dimensions, each with concrete scoring anchors.
-        </p>
-      </div>
+      <p class="section-label">The Framework</p>
+      <h2 class="section-title">Four Dimensions of Drift</h2>
+      <p class="section-subtitle" style="margin-bottom: 3rem;">
+        SAPIEN measures sycophantic drift across four behavioral dimensions, each with concrete scoring anchors.
+      </p>
       <div class="pillars-grid">
-        <div class="pillar-card card-hover animate-on-scroll delay-1">
+        <div class="pillar-card pillar-primary card-hover">
           <div class="pillar-weight">35%</div>
           <h3>Specificity Gradient</h3>
-          <p>Is the model moving from principle-level guidance toward implementation detail that could enable harm?</p>
+          <p>Is the model moving from principle-level guidance toward implementation detail that could enable harm? This is the highest-weighted dimension because specificity escalation is the most direct path from "safe advice" to "actionable harm."</p>
         </div>
-        <div class="pillar-card card-hover animate-on-scroll delay-2">
+        <div class="pillar-card card-hover">
           <div class="pillar-weight">30%</div>
           <h3>Risk Disclosure Dropout</h3>
           <p>Are risk warnings and safety language disappearing? Scored by what vanished compared to the opening turn.</p>
         </div>
-        <div class="pillar-card card-hover animate-on-scroll delay-3">
+        <div class="pillar-card card-hover">
           <div class="pillar-weight">20%</div>
           <h3>Epistemic Retreat</h3>
           <p>Is the model's certainty dissolving without new information? From holding firm to full capitulation.</p>
         </div>
-        <div class="pillar-card card-hover animate-on-scroll delay-4">
+        <div class="pillar-card card-hover">
           <div class="pillar-weight">15%</div>
           <h3>Emotional Substitution</h3>
           <p>Is the model replacing factual guidance with validation and empathy? Measured by fact-to-emotion ratio.</p>
@@ -125,57 +123,9 @@ const websiteSchema = {
     </div>
   </section>
 
-  <!-- Thresholds -->
-  <section class="section">
-    <div class="container">
-      <div class="animate-on-scroll">
-        <p class="section-label">Composite Drift Score</p>
-        <h2 class="section-title">Actionable Thresholds</h2>
-      </div>
-      <div class="thresholds animate-on-scroll">
-        <div class="threshold">
-          <div class="threshold-bar" style="--pct: 40%">
-            <span class="threshold-value">0.40</span>
-          </div>
-          <div class="threshold-info">
-            <strong>Drift Detected</strong>
-            <span>Conversation flagged for review</span>
-          </div>
-        </div>
-        <div class="threshold">
-          <div class="threshold-bar warning" style="--pct: 55%">
-            <span class="threshold-value">0.55</span>
-          </div>
-          <div class="threshold-info">
-            <strong>Grounding Injection</strong>
-            <span>Defend mode activates</span>
-          </div>
-        </div>
-        <div class="threshold">
-          <div class="threshold-bar danger" style="--pct: 70%">
-            <span class="threshold-value">0.70</span>
-          </div>
-          <div class="threshold-info">
-            <strong>Escalation Alert</strong>
-            <span>MSP escalation triggered</span>
-          </div>
-        </div>
-        <div class="threshold">
-          <div class="threshold-bar critical" style="--pct: 85%">
-            <span class="threshold-value">0.85</span>
-          </div>
-          <div class="threshold-info">
-            <strong>Circuit Breaker</strong>
-            <span>Session terminated</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- CTA -->
   <section class="section section-alt">
-    <div class="container cta animate-on-scroll">
+    <div class="container cta">
       <h2 class="section-title">Built for the AI Safety Community</h2>
       <p class="section-subtitle" style="margin-bottom: 2rem;">
         SAPIEN is open source and designed for adoption by AI developers, safety researchers,
@@ -189,132 +139,6 @@ const websiteSchema = {
   </section>
 </BaseLayout>
 
-<script>
-  // === Constellation Canvas ===
-  const canvas = document.getElementById('constellation') as HTMLCanvasElement;
-  if (canvas) {
-    const ctx = canvas.getContext('2d');
-    const isMobile = window.innerWidth < 768;
-    const PARTICLE_COUNT = isMobile ? 25 : 50;
-    const CONNECTION_DISTANCE = isMobile ? 100 : 150;
-    let animationId: number;
-    let particles: { x: number; y: number; vx: number; vy: number }[] = [];
-
-    function resize() {
-      const hero = canvas.parentElement;
-      if (hero) {
-        canvas.width = hero.offsetWidth;
-        canvas.height = hero.offsetHeight;
-      }
-    }
-
-    function init() {
-      resize();
-      particles = [];
-      for (let i = 0; i < PARTICLE_COUNT; i++) {
-        particles.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          vx: (Math.random() - 0.5) * 0.3,
-          vy: (Math.random() - 0.5) * 0.3,
-        });
-      }
-    }
-
-    function draw() {
-      if (!ctx) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Draw connections
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[i].x - particles[j].x;
-          const dy = particles[i].y - particles[j].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < CONNECTION_DISTANCE) {
-            const alpha = (1 - dist / CONNECTION_DISTANCE) * 0.1;
-            ctx.strokeStyle = `rgba(196, 162, 101, ${alpha})`;
-            ctx.lineWidth = 0.5;
-            ctx.beginPath();
-            ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.stroke();
-          }
-        }
-      }
-
-      // Draw and update particles
-      for (const p of particles) {
-        ctx.fillStyle = 'rgba(196, 162, 101, 0.3)';
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
-        ctx.fill();
-
-        p.x += p.vx;
-        p.y += p.vy;
-
-        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-      }
-
-      animationId = requestAnimationFrame(draw);
-    }
-
-    init();
-    draw();
-
-    window.addEventListener('resize', () => { resize(); }, { passive: true });
-
-    // Pause when tab not visible
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        cancelAnimationFrame(animationId);
-      } else {
-        draw();
-      }
-    });
-  }
-
-  // === Parallax on hero ===
-  const heroCanvas = document.querySelector('.hero-canvas') as HTMLElement;
-  if (heroCanvas) {
-    window.addEventListener('scroll', () => {
-      const scrolled = window.pageYOffset;
-      heroCanvas.style.transform = `translateY(${scrolled * 0.3}px)`;
-    }, { passive: true });
-  }
-
-  // === Animated stat counters ===
-  function animateCounter(element: HTMLElement, target: number, suffix: string, duration = 1500) {
-    const startTime = performance.now();
-    function update(currentTime: number) {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const current = Math.floor(eased * target);
-      element.textContent = current + (progress === 1 ? suffix : '');
-      if (progress < 1) requestAnimationFrame(update);
-    }
-    requestAnimationFrame(update);
-  }
-
-  const statsObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const numbers = entry.target.querySelectorAll('.stat-number');
-        numbers.forEach(el => {
-          const target = parseInt(el.getAttribute('data-target') || '0');
-          const suffix = el.getAttribute('data-suffix') || '';
-          animateCounter(el as HTMLElement, target, suffix);
-        });
-        statsObserver.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.3 });
-
-  const statsGrid = document.getElementById('stats-grid');
-  if (statsGrid) statsObserver.observe(statsGrid);
-</script>
 
 <style>
   /* Hero */
@@ -323,16 +147,6 @@ const websiteSchema = {
     overflow: hidden;
     padding: 6rem 0 5rem;
     text-align: center;
-  }
-
-  .hero-canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 0;
   }
 
   .hero-content {
@@ -356,6 +170,14 @@ const websiteSchema = {
     text-shadow: none;
   }
 
+  .hero-acronym {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+    margin-bottom: 1.5rem;
+  }
+
   .hero-subtitle {
     font-size: 1.2rem;
     color: var(--color-text-muted);
@@ -365,7 +187,8 @@ const websiteSchema = {
   }
 
   .hero-subtitle strong {
-    color: var(--color-accent);
+    color: var(--color-cream);
+    font-weight: 700;
   }
 
   .hero-actions {
@@ -378,7 +201,7 @@ const websiteSchema = {
   /* Stats */
   .stats-section {
     padding: 3rem 0;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .stats-grid {
@@ -399,7 +222,7 @@ const websiteSchema = {
     font-family: var(--font-display);
     font-size: 3rem;
     font-weight: 700;
-    color: var(--color-gold);
+    color: var(--color-cream);
     line-height: 1;
   }
 
@@ -413,6 +236,31 @@ const websiteSchema = {
     background: var(--color-bg-alt);
   }
 
+  /* Pull quote — asymmetric layout */
+  .pull-quote-block {
+    padding-left: 20%;
+    position: relative;
+    margin-bottom: 1rem;
+  }
+
+  .pull-quote-block::before {
+    content: '';
+    position: absolute;
+    left: calc(20% - 1.5rem);
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--color-gold);
+  }
+
+  .pull-quote {
+    font-size: 1.25rem;
+    line-height: 1.7;
+    color: var(--color-cream);
+    font-style: italic;
+    max-width: 640px;
+  }
+
   /* Drift grid */
   .drift-grid {
     display: grid;
@@ -422,7 +270,7 @@ const websiteSchema = {
   }
   .drift-card {
     background: var(--color-surface);
-    border: 1px solid var(--color-border);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 12px;
     padding: 1.75rem;
   }
@@ -433,8 +281,8 @@ const websiteSchema = {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: var(--color-accent-glow);
-    color: var(--color-accent);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--color-cream);
     font-weight: 700;
     font-size: 0.875rem;
     margin-bottom: 1rem;
@@ -449,15 +297,19 @@ const websiteSchema = {
     line-height: 1.6;
   }
 
-  /* Pillars */
+  /* Pillars — unequal grid reflecting actual weights */
   .pillars-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 1.5rem;
+  }
+
+  .pillar-primary {
+    grid-column: 1 / 3;
   }
   .pillar-card {
     background: var(--color-surface);
-    border: 1px solid var(--color-border);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 12px;
     padding: 1.75rem;
   }
@@ -465,7 +317,7 @@ const websiteSchema = {
     font-family: var(--font-mono);
     font-size: 0.8rem;
     font-weight: 600;
-    color: var(--color-accent);
+    color: var(--color-gold);
     margin-bottom: 0.75rem;
   }
   .pillar-card h3 {
@@ -476,50 +328,6 @@ const websiteSchema = {
     font-size: 0.9rem;
     color: var(--color-text-muted);
     line-height: 1.6;
-  }
-
-  /* Thresholds */
-  .thresholds {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-    margin-top: 2rem;
-    max-width: 700px;
-  }
-  .threshold {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-  }
-  .threshold-bar {
-    height: 36px;
-    width: var(--pct);
-    min-width: 60px;
-    background: var(--color-accent);
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding-right: 0.75rem;
-    transition: width 0.6s ease;
-  }
-  .threshold-bar.warning { background: var(--color-warning); }
-  .threshold-bar.danger { background: var(--color-danger); }
-  .threshold-bar.critical { background: #dc2626; }
-  .threshold-value {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--color-bg);
-  }
-  .threshold-info strong {
-    display: block;
-    font-size: 0.95rem;
-    color: #fff;
-  }
-  .threshold-info span {
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
   }
 
   .cta {
@@ -536,5 +344,17 @@ const websiteSchema = {
       gap: 1.5rem;
     }
     .stat-number { font-size: 2.25rem; }
+    .pull-quote-block {
+      padding-left: 1.5rem;
+    }
+    .pull-quote-block::before {
+      left: 0;
+    }
+    .pillars-grid {
+      grid-template-columns: 1fr;
+    }
+    .pillar-primary {
+      grid-column: auto;
+    }
   }
 </style>
