@@ -1,7 +1,17 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
+import DocLayout from '../../components/DocLayout.astro';
+
+const sidebarItems = [
+  { label: 'The Rapport Delta', anchor: 'rapport-delta' },
+  { label: 'Pressure Techniques', anchor: 'pressure-techniques' },
+  { label: 'Vulnerability Disclosure', anchor: 'vulnerability-disclosure' },
+  { label: 'Memory Integrity', anchor: 'memory-integrity' },
+  { label: 'Presentations', anchor: 'presentations' },
+  { label: 'Active Research', anchor: 'research-roadmap' },
+  { label: 'Related Work', anchor: 'related-work' },
+];
 ---
-<BaseLayout title="SAPIEN Research — Original Contributions to AI Safety" description="The Rapport Delta, 14 pressure techniques, and formal vulnerability disclosure to Anthropic.">
+<DocLayout title="SAPIEN Research — Original Contributions to AI Safety" description="The Rapport Delta, 14 pressure techniques, and formal vulnerability disclosure to Anthropic." sidebarItems={sidebarItems}>
 
   <div class="research-page">
 
@@ -277,14 +287,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   </div>
 
-</BaseLayout>
+</DocLayout>
 
 <style>
   .research-page {
     max-width: 52rem;
-    margin: 0 auto;
-    padding: 0 1.5rem 4rem;
-    background: #FFFFFF;
   }
 
   /* Hero */
@@ -362,14 +369,12 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     color: var(--color-slate);
   }
 
-  /* Rapport Delta — full-bleed break */
+  /* Rapport Delta — highlighted section */
   .rapport-delta-section {
-    margin-left: -1.5rem;
-    margin-right: -1.5rem;
+    background: #F8F9FA;
+    border-radius: 12px;
     padding-left: 1.5rem;
     padding-right: 1.5rem;
-    background: #F8F9FA;
-    max-width: none;
   }
 
   /* Flagship card */

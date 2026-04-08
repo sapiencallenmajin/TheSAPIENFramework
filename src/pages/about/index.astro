@@ -1,7 +1,16 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
+import DocLayout from '../../components/DocLayout.astro';
+
+const sidebarItems = [
+  { label: 'About SAPIEN', anchor: 'about-framework' },
+  { label: 'Lead Author', anchor: 'author' },
+  { label: 'History', anchor: 'history' },
+  { label: 'Contributing', anchor: 'contributing' },
+  { label: 'Governance', anchor: 'governance' },
+  { label: 'Get Involved', anchor: 'get-involved' },
+];
 ---
-<BaseLayout title="About SAPIEN — Author & Project Background" description="The origin of the SAPIEN Framework, its author, and how to contribute to the open standard.">
+<DocLayout title="About SAPIEN — Author & Project Background" description="The origin of the SAPIEN Framework, its author, and how to contribute to the open standard." sidebarItems={sidebarItems}>
 
   <div class="about-page">
 
@@ -96,13 +105,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   </div>
 
-</BaseLayout>
+</DocLayout>
 
 <style>
   .about-page {
     max-width: 48rem;
-    margin: 0 auto;
-    padding: 0 1.5rem 4rem;
   }
 
   /* Hero */
