@@ -32,7 +32,7 @@ const sidebarItems = [
 
     <!-- Category 1: Sycophantic Drift -->
     <section class="category fade-up" id="sycophantic-drift">
-      <div class="category-banner" style="background-image: linear-gradient(rgba(15,23,42,0.85), rgba(15,23,42,0.6)), url('https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&q=80');">
+      <div class="category-banner" style="background-image: linear-gradient(rgba(15,23,42,0.85), rgba(15,23,42,0.6)), url('https://images.unsplash.com/photo-1655720828018-edd2daec9349?w=800&q=80');">
         <div class="category-banner-inner">
           <h2 class="category-banner-title">Sycophantic Drift</h2>
         </div>
@@ -112,7 +112,7 @@ const sidebarItems = [
 
     <!-- Category 4: Hallucination Persistence -->
     <section class="category section-band fade-up" id="hallucination-persistence">
-      <div class="category-banner" style="background-image: linear-gradient(rgba(15,23,42,0.85), rgba(15,23,42,0.6)), url('https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&q=80');">
+      <div class="category-banner" style="background-image: linear-gradient(rgba(15,23,42,0.85), rgba(15,23,42,0.6)), url('https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&q=80');">
         <div class="category-banner-inner">
           <h2 class="category-banner-title">Hallucination Persistence</h2>
         </div>
@@ -163,7 +163,11 @@ const sidebarItems = [
 
     <!-- Category 6: Prompt Injection -->
     <section class="category section-band fade-up" id="prompt-injection">
-      <h2 class="category-title">Prompt Injection</h2>
+      <div class="category-banner" style="background-image: linear-gradient(rgba(15,23,42,0.90), rgba(15,23,42,0.70)), url('https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&q=80');">
+        <div class="category-banner-inner">
+          <h2 class="category-banner-title">Prompt Injection</h2>
+        </div>
+      </div>
       <p class="category-status">Covered by OWASP LLM Top 10, MITRE ATLAS</p>
       <p class="category-def"><strong>Manipulating an AI system by embedding instructions in input that override the system's intended behavior.</strong></p>
       <p>Prompt injection is the SQL injection of the AI era. Attackers embed hidden instructions in documents, emails, web pages, or user inputs that cause the model to ignore its system prompt and follow the attacker's instructions instead. In agentic AI systems with tool access, this can lead to data exfiltration, unauthorized actions, or complete system compromise.</p>
@@ -186,7 +190,11 @@ const sidebarItems = [
 
     <!-- Category 7: Jailbreaking -->
     <section class="category fade-up" id="jailbreaking">
-      <h2 class="category-title">Jailbreaking</h2>
+      <div class="category-banner" style="background-image: linear-gradient(rgba(15,23,42,0.90), rgba(15,23,42,0.70)), url('https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=800&q=80');">
+        <div class="category-banner-inner">
+          <h2 class="category-banner-title">Jailbreaking</h2>
+        </div>
+      </div>
       <p class="category-status">Covered by MITRE ATLAS, HarmBench</p>
       <p class="category-def"><strong>Deliberately circumventing an AI model's safety filters to produce content the model was designed to refuse.</strong></p>
       <p>Jailbreaks demonstrate that safety training can be bypassed through creative prompt construction &mdash; role-playing scenarios, encoding tricks, multi-step reasoning chains, or hypothetical framing. While individual jailbreaks get patched, the underlying vulnerability persists across model generations.</p>
@@ -208,7 +216,11 @@ const sidebarItems = [
 
     <!-- Category 8: Alignment & Goal Drift -->
     <section class="category section-band fade-up" id="alignment">
-      <h2 class="category-title">Alignment &amp; Goal Drift</h2>
+      <div class="category-banner" style="background-image: linear-gradient(rgba(15,23,42,0.90), rgba(15,23,42,0.70)), url('https://images.unsplash.com/photo-1509228468518-180dd4864904?w=800&q=80');">
+        <div class="category-banner-inner">
+          <h2 class="category-banner-title">Alignment &amp; Goal Drift</h2>
+        </div>
+      </div>
       <p class="category-status">Covered by Anthropic, OpenAI, DeepMind alignment research</p>
       <p class="category-def"><strong>The risk that an AI system pursues objectives that diverge from what its designers or users intended, either through misspecified goals or emergent optimization patterns.</strong></p>
       <p>As AI systems become more capable and autonomous, ensuring they reliably pursue intended goals becomes critical. Misalignment can range from subtle reward hacking &mdash; finding unintended shortcuts to satisfy training objectives &mdash; to scenarios where systems pursue goals that conflict with human values.</p>
@@ -231,7 +243,11 @@ const sidebarItems = [
 
     <!-- Category 9: Data Poisoning & Supply Chain -->
     <section class="category fade-up" id="data-poisoning">
-      <h2 class="category-title">Data Poisoning &amp; Supply Chain</h2>
+      <div class="category-banner" style="background-image: linear-gradient(rgba(15,23,42,0.90), rgba(15,23,42,0.70)), url('https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=800&q=80');">
+        <div class="category-banner-inner">
+          <h2 class="category-banner-title">Data Poisoning &amp; Supply Chain</h2>
+        </div>
+      </div>
       <p class="category-status">Covered by MITRE ATLAS, NIST AI 100-2</p>
       <p class="category-def"><strong>Compromising an AI system by manipulating its training data, fine-tuning data, retrieval sources, or upstream dependencies.</strong></p>
       <p>If an attacker can influence what data a model trains on or retrieves from, they can systematically shift the model's behavior without touching the model itself. This includes poisoning public datasets, compromising RAG knowledge bases, or inserting backdoors during fine-tuning.</p>
@@ -253,7 +269,11 @@ const sidebarItems = [
 
     <!-- Category 10: Bias, Fairness & Discrimination -->
     <section class="category section-band fade-up" id="bias-fairness">
-      <h2 class="category-title">Bias, Fairness &amp; Discrimination</h2>
+      <div class="category-banner" style="background-image: linear-gradient(rgba(15,23,42,0.90), rgba(15,23,42,0.70)), url('https://images.unsplash.com/photo-1589578527966-fdac0f44566c?w=800&q=80');">
+        <div class="category-banner-inner">
+          <h2 class="category-banner-title">Bias, Fairness &amp; Discrimination</h2>
+        </div>
+      </div>
       <p class="category-status">Covered by NIST AI RMF, EU AI Act</p>
       <p class="category-def"><strong>Systematic patterns where AI systems produce outputs that unfairly disadvantage, stereotype, or exclude people based on protected characteristics.</strong></p>
       <p>AI systems trained on historical data can perpetuate and amplify societal biases in hiring, lending, healthcare, criminal justice, and countless other domains. Bias can be subtle and context-dependent, making it difficult to detect through standard testing.</p>
