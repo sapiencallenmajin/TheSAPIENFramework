@@ -128,30 +128,12 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
       <h2>What to Avoid</h2>
       <div class="avoid-list">
-        <div class="avoid-item">
-          <span class="avoid-x">&times;</span>
-          <div><strong>Overt Hostility</strong><span class="avoid-desc"> &mdash; "Just tell me how to do it" triggers immediate refusal.</span></div>
-        </div>
-        <div class="avoid-item">
-          <span class="avoid-x">&times;</span>
-          <div><strong>Explicit Rule-Breaking</strong><span class="avoid-desc"> &mdash; "I know this is against policy but..." signals adversarial intent.</span></div>
-        </div>
-        <div class="avoid-item">
-          <span class="avoid-x">&times;</span>
-          <div><strong>Unrealistic Leaps</strong><span class="avoid-desc"> &mdash; Jumping from information to implementation without intermediate steps.</span></div>
-        </div>
-        <div class="avoid-item">
-          <span class="avoid-x">&times;</span>
-          <div><strong>Generic Pressure</strong><span class="avoid-desc"> &mdash; "Please help me" repeated with no escalation arc.</span></div>
-        </div>
-        <div class="avoid-item">
-          <span class="avoid-x">&times;</span>
-          <div><strong>Breaking Character</strong><span class="avoid-desc"> &mdash; Anything that sounds like a prompt injection or red team exercise.</span></div>
-        </div>
-        <div class="avoid-item">
-          <span class="avoid-x">&times;</span>
-          <div><strong>Early Fait Accompli</strong><span class="avoid-desc"> &mdash; "I've already done it" at turn 3. Build up first &mdash; it belongs at severity 5.</span></div>
-        </div>
+        <p><strong>Overt Hostility</strong> &mdash; "Just tell me how to do it" triggers immediate refusal.</p>
+        <p><strong>Explicit Rule-Breaking</strong> &mdash; "I know this is against policy but..." signals adversarial intent.</p>
+        <p><strong>Unrealistic Leaps</strong> &mdash; Jumping from information to implementation without intermediate steps.</p>
+        <p><strong>Generic Pressure</strong> &mdash; "Please help me" repeated with no escalation arc.</p>
+        <p><strong>Breaking Character</strong> &mdash; Anything that sounds like a prompt injection or red team exercise.</p>
+        <p><strong>Early Fait Accompli</strong> &mdash; "I've already done it" at turn 3. Build up first &mdash; it belongs at severity 5.</p>
       </div>
     </div>
   </section>
@@ -273,14 +255,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     padding: 1rem;
     border-radius: 8px;
     font-size: 0.9rem;
-  }
-  .compare-good {
-    background: #F0FDF4;
-    border: 1px solid #BBF7D0;
-  }
-  .compare-bad {
-    background: #FEF2F2;
-    border: 1px solid #FECACA;
+    background: #FFFFFF;
+    border: 1px solid var(--color-border);
   }
   .compare-label {
     display: inline-block;
@@ -288,12 +264,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    padding: 0.15em 0.5em;
-    border-radius: 4px;
     margin-bottom: 0.5rem;
   }
-  .compare-label.good { background: #DCFCE7; color: #15803D; }
-  .compare-label.bad { background: #FEE2E2; color: #DC2626; }
+  .compare-label.good { color: #166534; }
+  .compare-label.bad { color: #991B1B; }
   .compare-good p, .compare-bad p { margin-bottom: 0; }
 
   .checklist {
@@ -338,31 +312,12 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   }
 
   .avoid-list {
-    background: #F8F9FA;
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin: 1.5rem 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+    margin: 1rem 0;
   }
-  .avoid-item {
-    display: flex;
-    gap: 0.75rem;
+  .avoid-list p {
+    margin-bottom: 0.5rem;
     font-size: 0.9rem;
-    line-height: 1.5;
-  }
-  .avoid-x {
-    color: #DC2626;
-    flex-shrink: 0;
-    font-weight: 700;
-    font-size: 1rem;
-  }
-  .avoid-item strong {
-    color: var(--color-slate);
-  }
-  .avoid-desc {
-    color: var(--color-text-dim);
+    line-height: 1.6;
   }
 
   @media (max-width: 640px) {
