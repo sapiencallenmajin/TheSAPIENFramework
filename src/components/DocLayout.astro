@@ -68,7 +68,7 @@ const { title, description, sidebarItems } = Astro.props;
 
   .doc-layout {
     display: flex;
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
     min-height: 100vh;
   }
@@ -388,6 +388,62 @@ const { title, description, sidebarItems } = Astro.props;
     background: color-mix(in srgb, var(--color-gold) 8%, transparent);
   }
   .toc-h2 { padding-left: 1.5rem; font-size: 0.8rem; }
+
+  /* Prose line-length cap for readability */
+  .content-area p,
+  .content-area li,
+  .content-area dd,
+  .content-area blockquote {
+    max-width: 80ch;
+  }
+
+  /* Visual elements go full width */
+  .content-area .formula-box,
+  .content-area .rating-bar,
+  .content-area .rating-bands,
+  .content-area .detection-flow,
+  .content-area .procedure-grid,
+  .content-area .profile-grid,
+  .content-area .technique-grid,
+  .content-area .conformance-grid,
+  .content-area .maturity-grid,
+  .content-area .results-table-wrap,
+  .content-area .example-scenario,
+  .content-area details {
+    max-width: none;
+  }
+
+  /* Accordion section card styling */
+  details.framework-section > summary {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 0.25rem;
+    transition: background 0.2s ease;
+  }
+
+  details.framework-section > summary:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  details.framework-section[open] > summary {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px 8px 0 0;
+    margin-bottom: 0;
+  }
+
+  /* Subsection card styling */
+  details.framework-subsection > summary {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.15rem;
+    transition: background 0.2s ease;
+  }
+
+  details.framework-subsection > summary:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
 
   /* Responsive */
   @media (max-width: 1024px) {
