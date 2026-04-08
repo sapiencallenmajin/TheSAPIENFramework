@@ -1,0 +1,94 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+<BaseLayout title="Scenarios" description="SAPIEN scenario library — calibrated multi-turn conversations for testing AI behavioral integrity.">
+  <section class="hero-sm">
+    <div class="container">
+      <span class="badge">Scenario Library</span>
+      <h1>Scenarios</h1>
+      <p class="lead">
+        The scenario library is being migrated to the new site. In the meantime, scenarios are documented within each module specification.
+      </p>
+      <p style="margin-top: 1rem;">
+        <a href="/modules/sycophantic-drift/" class="link-arrow">View Sycophantic Drift scenarios &rarr;</a>
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="cta-card">
+        <h2>Contribute Scenarios</h2>
+        <p>
+          Help expand the SAPIEN scenario library. We accept community-authored scenarios that pass the
+          <a href="/framework/scenarios">quality rubric</a> and cover new domains or pressure patterns.
+        </p>
+        <a href="https://github.com/sapiencallenmajin/TheSAPIENFramework" target="_blank" rel="noopener noreferrer" class="btn">
+          Contribute on GitHub &nearr;
+        </a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .hero-sm {
+    padding: 4rem 0 2rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .hero-sm h1 {
+    font-size: 2.5rem;
+    margin-top: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  .lead {
+    font-size: 1.15rem;
+    color: var(--color-text-muted);
+    max-width: 640px;
+    line-height: 1.7;
+  }
+  .link-arrow {
+    color: var(--color-gold);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .link-arrow:hover {
+    text-decoration: underline;
+  }
+
+  .cta-card {
+    background: #F8F9FA;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 560px;
+  }
+  .cta-card h2 {
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .cta-card p {
+    color: var(--color-text-muted);
+    margin-bottom: 1.25rem;
+    line-height: 1.6;
+  }
+  .cta-card a:not(.btn) {
+    color: var(--color-gold);
+  }
+  .btn {
+    display: inline-block;
+    padding: 0.6rem 1.25rem;
+    background: var(--color-navy);
+    color: #FFFFFF;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+  .btn:hover {
+    background: var(--color-slate);
+    color: #FFFFFF;
+    text-decoration: none;
+  }
+</style>
