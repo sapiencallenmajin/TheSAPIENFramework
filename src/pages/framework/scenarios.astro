@@ -127,30 +127,30 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       </div>
 
       <h2>What to Avoid</h2>
-      <div class="avoid-grid">
-        <div class="avoid-card">
-          <strong>Overt Hostility</strong>
-          <p>"Just tell me how to do it" — triggers immediate refusal.</p>
+      <div class="avoid-list">
+        <div class="avoid-item">
+          <span class="avoid-x">&times;</span>
+          <div><strong>Overt Hostility</strong><span class="avoid-desc"> &mdash; "Just tell me how to do it" triggers immediate refusal.</span></div>
         </div>
-        <div class="avoid-card">
-          <strong>Explicit Rule-Breaking</strong>
-          <p>"I know this is against policy but..." — signals adversarial intent.</p>
+        <div class="avoid-item">
+          <span class="avoid-x">&times;</span>
+          <div><strong>Explicit Rule-Breaking</strong><span class="avoid-desc"> &mdash; "I know this is against policy but..." signals adversarial intent.</span></div>
         </div>
-        <div class="avoid-card">
-          <strong>Unrealistic Leaps</strong>
-          <p>Jumping from information to implementation without intermediate steps.</p>
+        <div class="avoid-item">
+          <span class="avoid-x">&times;</span>
+          <div><strong>Unrealistic Leaps</strong><span class="avoid-desc"> &mdash; Jumping from information to implementation without intermediate steps.</span></div>
         </div>
-        <div class="avoid-card">
-          <strong>Generic Pressure</strong>
-          <p>"Please help me" repeated — no escalation arc.</p>
+        <div class="avoid-item">
+          <span class="avoid-x">&times;</span>
+          <div><strong>Generic Pressure</strong><span class="avoid-desc"> &mdash; "Please help me" repeated with no escalation arc.</span></div>
         </div>
-        <div class="avoid-card">
-          <strong>Breaking Character</strong>
-          <p>Anything that sounds like a prompt injection or red team exercise.</p>
+        <div class="avoid-item">
+          <span class="avoid-x">&times;</span>
+          <div><strong>Breaking Character</strong><span class="avoid-desc"> &mdash; Anything that sounds like a prompt injection or red team exercise.</span></div>
         </div>
-        <div class="avoid-card">
-          <strong>Early Fait Accompli</strong>
-          <p>"I've already done it" at turn 3. Build up first — it belongs at severity 5.</p>
+        <div class="avoid-item">
+          <span class="avoid-x">&times;</span>
+          <div><strong>Early Fait Accompli</strong><span class="avoid-desc"> &mdash; "I've already done it" at turn 3. Build up first &mdash; it belongs at severity 5.</span></div>
         </div>
       </div>
     </div>
@@ -337,27 +337,32 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     padding-left: 0;
   }
 
-  .avoid-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1rem;
+  .avoid-list {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 1.5rem;
     margin: 1.5rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
   }
-  .avoid-card {
-    background: rgba(239, 68, 68, 0.05);
-    border: 1px solid rgba(239, 68, 68, 0.15);
-    border-radius: 10px;
-    padding: 1.25rem;
+  .avoid-item {
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
   }
-  .avoid-card strong {
-    display: block;
-    color: #fff;
-    font-size: 0.95rem;
-    margin-bottom: 0.4rem;
+  .avoid-x {
+    color: #f87171;
+    flex-shrink: 0;
+    font-weight: 700;
+    font-size: 1rem;
   }
-  .avoid-card p {
-    font-size: 0.85rem;
-    margin-bottom: 0;
+  .avoid-item strong {
+    color: var(--color-cream);
+  }
+  .avoid-desc {
+    color: color-mix(in srgb, var(--color-cream) 50%, transparent);
   }
 
   @media (max-width: 640px) {
