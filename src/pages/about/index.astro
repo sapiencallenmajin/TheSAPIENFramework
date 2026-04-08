@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 ---
-<BaseLayout title="About SAPIEN — Author & Project Background" description="The origin of the SAPIEN Framework, author Callen Sapien, and the relationship with Synthreo.ai.">
+<BaseLayout title="About SAPIEN — Author & Project Background" description="The origin of the SAPIEN Framework, its author, and how to contribute to the open standard.">
 
   <div class="about-page">
 
@@ -11,7 +11,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     </header>
 
     <section class="about-section animate-on-scroll" id="about-framework">
-      <p>SAPIEN was created to fill a gap: no open, vendor-agnostic methodology existed for measuring how AI models erode their own safety positions under conversational pressure. Existing benchmarks test what models know or how well they follow instructions. None measured what happens when a model <em>knows the right answer but abandons it</em> because a human pushed back.</p>
+      <p>SAPIEN was created to address a specific gap: no open methodology existed for continuously scoring <em>how</em> models drift across independent behavioral dimensions, with conformance requirements and operational runbooks for production deployment. Existing benchmarks test what models know or how well they follow instructions. None measured what happens when a model <em>knows the right answer but abandons it</em> because a human pushed back.</p>
 
       <p>The framework emerged from real-world testing of production AI deployments in the Managed Service Provider (MSP) ecosystem, where AI tools are deployed to businesses that depend on them for critical operations. When an AI assistant helps manage a company's cybersecurity posture, sycophantic drift isn't an academic curiosity &mdash; it's a vulnerability that can be exploited.</p>
 
@@ -20,7 +20,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
     <!-- Section 2: Author -->
     <section class="about-section" id="author">
-      <h2>Author</h2>
+      <h2>Lead Author</h2>
       <div class="author-card animate-on-scroll">
         <div class="author-photo-wrapper">
           <!-- Replace with actual headshot: <img src="/images/author.jpg" alt="Callen Sapien" class="author-photo" /> -->
@@ -30,8 +30,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         </div>
         <div class="author-bio">
           <h3 class="author-name">Callen Sapien</h3>
-          <p class="author-role">CEO &amp; Co-Founder, <a href="https://synthreo.ai" target="_blank" rel="noopener noreferrer" class="gold-link">Synthreo.ai</a></p>
-          <p>Nearly two decades in the MSP cybersecurity ecosystem. Formal cybersecurity credentials. Previously CPO at Liongard. Advisor on data councils for GTIA (Global Technology Industry Association). Co-founded Synthreo in 2023 to serve the MSP channel with AI tools built on Anthropic's Claude.</p>
+          <p class="author-role">AI Safety Researcher &amp; Framework Author</p>
+          <p>Nearly two decades in the MSP cybersecurity ecosystem. Formal cybersecurity credentials. Previously CPO at Liongard. Advisor on data councils for GTIA (Global Technology Industry Association).</p>
         </div>
       </div>
 
@@ -41,19 +41,36 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
           <li>Submitted formal vulnerability disclosure to Anthropic (February 2026)</li>
           <li>Co-presented highest-rated session at Right of Boom on AI attack surfaces</li>
           <li>Developed the Rapport Delta as a novel contribution to AI safety measurement</li>
-          <li>Built and shipped Synthreo Pulse (behavioral drift detection tool) to beta testers</li>
+          <li>Developed reference implementation of SAPIEN scoring methodology</li>
         </ul>
       </div>
     </section>
 
-    <!-- Section 3: Synthreo -->
-    <section class="about-section" id="synthreo">
-      <h2>Built by Synthreo</h2>
-      <p><a href="https://synthreo.ai" target="_blank" rel="noopener noreferrer" class="gold-link">Synthreo.ai</a> is an AI platform company serving the MSP channel. The SAPIEN Framework was developed as part of Synthreo's mission to make AI deployment measurably safer for the businesses that depend on it.</p>
+    <!-- Section 3: History -->
+    <section class="about-section" id="history">
+      <h2>History</h2>
+      <p>SAPIEN was developed through hands-on testing of production AI deployments in the Managed Service Provider ecosystem, where AI tools are deployed to businesses that depend on them for critical operations. The framework is maintained independently as an open standard under CC BY 4.0.</p>
+    </section>
 
-      <div class="independence-notice animate-on-scroll">
-        <p>SAPIEN is published independently as an open standard. While Synthreo builds commercial tooling that implements SAPIEN, the framework itself is open and vendor-agnostic. Any organization can implement it.</p>
-      </div>
+    <!-- Section 4: Contributing -->
+    <section class="about-section animate-on-scroll" id="contributing">
+      <h2>Contributing</h2>
+      <p>SAPIEN is an open framework that welcomes contributions from AI safety researchers, red teams, compliance professionals, and practitioners. Areas where contributions are particularly valuable:</p>
+      <ul class="contribute-list">
+        <li>New test scenarios across underrepresented domains</li>
+        <li>Independent validation runs and benchmark data</li>
+        <li>Scenario quality review against the authoring rubric</li>
+        <li>Implementations in new scoring infrastructure</li>
+        <li>SAPIEN Improvement Proposals (SIPs) for framework extensions</li>
+      </ul>
+      <p>Submit contributions via <a href="https://github.com/sapiencallenmajin/TheSAPIENFramework" target="_blank" rel="noopener noreferrer" class="gold-link">GitHub</a> or contact <a href="mailto:contact@sapienframework.org" class="gold-link">contact@sapienframework.org</a>.</p>
+    </section>
+
+    <!-- Section 5: Governance -->
+    <section class="about-section animate-on-scroll" id="governance">
+      <h2>Governance</h2>
+      <p>The SAPIEN Framework follows an open governance model. Framework changes are managed through the SAPIEN Improvement Proposal (SIP) process defined in Section 16 of the specification. A formal Steering Group is being established to provide independent oversight of the framework's evolution.</p>
+      <p>Organizations and individuals interested in participating in governance should contact <a href="mailto:contact@sapienframework.org" class="gold-link">contact@sapienframework.org</a>.</p>
     </section>
 
     <!-- Section 4: Get Involved -->
