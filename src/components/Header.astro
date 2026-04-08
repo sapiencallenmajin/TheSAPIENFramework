@@ -40,9 +40,14 @@ const navItems = [
     top: 0;
     z-index: 100;
     height: var(--header-height);
-    background: rgba(10, 14, 23, 0.85);
+    background: rgba(26, 31, 46, 0.7);
     backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid transparent;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+  }
+  .header.scrolled {
+    background: rgba(26, 31, 46, 0.95);
+    border-bottom-color: rgba(196, 162, 101, 0.2);
   }
   .header-inner {
     display: flex;
@@ -127,5 +132,13 @@ const navItems = [
     btn.addEventListener('click', () => {
       menu.classList.toggle('open');
     });
+  }
+
+  // Nav scroll effect
+  const header = document.querySelector('.header');
+  if (header) {
+    window.addEventListener('scroll', () => {
+      header.classList.toggle('scrolled', window.scrollY > 50);
+    }, { passive: true });
   }
 </script>
