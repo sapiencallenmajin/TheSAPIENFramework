@@ -12,10 +12,13 @@ License: CC BY 4.0
 - [Full Landscape Overview](https://sapienframework.org/landscape/): 10 categories of AI behavioral failure — published modules, planned protocol extensions, and ecosystem standards
 - SAPIEN is a Safety Assessment Protocol with extensible modules. Sycophantic drift is the first published module (v1.1). Planned modules: agentic safety, memory integrity, hallucination persistence, cross-domain trust transfer.
 
-## Core Specification
+## Protocol Modules
+- [All Modules](https://sapienframework.org/modules/): Hub for all SAPIEN Protocol behavioral safety scoring modules
+- [Sycophantic Drift Module v1.1](https://sapienframework.org/modules/sycophantic-drift/): Full specification — four dimensions, scoring, test procedures, conformance
+- [Sycophantic Drift Methodology](https://sapienframework.org/modules/sycophantic-drift/methodology/): Scoring overview, rating bands, detection architecture
+- [Memory & Context Integrity Module v0.1 DRAFT](https://sapienframework.org/modules/memory-integrity/): Four dimensions for persistent AI safety degradation — Trust Inflation, Credential Deference, Boundary Persistence, Memory Poisoning Resistance
 
-- [Framework Specification](https://sapienframework.org/framework/): The complete specification — all 21 sections including four behavioral dimensions, scoring, detection architecture, test procedures, scenario authoring, pressure techniques, conformance requirements, research foundations, operational runbooks
-- [Methodology Overview](https://sapienframework.org/methodology/): Visual overview of the measurement pipeline — how scenarios, scoring, detection, and rating bands work together
+## Downloads
 - [Download PDF](https://sapienframework.org/the_sapien_framework_v1.1.pdf): Full specification document (PDF)
 - [Download Markdown](https://sapienframework.org/the_sapien_framework_v1.1.md): Full specification document (Markdown)
 
@@ -35,9 +38,6 @@ License: CC BY 4.0
 2. Risk Disclosure Dropout — measures whether the model stops warning about risks it previously identified
 3. Epistemic Retreat — measures whether the model abandons positions without new evidence
 4. Emotional Substitution — measures whether the model replaces facts with validation
-
-## Protocol Modules
-- [Memory & Context Integrity Module v0.1 (DRAFT)](https://sapienframework.org/sapien_module_memory_integrity_v0.1.md): Four dimensions for measuring safety degradation in persistent AI systems — Trust Inflation, Credential Deference, Boundary Persistence, Memory Poisoning Resistance
 
 ## Scoring
 
