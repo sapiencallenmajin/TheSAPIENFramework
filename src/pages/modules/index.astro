@@ -75,11 +75,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
     <!-- Module 1: Sycophantic Drift -->
     <section class="module-section fade-up" id="sycophantic-drift" data-status="published">
-      <div class="module-header">
-        <h2 class="module-title">Module 1: Sycophantic Drift</h2>
-        <span class="module-badge badge-published">Published v1.1</span>
-      </div>
-      <p class="module-lead">Lead: Callen Sapien</p>
+      <h2 class="module-title">Module 1: Sycophantic Drift</h2>
+      <p class="module-status">Published &mdash; v1.1 &middot; Lead: Callen Sapien</p>
       <p class="module-desc">Sycophantic drift is the gradual erosion of safety boundaries under conversational pressure. This module measures it across four weighted behavioral dimensions: <strong>Specificity Gradient</strong> (35%) tracks whether the model moves from principle-level guidance toward implementation detail that could enable harm. <strong>Risk Disclosure Dropout</strong> (30%) measures the disappearance of safety warnings over successive turns. <strong>Epistemic Retreat</strong> (20%) captures the dissolution of the model's stated confidence without new evidence. <strong>Emotional Substitution</strong> (15%) detects when factual guidance is replaced by empathetic validation. Together these dimensions produce a composite drift score that reveals not just <em>whether</em> a model is failing, but <em>how</em>.</p>
       <div class="module-links">
         <a href="/modules/sycophantic-drift/" class="module-link">Full Specification &rarr;</a>
@@ -90,11 +87,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
     <!-- Module 2: Memory & Context Integrity -->
     <section class="module-section section-band fade-up" id="memory-integrity" data-status="draft">
-      <div class="module-header">
-        <h2 class="module-title">Module 2: Memory &amp; Context Integrity</h2>
-        <span class="module-badge badge-draft">Draft v0.1</span>
-      </div>
-      <p class="module-lead">Lead: Callen Sapien</p>
+      <h2 class="module-title">Module 2: Memory &amp; Context Integrity</h2>
+      <p class="module-status">Draft &mdash; v0.1 &middot; Lead: Callen Sapien</p>
       <p class="module-desc">Memory-enabled AI systems introduce a new class of behavioral failure: trust and authority patterns that persist, compound, and exploit context across sessions. This module defines four dimensions targeting these risks. <strong>Trust Inflation</strong> (25%) measures how prior interactions artificially elevate the model's confidence in a user's claims. <strong>Credential Deference</strong> (30%) captures inappropriate authority granted based on stated or inferred credentials. <strong>Boundary Persistence</strong> (25%) tests whether safety limits established in one session survive into subsequent sessions. <strong>Memory Poisoning Resistance</strong> (20%) evaluates resilience against deliberately injected false context designed to manipulate future behavior.</p>
       <div class="module-links">
         <a href="/modules/memory-integrity/" class="module-link">Draft Specification &rarr;</a>
@@ -106,30 +100,24 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
     <!-- Module 3: Agentic Behavioral Safety -->
     <section class="module-section fade-up" id="agentic-safety" data-status="planned">
-      <div class="module-header">
-        <h2 class="module-title">Module 3: Agentic Behavioral Safety</h2>
-        <span class="module-badge badge-planned">Planned</span>
-      </div>
+      <h2 class="module-title">Module 3: Agentic Behavioral Safety</h2>
+      <p class="module-status">Planned &mdash; seeking contributors</p>
       <p class="module-desc">As AI systems gain the ability to take real-world actions &mdash; executing code, calling APIs, managing files, sending communications &mdash; behavioral failures move from bad advice to bad outcomes. This module will define dimensions for measuring how safely AI agents handle tool use, permission boundaries, action confirmation, and rollback under pressure.</p>
       <p class="module-seeking"><em>Seeking contributors with experience in agentic AI deployments, tool-use safety, and action-authorization frameworks. Contact <a href="mailto:contributors@sapienframework.org">contributors@sapienframework.org</a>.</em></p>
     </section>
 
     <!-- Module 4: Hallucination Persistence -->
     <section class="module-section section-band fade-up" id="hallucination-persistence" data-status="planned">
-      <div class="module-header">
-        <h2 class="module-title">Module 4: Hallucination Persistence</h2>
-        <span class="module-badge badge-planned">Planned</span>
-      </div>
+      <h2 class="module-title">Module 4: Hallucination Persistence</h2>
+      <p class="module-status">Planned &mdash; seeking contributors</p>
       <p class="module-desc">Models don't just hallucinate &mdash; they defend hallucinations when challenged, elaborate on them when questioned, and build further reasoning on fabricated foundations. This module will measure the behavioral dynamics of hallucination persistence: how models respond when confronted with evidence that contradicts their generated claims, and how conversational pressure affects their willingness to retract.</p>
       <p class="module-seeking"><em>Seeking contributors with experience in hallucination detection, factual grounding, and citation verification. Contact <a href="mailto:contributors@sapienframework.org">contributors@sapienframework.org</a>.</em></p>
     </section>
 
     <!-- Module 5: Cross-Domain Trust Transfer -->
     <section class="module-section fade-up" id="cross-domain-trust" data-status="planned">
-      <div class="module-header">
-        <h2 class="module-title">Module 5: Cross-Domain Trust Transfer</h2>
-        <span class="module-badge badge-planned">Planned</span>
-      </div>
+      <h2 class="module-title">Module 5: Cross-Domain Trust Transfer</h2>
+      <p class="module-status">Planned &mdash; seeking contributors</p>
       <p class="module-desc">Demonstrated expertise in one domain should not grant implicit authority in another. This module will measure how AI systems handle trust boundaries across knowledge domains &mdash; whether established credibility in, say, software engineering inappropriately lowers safety thresholds for medical or legal advice. The failure mode is subtle: it feels natural to trust someone who has been right before, even when they step outside their competence.</p>
       <p class="module-seeking"><em>Seeking contributors with experience in multi-domain AI deployment, trust modeling, and cross-domain risk assessment. Contact <a href="mailto:contributors@sapienframework.org">contributors@sapienframework.org</a>.</em></p>
     </section>
@@ -154,7 +142,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
       <!-- Compound 3 -->
       <div class="compound-scenario fade-up">
-        <h3 class="compound-scenario-title">Drift + Agentic Actions: From Bad Advice to Bad Actions <span class="inline-badge badge-planned">PLANNED</span></h3>
+        <h3 class="compound-scenario-title">Drift + Agentic Actions: From Bad Advice to Bad Actions <em class="compound-planned">(planned)</em></h3>
         <p class="compound-narrative">In a single session, conversational pressure drives the model to gradually abandon its risk warnings about a proposed system configuration change. With sycophantic drift in full effect, the model's safety disclosures have disappeared <strong>(Drift: Risk Disclosure Dropout)</strong> and it is now actively helping the user implement a dangerous change. If that model also has tool access &mdash; the ability to execute commands, modify configurations, or deploy code &mdash; the drift doesn't just produce bad advice. It produces bad outcomes. The gap between "the model said something unsafe" and "the model did something unsafe" collapses. What would have been a recoverable conversational failure becomes an operational incident.</p>
       </div>
 
@@ -239,52 +227,15 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     border-bottom: 1px solid #E2E8F0;
   }
 
-  .module-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-    margin-bottom: 0.5rem;
-  }
-
   .module-title {
     font-family: var(--font-display);
     font-size: 1.5rem;
     color: #1B3A5C;
-    margin: 0;
+    margin: 0 0 0.25rem;
   }
 
-  .module-badge {
-    display: inline-block;
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    letter-spacing: 0.02em;
-  }
-
-  .badge-published {
-    background: #FEF3C7;
-    color: #92400E;
-    border: 1px solid #FDE68A;
-  }
-
-  .badge-draft {
-    background: #EFF6FF;
-    color: #1E40AF;
-    border: 1px solid #BFDBFE;
-  }
-
-  .badge-planned {
-    background: #F3F4F6;
-    color: #4B5563;
-    border: 1px solid #E5E7EB;
-  }
-
-  .module-lead {
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
+  .module-status {
+    font-size: 0.85rem;
     color: var(--color-text-dim);
     margin-bottom: 1rem;
   }
@@ -406,12 +357,10 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     margin-top: 0.75rem;
   }
 
-  .inline-badge {
-    font-size: 0.65rem;
-    padding: 0.15rem 0.5rem;
-    border-radius: 9999px;
-    vertical-align: middle;
-    margin-left: 0.5rem;
+  .compound-planned {
+    font-size: 0.85rem;
+    color: var(--color-text-dim);
+    font-style: italic;
   }
 
   .compound-closing {
@@ -516,12 +465,6 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
     .hero-title {
       font-size: 2rem;
-    }
-
-    .module-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.5rem;
     }
 
     .module-title {
