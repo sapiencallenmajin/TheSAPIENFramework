@@ -9,10 +9,9 @@ const posts = (await getCollection('blog'))
 const featured = posts[0];
 const remaining = posts.slice(1);
 
-function estimateReadTime(description: string): string {
-  // Rough estimate: blog posts average ~800-1200 words, use description length as proxy
-  const words = description.split(/\s+/).length;
-  const minutes = Math.max(3, Math.ceil(words / 40));
+function estimateReadTime(body: string): string {
+  const words = body.split(/\s+/).length;
+  const minutes = Math.max(1, Math.ceil(words / 230));
   return `${minutes} min read`;
 }
 
@@ -56,7 +55,7 @@ function getTagStyle(tag: string) {
               {featured.data.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
             </time>
             <span class="meta-sep">&middot;</span>
-            <span>{estimateReadTime(featured.data.description)}</span>
+            <span>{estimateReadTime(featured.body ?? featured.data.description)}</span>
           </div>
           {featured.data.tags && (
             <div class="tag-row">
