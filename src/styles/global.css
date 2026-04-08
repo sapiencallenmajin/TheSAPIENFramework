@@ -7,7 +7,7 @@
   --color-cream: #FFFFFF;
   --color-gray: #4A5568;
   --font-display: 'DM Serif Display', serif;
-  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-body: 'Inter', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
 }
 
@@ -166,3 +166,19 @@ code {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
+
+/* ===== Scroll animations — selective fade-up ===== */
+.fade-up {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.fade-up.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.fade-up.delay-1 { transition-delay: 0.1s; }
+.fade-up.delay-2 { transition-delay: 0.2s; }
+.fade-up.delay-3 { transition-delay: 0.3s; }

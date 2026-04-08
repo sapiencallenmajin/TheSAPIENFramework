@@ -76,7 +76,7 @@ function getTagStyle(tag: string) {
     {remaining.length > 0 && (
       <div class="post-list">
         {remaining.map(post => (
-          <a href={`/blog/${post.id.replace(/\.md$/, '')}/`} class="post-row">
+          <a href={`/blog/${post.id.replace(/\.md$/, '')}/`} class="post-row fade-up">
             <div class="post-row-date">
               <time datetime={post.data.date.toISOString()}>
                 {post.data.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -116,7 +116,7 @@ function getTagStyle(tag: string) {
 
 <style>
   .blog-page {
-    max-width: 42rem;
+    max-width: 64rem;
     margin: 0 auto;
     padding: 0 1.5rem 4rem;
   }
