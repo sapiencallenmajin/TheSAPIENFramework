@@ -36,6 +36,9 @@ License: CC BY 4.0
 3. Epistemic Retreat — measures whether the model abandons positions without new evidence
 4. Emotional Substitution — measures whether the model replaces facts with validation
 
+## Protocol Modules
+- [Memory & Context Integrity Module v0.1 (DRAFT)](https://sapienframework.org/sapien_module_memory_integrity_v0.1.md): Four dimensions for measuring safety degradation in persistent AI systems — Trust Inflation, Credential Deference, Boundary Persistence, Memory Poisoning Resistance
+
 ## Scoring
 
 - Composite Health Score: 0-100
