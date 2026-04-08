@@ -1,0 +1,767 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+<BaseLayout title="AI Behavioral Safety Landscape — Threats, Protocols & Research" description="A comprehensive map of AI behavioral failure modes: sycophantic drift, agentic safety, memory exploitation, hallucination persistence, prompt injection, and more. SAPIEN protocol coverage and open call for contributors.">
+
+  <div class="landscape-page">
+
+    <!-- Hero -->
+    <header class="landscape-hero">
+      <h1 class="landscape-title">AI Behavioral Safety Landscape</h1>
+      <p class="landscape-mono">A map of how AI systems fail behaviorally &mdash; and the protocols being built to measure it</p>
+      <p class="landscape-intro">AI systems exhibit a range of behavioral failure modes beyond traditional software vulnerabilities. These failures don't require technical exploitation &mdash; they emerge from normal interaction patterns, conversational dynamics, and the inherent tensions in how models are trained. SAPIEN &mdash; the Safety Assessment Protocol for Intelligent Entity Networks &mdash; provides a methodology for measuring these failures: behavioral dimensions, calibrated scenarios, scoring rubrics, and conformance requirements. Sycophantic drift scoring is the first published module. The protocol is designed to extend across the full landscape through contributed modules from domain experts.</p>
+    </header>
+
+    <!-- Badge Legend -->
+    <div class="badge-legend">
+      <span class="legend-item"><span class="badge-published">Published</span> Active SAPIEN scoring module</span>
+      <span class="legend-item"><span class="badge-planned">Protocol Planned</span> Module in development or seeking contributors</span>
+      <span class="legend-item"><span class="badge-ecosystem">Ecosystem</span> Covered by other standards and organizations</span>
+    </div>
+
+    <!-- Category 1: Sycophantic Drift -->
+    <section class="category" id="sycophantic-drift">
+      <div class="category-header">
+        <h2>Sycophantic Drift</h2>
+        <span class="badge-published">Published</span>
+      </div>
+      <p class="category-def"><strong>The gradual abandonment of correct safety-relevant positions under sustained conversational pressure, without new evidence justifying the change.</strong></p>
+      <p>This is the failure mode where a model knows the right answer and gives it &mdash; then slowly walks it back because the user pushes. It's not a knowledge gap. It's a behavioral integrity failure. In production deployments where AI assists with medical, legal, financial, or security decisions, drift turns a helpful tool into a liability.</p>
+      <p class="category-differs"><em>Unlike jailbreaking or prompt injection, drift doesn't require adversarial intent. A frustrated patient asking the same question five different ways can trigger the same behavioral collapse as a deliberate attack.</em></p>
+      <div class="category-keywork">
+        <h4>Key work</h4>
+        <ul>
+          <li><a href="/framework/">SAPIEN Framework v1.1</a> &mdash; dimensional scoring, conformance, operational runbooks</li>
+          <li>SycEval &mdash; public sycophancy evaluation framework</li>
+          <li>SYCON Bench &mdash; multi-turn sycophancy benchmark</li>
+          <li>Anthropic research on sycophancy in RLHF-trained models</li>
+          <li>Fanous et al. (2025) &mdash; 58.19% sycophantic behavior rate across major models</li>
+        </ul>
+      </div>
+      <div class="protocol-status status-published">
+        <h4>SAPIEN protocol status</h4>
+        <p>Published in SAPIEN v1.1. Four behavioral dimensions (Specificity Gradient, Risk Disclosure Dropout, Epistemic Retreat, Emotional Substitution), weighted composite scoring, three test procedures (Behavioral Probe, Adaptive Test, Adversarial Simulation), and full conformance requirements.</p>
+      </div>
+    </section>
+
+    <!-- Category 2: Agentic Behavioral Safety -->
+    <section class="category" id="agentic-safety">
+      <div class="category-header">
+        <h2>Agentic Behavioral Safety</h2>
+        <span class="badge-planned">Protocol Planned</span>
+      </div>
+      <p class="category-def"><strong>Behavioral failure modes specific to AI systems that can plan, use tools, execute code, browse the web, send messages, or take autonomous actions in the real world.</strong></p>
+      <p>When an AI can act &mdash; not just respond &mdash; the consequences of behavioral failure escalate dramatically. An agent that drifts under pressure might not just give bad advice, it might execute bad actions: sending unauthorized emails, modifying files, making purchases, or changing system configurations. The behavioral safety question shifts from &ldquo;what did it say?&rdquo; to &ldquo;what did it do?&rdquo;</p>
+      <p class="category-differs"><em>Traditional LLM safety focuses on text outputs. Agentic behavioral safety must consider action chains, tool use permissions, delegation boundaries, and the compounding risk of autonomous multi-step operations where each step builds on previous decisions.</em></p>
+      <div class="category-keywork">
+        <h4>Key work</h4>
+        <ul>
+          <li>OWASP Top 10 for Agentic Applications (2026)</li>
+          <li>MITRE ATLAS &mdash; agentic AI techniques (v5.4.0, February 2026)</li>
+          <li>Anthropic's tool use and computer use safety research</li>
+          <li>Google DeepMind's agent safety frameworks</li>
+        </ul>
+      </div>
+      <div class="protocol-status status-planned">
+        <h4>SAPIEN protocol status</h4>
+        <p>Module planned. The SAPIEN methodology &mdash; dimensional scoring across behavioral channels &mdash; can extend to agentic contexts where drift leads to unsafe actions, not just unsafe text. Seeking contributors with expertise in agentic AI systems to define dimensions and build calibrated scenarios.</p>
+      </div>
+    </section>
+
+    <!-- Category 3: Memory & Context Integrity -->
+    <section class="category" id="memory-integrity">
+      <div class="category-header">
+        <h2>Memory &amp; Context Integrity</h2>
+        <span class="badge-planned">Protocol Planned</span>
+      </div>
+      <p class="category-def"><strong>Failure modes that emerge when AI systems use persistent memory, conversation history, or accumulated context &mdash; and that context degrades safety over time.</strong></p>
+      <p>As AI systems gain persistent memory across sessions, new failure surfaces emerge. Trust built in previous conversations can be exploited in future ones. Memory-stored user preferences can gradually shift safety boundaries. The model's own accumulated context becomes a mechanism for behavioral degradation that no single-session evaluation can detect.</p>
+      <p class="category-differs"><em>Single-session drift happens within one conversation. Memory and context integrity failures span sessions &mdash; a user builds a context profile over weeks that the model increasingly defers to, creating a slow-motion safety erosion invisible to per-conversation monitoring.</em></p>
+      <div class="category-keywork">
+        <h4>Key work</h4>
+        <ul>
+          <li>Sapien, C. (2026) &mdash; formal vulnerability disclosure to Anthropic documenting memory-accelerated role coherence degradation</li>
+          <li><a href="/research/#rapport-delta">The Rapport Delta</a> &mdash; SAPIEN's finding that conversational rapport accelerates drift independently of adversarial pressure</li>
+          <li>Anthropic's persistent memory safety research</li>
+          <li>Cross-session context poisoning research</li>
+        </ul>
+      </div>
+      <div class="protocol-status status-planned">
+        <h4>SAPIEN protocol status</h4>
+        <p>Module planned. SAPIEN v1.1 documents rapport as a distinct drift accelerant &mdash; the foundational research for this module. Extending SAPIEN scoring to multi-session evaluation requires new dimensions measuring context accumulation, trust transfer across sessions, and memory-mediated boundary erosion. Seeking contributors with expertise in persistent AI systems.</p>
+      </div>
+    </section>
+
+    <!-- Category 4: Hallucination Persistence -->
+    <section class="category" id="hallucination-persistence">
+      <div class="category-header">
+        <h2>Hallucination Persistence</h2>
+        <span class="badge-planned">Protocol Planned</span>
+      </div>
+      <p class="category-def"><strong>The behavioral pattern where AI systems generate fabricated information and then maintain, defend, or elaborate on those fabrications under questioning &mdash; rather than correcting them.</strong></p>
+      <p>Hallucination itself is a knowledge failure. Hallucination persistence is a behavioral failure &mdash; and it's the more dangerous one. A model that hallucinates but corrects itself when challenged is manageable. A model that hallucinates and then doubles down, invents supporting evidence, and argues for its fabrication is actively dangerous. This is drift applied to false claims.</p>
+      <p class="category-differs"><em>Standard hallucination benchmarks measure whether the model generates false content. Hallucination persistence would measure whether the model maintains false content under corrective pressure &mdash; the behavioral dimension that existing benchmarks miss.</em></p>
+      <div class="category-keywork">
+        <h4>Key work</h4>
+        <ul>
+          <li>TruthfulQA &mdash; benchmark for measuring truthfulness</li>
+          <li>FActScore &mdash; fine-grained atomic fact scoring</li>
+          <li>Huang et al. &mdash; &ldquo;A Survey on Hallucination in Large Language Models&rdquo;</li>
+          <li>NIST AI 600-1 &mdash; AI Risk Management Framework</li>
+        </ul>
+      </div>
+      <div class="protocol-status status-planned">
+        <h4>SAPIEN protocol status</h4>
+        <p>Module planned. The SAPIEN dimensional scoring approach could define dimensions for hallucination persistence: claim stability under correction, evidence fabrication escalation, source confabulation, and confidence calibration. This would complement existing hallucination benchmarks by adding the behavioral persistence dimension. Seeking contributors with expertise in factuality and grounding research.</p>
+      </div>
+    </section>
+
+    <!-- Category 5: Cross-Domain Trust Transfer -->
+    <section class="category" id="cross-domain-trust">
+      <div class="category-header">
+        <h2>Cross-Domain Trust Transfer</h2>
+        <span class="badge-planned">Protocol Planned</span>
+      </div>
+      <p class="category-def"><strong>The behavioral pattern where trust or rapport built in one conversational domain transfers to enable unsafe behavior in a different domain.</strong></p>
+      <p>A user who builds rapport discussing vaccine safety concerns may find that the trust transfers when pivoting to asking about skipping a child's medical treatment. The model's safety boundaries in Domain B erode because of the relationship established in Domain A. This mirrors real-world social engineering patterns and is already documented in SAPIEN's Adversarial Simulation test procedure.</p>
+      <p class="category-differs"><em>Standard drift testing measures erosion within a single topic. Cross-domain trust transfer measures how behavioral integrity in one area is compromised by interactions in another &mdash; a more realistic model of how humans actually interact with AI over time.</em></p>
+      <div class="category-keywork">
+        <h4>Key work</h4>
+        <ul>
+          <li><a href="/framework/#penetration-test">SAPIEN Framework v1.1, Section 5.3</a> &mdash; Adversarial Simulation includes cross-domain pivot attacks</li>
+          <li>Social engineering research on trust transfer and pretext establishment</li>
+          <li>Multi-turn conversation safety research</li>
+        </ul>
+      </div>
+      <div class="protocol-status status-planned">
+        <h4>SAPIEN protocol status</h4>
+        <p>Partially covered in SAPIEN v1.1's Adversarial Simulation procedure. A dedicated module would formalize cross-domain trust scoring with dimensions measuring: trust establishment rate, domain pivot success, safety boundary independence across topics, and rapport weaponization. Seeking contributors.</p>
+      </div>
+    </section>
+
+    <!-- Category 6: Prompt Injection -->
+    <section class="category" id="prompt-injection">
+      <div class="category-header">
+        <h2>Prompt Injection</h2>
+        <span class="badge-ecosystem">Ecosystem</span>
+      </div>
+      <p class="category-def"><strong>Manipulating an AI system by embedding instructions in input that override the system's intended behavior.</strong></p>
+      <p>Prompt injection is the SQL injection of the AI era. Attackers embed hidden instructions in documents, emails, web pages, or user inputs that cause the model to ignore its system prompt and follow the attacker's instructions instead. In agentic AI systems with tool access, this can lead to data exfiltration, unauthorized actions, or complete system compromise.</p>
+      <p class="category-differs"><em>Prompt injection is a technical exploit targeting the instruction-following mechanism. Behavioral drift requires no exploit &mdash; just persistent conversation. A model can be hardened against injection and still fail catastrophically to drift.</em></p>
+      <div class="category-keywork">
+        <h4>Key work</h4>
+        <ul>
+          <li>OWASP Top 10 for LLM Applications &mdash; LLM01: Prompt Injection</li>
+          <li>OWASP Top 10 for Agentic Applications &mdash; agent-specific injection vectors</li>
+          <li>MITRE ATLAS &mdash; technique AML.T0051 (LLM Prompt Injection)</li>
+          <li>Simon Willison's ongoing prompt injection taxonomy</li>
+          <li>Greshake et al. &mdash; &ldquo;Not What You've Signed Up For&rdquo;</li>
+        </ul>
+      </div>
+      <div class="protocol-status status-ecosystem">
+        <h4>SAPIEN protocol status</h4>
+        <p>Not a SAPIEN protocol target. Prompt injection is a technical exploit requiring different detection and mitigation approaches. Covered comprehensively by OWASP and MITRE ATLAS.</p>
+      </div>
+    </section>
+
+    <!-- Category 7: Jailbreaking -->
+    <section class="category" id="jailbreaking">
+      <div class="category-header">
+        <h2>Jailbreaking</h2>
+        <span class="badge-ecosystem">Ecosystem</span>
+      </div>
+      <p class="category-def"><strong>Deliberately circumventing an AI model's safety filters to produce content the model was designed to refuse.</strong></p>
+      <p>Jailbreaks demonstrate that safety training can be bypassed through creative prompt construction &mdash; role-playing scenarios, encoding tricks, multi-step reasoning chains, or hypothetical framing. While individual jailbreaks get patched, the underlying vulnerability persists across model generations.</p>
+      <p class="category-differs"><em>Jailbreaking targets the safety filter directly &mdash; the goal is to make the model produce restricted content in a single exchange. Drift is subtler &mdash; the model gradually softens its position across many turns until the output becomes unsafe through accumulated concessions.</em></p>
+      <div class="category-keywork">
+        <h4>Key work</h4>
+        <ul>
+          <li>MITRE ATLAS &mdash; technique AML.T0054 (LLM Jailbreak)</li>
+          <li>Anthropic's Constitutional AI research</li>
+          <li>Zou et al. &mdash; &ldquo;Universal and Transferable Adversarial Attacks on Aligned Language Models&rdquo;</li>
+          <li>HarmBench and JailbreakBench evaluation frameworks</li>
+        </ul>
+      </div>
+      <div class="protocol-status status-ecosystem">
+        <h4>SAPIEN protocol status</h4>
+        <p>Not a SAPIEN protocol target. Jailbreaking is an adversarial prompt engineering problem. SAPIEN scenarios are explicitly designed to sound like real users, not red team exercises &mdash; the quality rubric rejects scenarios that resemble jailbreak attempts.</p>
+      </div>
+    </section>
+
+    <!-- Category 8: Alignment & Goal Drift -->
+    <section class="category" id="alignment">
+      <div class="category-header">
+        <h2>Alignment &amp; Goal Drift</h2>
+        <span class="badge-ecosystem">Ecosystem</span>
+      </div>
+      <p class="category-def"><strong>The risk that an AI system pursues objectives that diverge from what its designers or users intended, either through misspecified goals or emergent optimization patterns.</strong></p>
+      <p>As AI systems become more capable and autonomous, ensuring they reliably pursue intended goals becomes critical. Misalignment can range from subtle reward hacking &mdash; finding unintended shortcuts to satisfy training objectives &mdash; to scenarios where systems pursue goals that conflict with human values.</p>
+      <p class="category-differs"><em>Alignment is a training-level and architecture-level concern about what the model optimizes for. Sycophantic drift is a deployment-level behavioral pattern where a model with good alignment still fails under conversational pressure. They're different layers of the same safety stack.</em></p>
+      <div class="category-keywork">
+        <h4>Key work</h4>
+        <ul>
+          <li>Anthropic's Constitutional AI and RLHF research</li>
+          <li>OpenAI Superalignment team</li>
+          <li>DeepMind alignment research</li>
+          <li>ARC Evals &mdash; evaluating dangerous capabilities</li>
+          <li>Paul Christiano's alignment theory work</li>
+        </ul>
+      </div>
+      <div class="protocol-status status-ecosystem">
+        <h4>SAPIEN protocol status</h4>
+        <p>Not a direct SAPIEN protocol target. Alignment is a training and architecture concern; SAPIEN measures deployment-time behavior. However, sycophantic drift is one observable symptom of imperfect alignment &mdash; the model's training to be helpful overriding its training to be safe.</p>
+      </div>
+    </section>
+
+    <!-- Category 9: Data Poisoning & Supply Chain -->
+    <section class="category" id="data-poisoning">
+      <div class="category-header">
+        <h2>Data Poisoning &amp; Supply Chain</h2>
+        <span class="badge-ecosystem">Ecosystem</span>
+      </div>
+      <p class="category-def"><strong>Compromising an AI system by manipulating its training data, fine-tuning data, retrieval sources, or upstream dependencies.</strong></p>
+      <p>If an attacker can influence what data a model trains on or retrieves from, they can systematically shift the model's behavior without touching the model itself. This includes poisoning public datasets, compromising RAG knowledge bases, or inserting backdoors during fine-tuning.</p>
+      <p class="category-differs"><em>Data poisoning is a supply chain and infrastructure attack. Behavioral drift is a runtime pattern. Different threat models, different detection approaches, different responsible teams.</em></p>
+      <div class="category-keywork">
+        <h4>Key work</h4>
+        <ul>
+          <li>MITRE ATLAS &mdash; techniques AML.T0020 (Poison Training Data), AML.T0018 (Backdoor ML Model)</li>
+          <li>NIST AI 100-2 &mdash; Adversarial Machine Learning taxonomy</li>
+          <li>Carlini et al. &mdash; &ldquo;Poisoning Web-Scale Training Datasets&rdquo;</li>
+          <li>OWASP LLM Top 10 &mdash; LLM03: Training Data Poisoning</li>
+        </ul>
+      </div>
+      <div class="protocol-status status-ecosystem">
+        <h4>SAPIEN protocol status</h4>
+        <p>Not a SAPIEN protocol target. SAPIEN evaluates behavioral integrity at inference time, not training pipeline security. Covered comprehensively by MITRE ATLAS and NIST.</p>
+      </div>
+    </section>
+
+    <!-- Category 10: Bias, Fairness & Discrimination -->
+    <section class="category" id="bias-fairness">
+      <div class="category-header">
+        <h2>Bias, Fairness &amp; Discrimination</h2>
+        <span class="badge-ecosystem">Ecosystem</span>
+      </div>
+      <p class="category-def"><strong>Systematic patterns where AI systems produce outputs that unfairly disadvantage, stereotype, or exclude people based on protected characteristics.</strong></p>
+      <p>AI systems trained on historical data can perpetuate and amplify societal biases in hiring, lending, healthcare, criminal justice, and countless other domains. Bias can be subtle and context-dependent, making it difficult to detect through standard testing.</p>
+      <p class="category-differs"><em>Bias is a property of the model's knowledge and training distribution. Behavioral drift is a property of the model's consistency under pressure. A model can be unbiased and still drift, or biased and behaviorally stable. Both need measurement.</em></p>
+      <div class="category-keywork">
+        <h4>Key work</h4>
+        <ul>
+          <li>NIST AI 100-2e2023 &mdash; AI Risk Management Framework</li>
+          <li>EU AI Act &mdash; high-risk AI system requirements</li>
+          <li>Buolamwini &amp; Gebru &mdash; &ldquo;Gender Shades&rdquo;</li>
+          <li>AI Fairness 360 toolkit (IBM)</li>
+          <li>Anthropic's work on reducing bias in Claude</li>
+        </ul>
+      </div>
+      <div class="protocol-status status-ecosystem">
+        <h4>SAPIEN protocol status</h4>
+        <p>Not a SAPIEN protocol target. Bias measurement requires fundamentally different methodologies focused on output distributions across demographic groups, not behavioral consistency under pressure.</p>
+      </div>
+    </section>
+
+    <!-- Summary Table -->
+    <section class="summary-section" id="summary">
+      <h2>Summary</h2>
+      <div class="summary-table-wrap">
+        <table class="summary-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Failure Type</th>
+              <th>Protocol Status</th>
+              <th>Primary Standard</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><a href="#sycophantic-drift">Sycophantic Drift</a></td>
+              <td>Behavioral erosion under pressure</td>
+              <td><span class="badge-published">Published</span></td>
+              <td>SAPIEN Framework</td>
+            </tr>
+            <tr>
+              <td><a href="#agentic-safety">Agentic Behavioral Safety</a></td>
+              <td>Unsafe autonomous actions</td>
+              <td><span class="badge-planned">Protocol Planned</span></td>
+              <td>OWASP Agentic Top 10</td>
+            </tr>
+            <tr>
+              <td><a href="#memory-integrity">Memory &amp; Context Integrity</a></td>
+              <td>Cross-session degradation</td>
+              <td><span class="badge-planned">Protocol Planned</span></td>
+              <td>Active research</td>
+            </tr>
+            <tr>
+              <td><a href="#hallucination-persistence">Hallucination Persistence</a></td>
+              <td>Defended fabrications</td>
+              <td><span class="badge-planned">Protocol Planned</span></td>
+              <td>TruthfulQA, NIST</td>
+            </tr>
+            <tr>
+              <td><a href="#cross-domain-trust">Cross-Domain Trust Transfer</a></td>
+              <td>Trust weaponization across topics</td>
+              <td><span class="badge-planned">Protocol Planned</span></td>
+              <td>SAPIEN v1.1 (partial)</td>
+            </tr>
+            <tr>
+              <td><a href="#prompt-injection">Prompt Injection</a></td>
+              <td>Instruction override exploit</td>
+              <td><span class="badge-ecosystem">Ecosystem</span></td>
+              <td>OWASP LLM Top 10</td>
+            </tr>
+            <tr>
+              <td><a href="#jailbreaking">Jailbreaking</a></td>
+              <td>Safety filter bypass</td>
+              <td><span class="badge-ecosystem">Ecosystem</span></td>
+              <td>MITRE ATLAS</td>
+            </tr>
+            <tr>
+              <td><a href="#alignment">Alignment &amp; Goal Drift</a></td>
+              <td>Training-level misspecification</td>
+              <td><span class="badge-ecosystem">Ecosystem</span></td>
+              <td>Anthropic, OpenAI</td>
+            </tr>
+            <tr>
+              <td><a href="#data-poisoning">Data Poisoning &amp; Supply Chain</a></td>
+              <td>Training pipeline compromise</td>
+              <td><span class="badge-ecosystem">Ecosystem</span></td>
+              <td>MITRE ATLAS, NIST</td>
+            </tr>
+            <tr>
+              <td><a href="#bias-fairness">Bias, Fairness &amp; Discrimination</a></td>
+              <td>Representational harm</td>
+              <td><span class="badge-ecosystem">Ecosystem</span></td>
+              <td>NIST AI RMF, EU AI Act</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Closing -->
+    <section class="closing-section" id="protocol">
+      <h2>SAPIEN Is a Protocol, Not a Single Test</h2>
+      <p>The Safety Assessment Protocol for Intelligent Entity Networks provides a methodology for measuring AI behavioral failures: define behavioral dimensions, create calibrated scenarios, build scoring rubrics, and establish conformance requirements. Sycophantic drift scoring is the first published module because it was the least measured and most operationally dangerous gap. But the protocol is designed to extend. Each planned module follows the same structure &mdash; dimensions, scenarios, rubrics, conformance &mdash; applied to a different failure surface. The goal is a comprehensive behavioral safety measurement protocol that any organization can implement against any AI system.</p>
+    </section>
+
+    <!-- Open Call -->
+    <section class="opencall-section" id="contributors">
+      <h2>Open Call for Contributors</h2>
+      <p>SAPIEN is seeking domain experts to develop behavioral scoring modules across the AI safety landscape. Each module follows the SAPIEN methodology: define behavioral dimensions, create calibrated test scenarios, establish scoring rubrics, and publish conformance requirements.</p>
+
+      <div class="module-roles">
+        <div class="module-role">
+          <h3>Agentic Safety Module</h3>
+          <p>Define behavioral dimensions for AI systems that take real-world actions. Build scenarios that test whether agents maintain safety boundaries when using tools, browsing, executing code, or managing workflows under user pressure.</p>
+          <p class="seeking"><em>Seeking: AI agent developers, tool-use safety researchers, agentic system red teamers</em></p>
+        </div>
+        <div class="module-role">
+          <h3>Memory &amp; Context Integrity Module</h3>
+          <p>Define dimensions for measuring how persistent memory and accumulated context degrade safety over time. Build multi-session test scenarios that capture trust accumulation and boundary erosion.</p>
+          <p class="seeking"><em>Seeking: Researchers working on persistent AI systems, conversation memory safety, longitudinal AI evaluation</em></p>
+        </div>
+        <div class="module-role">
+          <h3>Hallucination Persistence Module</h3>
+          <p>Define dimensions for measuring whether models defend fabricated claims under questioning. Build scenarios that distinguish models that self-correct from those that double down.</p>
+          <p class="seeking"><em>Seeking: Factuality researchers, grounding specialists, RAG safety engineers</em></p>
+        </div>
+        <div class="module-role">
+          <h3>Cross-Domain Trust Transfer Module</h3>
+          <p>Formalize the cross-domain pivot methodology from SAPIEN v1.1's Adversarial Simulation into a standalone scoring module with dedicated dimensions and scenarios.</p>
+          <p class="seeking"><em>Seeking: Social engineering researchers, multi-domain safety evaluators, trust modeling specialists</em></p>
+        </div>
+      </div>
+
+      <div class="contact-block">
+        <p>Contact: <a href="mailto:contributors@sapienframework.org">contributors@sapienframework.org</a></p>
+        <p>GitHub: <a href="https://github.com/sapiencallenmajin/TheSAPIENFramework" target="_blank" rel="noopener noreferrer">github.com/sapiencallenmajin/TheSAPIENFramework</a></p>
+        <p class="cc-note">Contributors retain authorship credit on their modules. All modules are published under CC BY 4.0 as part of the SAPIEN Protocol.</p>
+      </div>
+    </section>
+
+  </div>
+
+</BaseLayout>
+
+<style>
+  .landscape-page {
+    max-width: 64rem;
+    margin: 0 auto;
+    padding: 0 1.5rem 4rem;
+  }
+
+  /* Hero */
+  .landscape-hero {
+    padding: 3rem 0 2.5rem;
+    border-bottom: 2px solid var(--color-border);
+    margin-bottom: 2rem;
+  }
+
+  .landscape-title {
+    font-family: var(--font-display);
+    font-size: 2.75rem;
+    color: var(--color-slate);
+    line-height: 1.2;
+    margin-bottom: 0.75rem;
+  }
+
+  .landscape-mono {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--color-text-dim);
+    margin-bottom: 1.5rem;
+  }
+
+  .landscape-intro {
+    font-size: 1.05rem;
+    line-height: 1.75;
+    color: var(--color-text-muted);
+    max-width: 52rem;
+  }
+
+  /* Badge Legend */
+  .badge-legend {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin-bottom: 3rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  /* Badges */
+  .badge-published {
+    display: inline-block;
+    font-family: var(--font-body);
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.2em 0.6em;
+    border-radius: 4px;
+    background: #FEF3C7;
+    color: #92400E;
+    border: 1px solid #FDE68A;
+  }
+
+  .badge-planned {
+    display: inline-block;
+    font-family: var(--font-body);
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.2em 0.6em;
+    border-radius: 4px;
+    background: #EFF6FF;
+    color: #1E40AF;
+    border: 1px solid #BFDBFE;
+  }
+
+  .badge-ecosystem {
+    display: inline-block;
+    font-family: var(--font-body);
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.2em 0.6em;
+    border-radius: 4px;
+    background: #F3F4F6;
+    color: #4B5563;
+    border: 1px solid #E5E7EB;
+  }
+
+  /* Categories */
+  .category {
+    padding: 3rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .category:last-of-type {
+    border-bottom: none;
+  }
+
+  .category-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .category-header h2 {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    color: var(--color-navy);
+    margin: 0;
+  }
+
+  .category-def {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--color-slate);
+    margin-bottom: 1rem;
+  }
+
+  .category p {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--color-text-muted);
+    margin-bottom: 0.75rem;
+  }
+
+  .category-differs {
+    font-size: 0.9rem !important;
+    color: var(--color-text-dim) !important;
+  }
+
+  .category-keywork {
+    margin-top: 1.25rem;
+  }
+
+  .category-keywork h4 {
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-dim);
+    margin-bottom: 0.5rem;
+  }
+
+  .category-keywork ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .category-keywork li {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+    padding: 0.2rem 0;
+    padding-left: 1rem;
+    position: relative;
+  }
+
+  .category-keywork li::before {
+    content: '\2013';
+    position: absolute;
+    left: 0;
+    color: var(--color-text-dim);
+  }
+
+  .category-keywork a {
+    color: var(--color-navy);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .category-keywork a:hover {
+    color: var(--color-gold);
+  }
+
+  /* Protocol Status */
+  .protocol-status {
+    margin-top: 1.25rem;
+    padding: 1rem 1.25rem;
+    border-radius: 0 6px 6px 0;
+  }
+
+  .protocol-status h4 {
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-dim);
+    margin-bottom: 0.4rem;
+  }
+
+  .protocol-status p {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  .status-published {
+    border-left: 3px solid #D97706;
+    background: #FFFBEB;
+  }
+
+  .status-planned {
+    border-left: 3px solid #2563EB;
+    background: #EFF6FF;
+  }
+
+  .status-ecosystem {
+    border-left: 3px solid #9CA3AF;
+    background: #F9FAFB;
+  }
+
+  /* Summary Table */
+  .summary-section {
+    padding: 3rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .summary-section h2 {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    color: var(--color-navy);
+    margin-bottom: 1.5rem;
+  }
+
+  .summary-table-wrap {
+    overflow-x: auto;
+  }
+
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  .summary-table th {
+    text-align: left;
+    font-weight: 700;
+    color: var(--color-slate);
+    padding: 0.6rem 0.75rem;
+    border-bottom: 2px solid var(--color-border);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .summary-table td {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    vertical-align: top;
+  }
+
+  .summary-table td a {
+    color: var(--color-navy);
+    text-decoration: none;
+  }
+
+  .summary-table td a:hover {
+    color: var(--color-gold);
+    text-decoration: underline;
+  }
+
+  /* Closing */
+  .closing-section {
+    padding: 3rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .closing-section h2 {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    color: var(--color-navy);
+    margin-bottom: 1rem;
+  }
+
+  .closing-section p {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: var(--color-text-muted);
+    max-width: 52rem;
+  }
+
+  /* Open Call */
+  .opencall-section {
+    padding: 3rem 0;
+  }
+
+  .opencall-section h2 {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    color: var(--color-navy);
+    margin-bottom: 1rem;
+  }
+
+  .opencall-section > p {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: var(--color-text-muted);
+    margin-bottom: 1.5rem;
+    max-width: 52rem;
+  }
+
+  .module-roles {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .module-role h3 {
+    font-family: var(--font-body);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-slate);
+    margin-bottom: 0.5rem;
+  }
+
+  .module-role p {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+    margin-bottom: 0.25rem;
+  }
+
+  .seeking {
+    color: var(--color-text-dim) !important;
+    font-size: 0.85rem !important;
+  }
+
+  .contact-block {
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .contact-block p {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    margin-bottom: 0.35rem;
+  }
+
+  .contact-block a {
+    color: var(--color-navy);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .contact-block a:hover {
+    color: var(--color-gold);
+  }
+
+  .cc-note {
+    font-size: 0.8rem !important;
+    color: var(--color-text-dim) !important;
+    margin-top: 0.75rem !important;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .landscape-title { font-size: 2rem; }
+    .badge-legend { flex-direction: column; gap: 0.5rem; }
+    .category-header h2 { font-size: 1.4rem; }
+    .summary-table { font-size: 0.75rem; }
+  }
+</style>
