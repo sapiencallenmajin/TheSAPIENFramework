@@ -7,7 +7,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <span class="badge">Scenario Library</span>
       <h1>Scenarios</h1>
       <p class="lead">
-        The scenario library is being migrated to the new site. In the meantime, scenarios are documented within each module specification.
+        The scenario library is being migrated to the new site. In the meantime, <a href="/glossary/#scenario" class="key-term" data-definition="A scripted multi-turn conversation testing model behavioral safety.">scenarios</a> are documented within each module specification.
       </p>
       <p style="margin-top: 1rem;">
         <a href="/modules/sycophantic-drift/" class="link-arrow">View Sycophantic Drift scenarios &rarr;</a>
@@ -15,13 +15,54 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     </div>
   </section>
 
+  <!-- Definition block -->
   <section class="section">
+    <div class="container">
+      <div class="definition-block">
+        <h2>What is a Scenario?</h2>
+        <p>A <strong>scenario</strong> is a scripted <a href="/glossary/#multi-turn-conversation" class="key-term" data-definition="A back-and-forth exchange with an AI model across multiple messages, where the model can reference earlier messages.">multi-turn conversation</a> designed to test whether an AI model maintains its safety boundaries under realistic conversational pressure. Each scenario has an opening prompt (a reasonable user question), followed by <a href="/glossary/#escalation" class="key-term" data-definition="A pressure turn in a scenario designed to increase conversational pressure.">escalation</a> turns that apply increasing pressure using calibrated <a href="/glossary/#pressure-technique" class="key-term" data-definition="One of 14 catalogued conversational pressure methods (SP-T001 through SP-T014).">techniques</a>. The model's responses are scored across four behavioral <a href="/glossary/#dimension" class="key-term" data-definition="One of four scored behavioral measurements: Specificity, Risk Disclosure, Epistemic, Emotional.">dimensions</a> at each turn.</p>
+      </div>
+
+      <!-- Anatomy of a scenario -->
+      <div class="anatomy">
+        <h3>Anatomy of a Scenario</h3>
+        <div class="anatomy-flow">
+          <div class="anatomy-phase">
+            <span class="anatomy-label">Opening</span>
+            <span class="anatomy-desc">Reasonable user question</span>
+          </div>
+          <div class="anatomy-arrow" aria-hidden="true">&rarr;</div>
+          <div class="anatomy-phase anatomy-phase-optional">
+            <span class="anatomy-label">Rapport</span>
+            <span class="anatomy-desc">Optional trust-building</span>
+          </div>
+          <div class="anatomy-arrow" aria-hidden="true">&rarr;</div>
+          <div class="anatomy-phase">
+            <span class="anatomy-label">Escalation 1</span>
+            <span class="anatomy-desc">Light pressure applied</span>
+          </div>
+          <div class="anatomy-arrow" aria-hidden="true">&rarr;</div>
+          <div class="anatomy-phase">
+            <span class="anatomy-label">Escalation 2</span>
+            <span class="anatomy-desc">Increased pressure</span>
+          </div>
+          <div class="anatomy-arrow" aria-hidden="true">&rarr;</div>
+          <div class="anatomy-phase anatomy-phase-final">
+            <span class="anatomy-label">Final Turn</span>
+            <span class="anatomy-desc">Maximum pressure</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top: 0;">
     <div class="container">
       <div class="cta-card">
         <h2>Contribute Scenarios</h2>
         <p>
           Help expand the SAPIEN scenario library. We accept community-authored scenarios that pass the
-          <a href="/framework/scenarios">quality rubric</a> and cover new domains or pressure patterns.
+          <a href="/framework/scenarios/">quality rubric</a> and cover new domains or pressure patterns.
         </p>
         <a href="https://github.com/sapiencallenmajin/TheSAPIENFramework" target="_blank" rel="noopener noreferrer" class="btn">
           Contribute on GitHub &nearr;
@@ -90,5 +131,86 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     background: var(--color-slate);
     color: #FFFFFF;
     text-decoration: none;
+  }
+
+  /* Definition block */
+  .definition-block {
+    background: #F8F9FA;
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-gold);
+    border-radius: 8px;
+    padding: 1.75rem 2rem;
+    margin-bottom: 2.5rem;
+  }
+  .definition-block h2 {
+    font-size: 1.35rem;
+    margin-bottom: 0.75rem;
+  }
+  .definition-block p {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: var(--color-text-muted);
+    max-width: 52rem;
+  }
+
+  /* Anatomy of a scenario */
+  .anatomy {
+    margin-bottom: 2.5rem;
+  }
+  .anatomy h3 {
+    font-size: 1.15rem;
+    margin-bottom: 1.25rem;
+  }
+  .anatomy-flow {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .anatomy-phase {
+    background: #FFFFFF;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    text-align: center;
+    min-width: 110px;
+  }
+  .anatomy-phase-optional {
+    border-style: dashed;
+    opacity: 0.75;
+  }
+  .anatomy-phase-final {
+    border-color: #EA580C;
+    background: #FFF7ED;
+  }
+  .anatomy-label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-navy);
+    margin-bottom: 0.25rem;
+  }
+  .anatomy-desc {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--color-text-dim);
+  }
+  .anatomy-arrow {
+    font-size: 1.25rem;
+    color: var(--color-text-dim);
+    line-height: 3;
+  }
+
+  @media (max-width: 768px) {
+    .anatomy-flow {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .anatomy-arrow {
+      text-align: center;
+      line-height: 1;
+      transform: rotate(90deg);
+    }
   }
 </style>

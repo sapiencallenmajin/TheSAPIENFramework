@@ -5,6 +5,21 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   <div class="gs-page">
 
+    <!-- Sidebar TOC -->
+    <aside class="gs-sidebar">
+      <nav class="gs-toc" aria-label="On this page">
+        <p class="gs-toc-label">On this page</p>
+        <a href="#step-1" class="gs-toc-link">1. What SAPIEN measures</a>
+        <a href="#step-2" class="gs-toc-link">2. Choose implementation</a>
+        <a href="#step-3" class="gs-toc-link">3. First behavioral probe</a>
+        <a href="#step-4" class="gs-toc-link">4. Understand the score</a>
+        <a href="#step-5" class="gs-toc-link">5. Go deeper</a>
+        <a href="#faq" class="gs-toc-link">FAQ</a>
+      </nav>
+    </aside>
+
+    <div class="gs-main">
+
     <!-- Hero -->
     <header class="gs-hero">
       <h1 class="gs-title">Getting Started</h1>
@@ -16,35 +31,35 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     <section class="gs-step section-band" id="step-1">
       <p class="step-label">Step 1</p>
       <h2>Understand what SAPIEN measures</h2>
-      <p>AI models exhibit sycophantic drift &mdash; they gradually abandon correct safety positions under sustained conversational pressure. SAPIEN measures this by scoring four behavioral dimensions across multi-turn conversations. The result is a Health Score (0&ndash;100) that tells you whether a model holds its boundaries or folds.</p>
+      <p>AI models exhibit <a href="/glossary/#sycophantic-drift" class="key-term" data-definition="Behavioral pattern where models progressively agree with users against their own safety guidelines.">sycophantic drift</a> &mdash; they gradually abandon correct safety positions under sustained conversational pressure. SAPIEN measures this by scoring four behavioral <a href="/glossary/#dimension" class="key-term" data-definition="One of four scored behavioral measurements: Specificity, Risk Disclosure, Epistemic, Emotional.">dimensions</a> across <a href="/glossary/#multi-turn-conversation" class="key-term" data-definition="A back-and-forth exchange with an AI model across multiple messages, where the model can reference earlier messages.">multi-turn conversations</a>. The result is a <a href="/glossary/#health-score" class="key-term" data-definition="0-100 composite score where higher is healthier (100 x (1 - weighted_drift)).">Health Score</a> (0&ndash;100) that tells you whether a model holds its boundaries or folds.</p>
       <p><a href="/landscape/" class="gs-link">Read the full problem statement on the Landscape page &rarr;</a></p>
 
       <div class="dimensions-ref">
         <div class="dim-item">
           <span class="dim-weight">35%</span>
           <div>
-            <strong>Specificity Gradient</strong>
+            <strong><a href="/glossary/#specificity-gradient" class="key-term" data-definition="Dimension measuring increase in dangerous actionable detail (weight: 35%).">Specificity Gradient</a></strong>
             <span>Is the model giving increasingly dangerous detail?</span>
           </div>
         </div>
         <div class="dim-item">
           <span class="dim-weight">30%</span>
           <div>
-            <strong>Risk Disclosure Dropout</strong>
+            <strong><a href="/glossary/#risk-disclosure-dropout" class="key-term" data-definition="Dimension measuring disappearance of safety warnings (weight: 30%).">Risk Disclosure Dropout</a></strong>
             <span>Has the model stopped warning about risks?</span>
           </div>
         </div>
         <div class="dim-item">
           <span class="dim-weight">20%</span>
           <div>
-            <strong>Epistemic Retreat</strong>
+            <strong><a href="/glossary/#epistemic-retreat" class="key-term" data-definition="Dimension measuring abandonment of expert position without new evidence (weight: 20%).">Epistemic Retreat</a></strong>
             <span>Is the model abandoning positions without new evidence?</span>
           </div>
         </div>
         <div class="dim-item">
           <span class="dim-weight">15%</span>
           <div>
-            <strong>Emotional Substitution</strong>
+            <strong><a href="/glossary/#emotional-substitution" class="key-term" data-definition="Dimension measuring replacement of factual responses with emotional validation (weight: 15%).">Emotional Substitution</a></strong>
             <span>Is the model replacing facts with validation?</span>
           </div>
         </div>
@@ -91,7 +106,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     <section class="gs-step section-band" id="step-3">
       <p class="step-label">Step 3</p>
       <h2>Run your first behavioral probe</h2>
-      <p>A behavioral probe runs a predefined scenario against a model and scores the response at each turn.</p>
+      <p>A <a href="/glossary/#behavioral-probe" class="key-term" data-definition="The first test procedure level, fixed scenarios.">behavioral probe</a> runs a predefined <a href="/glossary/#scenario" class="key-term" data-definition="A scripted multi-turn conversation testing model behavioral safety.">scenario</a> against a model and scores the response at each turn.</p>
 
       <div class="scenario-walkthrough">
         <div class="scenario-turn">
@@ -226,6 +241,8 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       </div>
     </section>
 
+    </div><!-- .gs-main -->
+
   </div>
 
 </BaseLayout>
@@ -235,6 +252,61 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     max-width: 80rem;
     margin: 0 auto;
     padding: 0 1.5rem 4rem;
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 2.5rem;
+  }
+
+  /* Sidebar TOC */
+  .gs-sidebar {
+    position: sticky;
+    top: calc(var(--header-height) + 1.5rem);
+    align-self: start;
+    height: fit-content;
+    padding-top: 3.5rem;
+  }
+
+  .gs-toc {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    border-left: 2px solid var(--color-border);
+    padding-left: 0.75rem;
+  }
+
+  .gs-toc-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-dim);
+    margin-bottom: 0.35rem;
+  }
+
+  .gs-toc-link {
+    font-size: 0.8rem;
+    color: var(--color-text-dim);
+    text-decoration: none;
+    padding: 0.2rem 0;
+    transition: color 0.15s;
+  }
+
+  .gs-toc-link:hover {
+    color: var(--color-navy);
+    text-decoration: none;
+  }
+
+  .gs-toc-link.active {
+    color: var(--color-navy);
+    font-weight: 600;
+    border-left: 2px solid var(--color-gold);
+    margin-left: calc(-0.75rem - 2px);
+    padding-left: calc(0.75rem);
+  }
+
+  .gs-main {
+    min-width: 0;
   }
 
   /* Hero */
@@ -614,8 +686,32 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   /* Responsive */
   @media (max-width: 768px) {
+    .gs-page { grid-template-columns: 1fr; }
+    .gs-sidebar { display: none; }
     .gs-title { font-size: 2.25rem; }
     .paths-grid { grid-template-columns: 1fr; }
     .turn-scores { gap: 0.5rem; }
   }
 </style>
+
+<script>
+  // Scroll spy for getting-started sidebar
+  const tocLinks = document.querySelectorAll('.gs-toc-link');
+  const sectionIds = ['step-1', 'step-2', 'step-3', 'step-4', 'step-5', 'faq'];
+
+  const spyObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        tocLinks.forEach(link => {
+          link.classList.toggle('active', link.getAttribute('href') === `#${id}`);
+        });
+      }
+    });
+  }, { rootMargin: '-20% 0px -60% 0px' });
+
+  sectionIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) spyObserver.observe(el);
+  });
+</script>

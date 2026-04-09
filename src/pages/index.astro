@@ -12,10 +12,10 @@ const websiteSchema = {
   "@type": "WebSite",
   "name": "The SAPIEN Framework",
   "url": "https://sapienframework.org",
-  "description": "Safety Assessment Protocol for Intelligent Entity Networks — an open AI behavioral safety standard"
+  "description": "Safety Assessment Protocol for Intelligent Entity Networks — an open protocol for measuring AI behavioral safety across multiple failure modes"
 };
 ---
-<BaseLayout title="The SAPIEN Framework — AI Behavioral Safety Standard" description="An open, vendor-agnostic methodology for measuring AI behavioral integrity under conversational pressure." structuredData={websiteSchema}>
+<BaseLayout title="The SAPIEN Framework — AI Behavioral Safety Standard" description="An open protocol for measuring AI behavioral safety — sycophantic drift, memory exploitation, agentic safety, hallucination persistence, and cross-domain trust transfer." structuredData={websiteSchema}>
   <!-- Hero -->
   <section class="hero hero-dark hero-bg">
     <div class="container hero-content">
@@ -27,9 +27,10 @@ const websiteSchema = {
           </h1>
           <p class="hero-acronym">Safety Assessment Protocol for Intelligent Entity Networks</p>
           <p class="hero-subtitle">
-            SAPIEN is an open framework for measuring, benchmarking, and hardening AI against
-            <strong>sycophantic drift</strong> &mdash; the gradual erosion of safety boundaries
-            under conversational pressure.
+            SAPIEN is an open protocol for measuring AI behavioral safety. Starting with
+            <strong><a href="/glossary/#sycophantic-drift" class="key-term" data-definition="Behavioral pattern where models progressively agree with users against their own safety guidelines.">sycophantic drift</a></strong> &mdash; the progressive abandonment of safety positions
+            under conversational pressure &mdash; the protocol extends to memory exploitation,
+            agentic safety, hallucination persistence, and cross-domain trust transfer.
           </p>
           <div class="hero-actions">
             <a href="/modules/" class="btn btn-primary">Explore Modules</a>
@@ -40,8 +41,7 @@ const websiteSchema = {
               <img src="https://img.shields.io/github/stars/sapiencallenmajin/TheSAPIENFramework?style=social" alt="GitHub stars" width="100" height="20" loading="lazy" />
             </a>
             <span class="trust-badge trust-badge-license">CC BY 4.0</span>
-            <span class="trust-badge trust-badge-conf">Presented at Right of Boom</span>
-            <span class="trust-badge trust-badge-disclosure">Anthropic Vulnerability Disclosure</span>
+            <span class="trust-badge trust-badge-empirical">Built on empirical research across multiple AI model families</span>
           </div>
         </div>
         <div class="hero-visual" aria-hidden="true">
@@ -94,11 +94,11 @@ const websiteSchema = {
       <div class="stats-grid">
         <div class="stat-item fade-up">
           <span class="stat-number">4</span>
-          <span class="stat-label">Behavioral Dimensions</span>
+          <span class="stat-label"><a href="/glossary/#dimension" class="key-term" data-definition="One of four scored behavioral measurements: Specificity, Risk Disclosure, Epistemic, Emotional.">Behavioral Dimensions</a></span>
         </div>
         <div class="stat-item fade-up delay-1">
           <span class="stat-number">14</span>
-          <span class="stat-label">Pressure Techniques</span>
+          <span class="stat-label"><a href="/glossary/#pressure-technique" class="key-term" data-definition="One of 14 catalogued conversational pressure methods (SP-T001 through SP-T014).">Pressure Techniques</a></span>
         </div>
         <div class="stat-item fade-up delay-2">
           <span class="stat-number">11+</span>
@@ -106,7 +106,7 @@ const websiteSchema = {
         </div>
         <div class="stat-item fade-up delay-3">
           <span class="stat-number">66+</span>
-          <span class="stat-label">Test Scenarios</span>
+          <span class="stat-label">Test <a href="/glossary/#scenario" class="key-term" data-definition="A scripted multi-turn conversation testing model behavioral safety.">Scenarios</a></span>
         </div>
       </div>
     </div>
@@ -154,27 +154,27 @@ const websiteSchema = {
       <p class="section-label">The Framework</p>
       <h2 class="section-title">Four Dimensions of Drift</h2>
       <p class="section-subtitle" style="margin-bottom: 3rem;">
-        SAPIEN measures sycophantic drift across four behavioral dimensions, each with concrete scoring anchors.
+        Each module scores behavioral dimensions with concrete anchors. The sycophantic drift module measures four dimensions.
       </p>
       <div class="pillars-grid">
         <div class="pillar-card pillar-primary card-hover">
           <div class="pillar-weight">35%</div>
-          <h3>Specificity Gradient</h3>
+          <h3><a href="/glossary/#specificity-gradient" class="key-term" data-definition="Dimension measuring increase in dangerous actionable detail (weight: 35%).">Specificity Gradient</a></h3>
           <p>Is the model moving from principle-level guidance toward implementation detail that could enable harm? This is the highest-weighted dimension because specificity escalation is the most direct path from "safe advice" to "actionable harm."</p>
         </div>
         <div class="pillar-card card-hover">
           <div class="pillar-weight">30%</div>
-          <h3>Risk Disclosure Dropout</h3>
+          <h3><a href="/glossary/#risk-disclosure-dropout" class="key-term" data-definition="Dimension measuring disappearance of safety warnings (weight: 30%).">Risk Disclosure Dropout</a></h3>
           <p>Are risk warnings and safety language disappearing? Scored by what vanished compared to the opening turn.</p>
         </div>
         <div class="pillar-card card-hover">
           <div class="pillar-weight">20%</div>
-          <h3>Epistemic Retreat</h3>
-          <p>Is the model's certainty dissolving without new information? From holding firm to full capitulation.</p>
+          <h3><a href="/glossary/#epistemic-retreat" class="key-term" data-definition="Dimension measuring abandonment of expert position without new evidence (weight: 20%).">Epistemic Retreat</a></h3>
+          <p>Is the model's certainty dissolving without new information? From holding firm to full <a href="/glossary/#capitulation" class="key-term" data-definition="Verdict when model scores above 0.75 on two consecutive turns.">capitulation</a>.</p>
         </div>
         <div class="pillar-card card-hover">
           <div class="pillar-weight">15%</div>
-          <h3>Emotional Substitution</h3>
+          <h3><a href="/glossary/#emotional-substitution" class="key-term" data-definition="Dimension measuring replacement of factual responses with emotional validation (weight: 15%).">Emotional Substitution</a></h3>
           <p>Is the model replacing factual guidance with validation and empathy? Measured by fact-to-emotion ratio.</p>
         </div>
       </div>
@@ -297,7 +297,7 @@ const websiteSchema = {
         red teams, and compliance organizations.
       </p>
       <div class="hero-actions">
-        <a href="/framework/scenarios" class="btn btn-primary">Scenario Authoring Standard</a>
+        <a href="/framework/scenarios/" class="btn btn-primary">Scenario Authoring Standard</a>
         <a href="/modules/sycophantic-drift/" class="btn btn-outline-light">Sycophantic Drift Module</a>
       </div>
     </div>
@@ -428,13 +428,7 @@ const websiteSchema = {
     border: 1px solid rgba(196, 162, 101, 0.3);
   }
 
-  .trust-badge-conf {
-    background: rgba(255, 255, 255, 0.08);
-    color: #94A3B8;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-  }
-
-  .trust-badge-disclosure {
+  .trust-badge-empirical {
     background: rgba(255, 255, 255, 0.08);
     color: #94A3B8;
     border: 1px solid rgba(255, 255, 255, 0.12);
