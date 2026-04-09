@@ -1,13 +1,13 @@
 ---
 const navItems = [
-  { label: 'Landscape', href: '/landscape' },
-  { label: 'Modules', href: '/modules' },
-  { label: 'Getting Started', href: '/getting-started' },
-  { label: 'Scenarios', href: '/framework/scenarios' },
-  { label: 'Research', href: '/research' },
-  { label: 'Download', href: '/download' },
-  { label: 'Blog', href: '/blog' },
-  { label: 'About', href: '/about' },
+  { label: 'Landscape', href: '/landscape/' },
+  { label: 'Modules', href: '/modules/' },
+  { label: 'Getting Started', href: '/getting-started/' },
+  { label: 'Scenarios', href: '/framework/scenarios/' },
+  { label: 'Research', href: '/research/' },
+  { label: 'Download', href: '/download/' },
+  { label: 'Blog', href: '/blog/' },
+  { label: 'About', href: '/about/' },
   { label: 'GitHub', href: 'https://github.com/sapiencallenmajin/TheSAPIENFramework', external: true },
 ];
 ---
@@ -28,6 +28,10 @@ const navItems = [
           {item.external && <span class="external-icon" aria-hidden="true">&nearr;</span>}
         </a>
       ))}
+      <button class="search-trigger" id="search-trigger" aria-label="Search the site">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="12.5" y1="12.5" x2="17" y2="17"/></svg>
+        <kbd>/</kbd>
+      </button>
     </nav>
     <button class="mobile-toggle" aria-label="Toggle menu" id="mobile-menu-btn">
       <span></span><span></span><span></span>
@@ -131,6 +135,22 @@ const navItems = [
       menu.classList.toggle('open');
     });
   }
+
+  // Search trigger
+  const searchBtn = document.getElementById('search-trigger');
+  if (searchBtn) {
+    searchBtn.addEventListener('click', () => {
+      if ((window as any).__openSearch) (window as any).__openSearch();
+    });
+  }
+
+  // "/" key opens search (when not in an input)
+  document.addEventListener('keydown', (e) => {
+    if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) {
+      e.preventDefault();
+      if ((window as any).__openSearch) (window as any).__openSearch();
+    }
+  });
 
   // Nav scroll effect
   const header = document.querySelector('.header');
