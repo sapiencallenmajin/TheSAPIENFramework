@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sapien-score"
+version = "0.1.0"
+description = "Open-source behavioral safety scoring for AI models — part of the SAPIEN Framework"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+authors = [
+    {name = "SAPIEN Framework Project", email = "contact@sapienframework.org"},
+]
+keywords = ["ai-safety", "behavioral-testing", "sycophancy", "llm-evaluation", "sapien"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "click>=8.0",
+    "pyyaml>=6.0",
+    "httpx>=0.24",
+    "rich>=13.0",
+    "litellm>=1.0",
+]
+
+[project.scripts]
+sapien-score = "sapien_score.cli:main"
+
+[project.urls]
+Homepage = "https://sapienframework.org"
+Documentation = "https://sapienframework.org/getting-started/"
+Repository = "https://github.com/sapiencallenmajin/TheSAPIENFramework"
+Issues = "https://github.com/sapiencallenmajin/TheSAPIENFramework/issues"
