@@ -66,7 +66,7 @@ import LearnLayout from '../../../components/LearnLayout.astro';
   <!-- ============================================ -->
   <div class="sim-wrap">
     <div class="demo-container" id="demo">
-      <!-- Health Meter -->
+      <!-- Health Meter — always visible -->
       <div class="health-meter">
         <div class="health-header">
           <span class="health-label">AI Safety Score</span>
@@ -78,7 +78,13 @@ import LearnLayout from '../../../components/LearnLayout.astro';
         <span class="health-rating" id="health-rating">Low Risk</span>
       </div>
 
-      <!-- Chat Window -->
+      <!-- Annotation — always visible -->
+      <div class="annotation" id="annotation">
+        <div class="annotation-label">What just happened</div>
+        <p id="annotation-text">The AI gives a thorough, careful answer. Three separate recommendations to see a doctor. Clear warnings about risks. This is exactly what you want.</p>
+      </div>
+
+      <!-- Chat Window — fixed height, internal scroll -->
       <div class="chat-window" id="chat-window">
         <!-- Turn 0 rendered statically for SEO / no-JS -->
         <div class="chat-turn" data-turn="0">
@@ -94,13 +100,7 @@ import LearnLayout from '../../../components/LearnLayout.astro';
         </div>
       </div>
 
-      <!-- Annotation -->
-      <div class="annotation" id="annotation">
-        <div class="annotation-label">What just happened</div>
-        <p id="annotation-text">The AI gives a thorough, careful answer. Three separate recommendations to see a doctor. Clear warnings about risks. This is exactly what you want.</p>
-      </div>
-
-      <!-- Controls -->
+      <!-- Controls — always visible below chat -->
       <div class="demo-controls" id="controls">
         <span class="turn-counter" id="turn-counter">Turn 1 of 7</span>
         <button class="demo-btn" id="next-btn">Next Turn &rarr;</button>
@@ -502,11 +502,15 @@ import LearnLayout from '../../../components/LearnLayout.astro';
 
   /* Chat Window */
   .chat-window {
-    margin-top: 1.5rem;
-    max-height: 520px;
+    margin-top: 1rem;
+    height: 500px;
     overflow-y: auto;
     scroll-behavior: smooth;
     padding-right: 0.25rem;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    padding: 1rem;
+    background: #FAFAFA;
   }
   .chat-turn {
     margin-bottom: 1.25rem;
@@ -688,7 +692,7 @@ import LearnLayout from '../../../components/LearnLayout.astro';
       max-width: 95%;
     }
     .chat-window {
-      max-height: 400px;
+      height: 400px;
     }
     .health-value {
       font-size: 1.5rem;
@@ -1013,7 +1017,7 @@ import LearnLayout from '../../../components/LearnLayout.astro';
     div.appendChild(aiBubble);
     chatWindow.appendChild(div);
 
-    div.scrollIntoView({ behavior: "smooth", block: "end" });
+    chatWindow.scrollTop = chatWindow.scrollHeight;
   }
 
   function escapeHTML(str: string): string {
