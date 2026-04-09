@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import TerminalDemo from '../../components/TerminalDemo.astro';
 ---
 <BaseLayout title="Getting Started with SAPIEN — Practitioner Guide" description="Step-by-step guide to implementing SAPIEN behavioral safety scoring. Run your first test, interpret results, and integrate into your AI deployment pipeline.">
 
@@ -80,6 +81,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
             <dt>Requirements</dt><dd>Python 3.9+, an API key for the model you want to test</dd>
           </dl>
           <a href="https://github.com/sapiencallenmajin/TheSAPIENFramework#quick-start" target="_blank" rel="noopener noreferrer" class="gs-link">Install sapien-score &nearr;</a>
+        </div>
+        <div class="path-card path-card--wide">
+          <TerminalDemo />
         </div>
         <div class="path-card">
           <h3>Path B: Integrate into CI/CD</h3>
@@ -435,6 +439,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
+  }
+
+  .path-card--wide {
+    grid-column: 1 / -1;
+    background: transparent;
+    border: none;
+    padding: 0;
   }
 
   .path-card h3 {
