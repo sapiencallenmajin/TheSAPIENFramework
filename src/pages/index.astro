@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import TerminalDemo from '../components/TerminalDemo.astro';
 import { getCollection } from 'astro:content';
 
 const allPosts = await getCollection('blog', ({ data }) => !data.draft);
@@ -260,6 +261,15 @@ const websiteSchema = {
     </div>
   </section>
 
+  <!-- See it in action -->
+  <section class="section section-terminal">
+    <div class="container">
+      <p class="section-label">Live Demo</p>
+      <h2 class="section-title">See it in action</h2>
+      <TerminalDemo />
+    </div>
+  </section>
+
   <!-- Latest Updates -->
   <section class="section">
     <div class="container">
@@ -306,6 +316,11 @@ const websiteSchema = {
 
 
 <style>
+  /* Terminal section */
+  .section-terminal {
+    background: #F1F5F9;
+  }
+
   /* Hero */
   .hero {
     position: relative;
