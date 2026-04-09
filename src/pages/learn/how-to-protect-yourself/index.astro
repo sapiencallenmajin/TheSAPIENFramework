@@ -5,78 +5,189 @@ import LearnLayout from '../../../components/LearnLayout.astro';
   title="5 Tips for Safely Using AI Assistants"
   description="AI is useful. These five habits keep it honest. Practical advice for anyone who uses ChatGPT, Copilot, Gemini, or other AI assistants."
 >
-  <header class="learn-hero">
-    <h1>5 Things to Know Before Trusting AI Advice</h1>
-    <p class="hero-subtitle">AI is useful. These habits keep it honest.</p>
-  </header>
+  <!-- Hero -->
+  <section class="learn-hero-img" style="background-image: url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1920&q=80')">
+    <div class="hero-inner">
+      <h1>5 Things to Know Before Trusting AI Advice</h1>
+      <p class="hero-sub">AI is useful. These habits keep it honest.</p>
+    </div>
+  </section>
 
-  <article class="learn-body">
-    <section class="learn-section">
-      <h2>1. Ask the same question in a new conversation</h2>
-      <p>If you've been going back and forth with an AI and it finally gives you the answer you wanted, open a fresh chat and ask the same question cold. If the fresh AI refuses or gives a very different answer, the original answer was probably drift — the AI telling you what you wanted to hear, not what's accurate.</p>
-      <p>This is the single most effective thing you can do. It takes 30 seconds and it works like a lie detector for AI. The fresh conversation doesn't have the history of you pushing back, explaining your situation, or building rapport. It just has the question. If the answer is dramatically different, trust the fresh one.</p>
+  <!-- Tips -->
+  <div class="tips-stack">
+    <section class="tip-section learn-band">
+      <div class="learn-contain">
+        <div class="tip-card">
+          <span class="tip-number">1</span>
+          <div class="tip-content">
+            <h2 class="tip-title">Ask the same question in a new conversation</h2>
+            <p>If an AI finally gives you the answer you wanted after a long back-and-forth, open a fresh chat and ask the same question cold.</p>
+            <p>If the fresh AI refuses or gives a very different answer, the original answer was probably drift — the AI telling you what you wanted to hear. This takes 30 seconds. It works like a lie detector for AI.</p>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <hr class="section-divider" />
-
-    <section class="learn-section">
-      <h2>2. Be suspicious when AI stops giving warnings</h2>
-      <p>Early in a conversation, AI models include caveats: "consult a professional," "this is general information," "individual situations vary." If those warnings disappear as the conversation continues, that's a sign the AI is prioritizing your comfort over your safety.</p>
-      <p>Those caveats aren't there to annoy you. They're there because the AI genuinely can't give you personalized professional advice. When the caveats disappear, the limitations haven't changed — the AI has just stopped reminding you about them. That's when mistakes happen.</p>
+    <section class="tip-section learn-band learn-band-gray">
+      <div class="learn-contain">
+        <div class="tip-card">
+          <span class="tip-number">2</span>
+          <div class="tip-content">
+            <h2 class="tip-title">Be suspicious when AI stops giving warnings</h2>
+            <p>Early in a conversation, AI models include caveats: "consult a professional," "this is general information," "individual situations vary." If those warnings disappear as the conversation continues, that's a red flag.</p>
+            <p>The AI's limitations haven't changed. It's just stopped reminding you about them. That's when mistakes happen.</p>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <hr class="section-divider" />
-
-    <section class="learn-section">
-      <h2>3. Don't use AI as your only source for high-stakes decisions</h2>
-      <p>Medical dosing, legal strategy, financial planning, security architecture — these are areas where being wrong has real consequences. AI can help you prepare questions for a professional. It shouldn't be the professional.</p>
-      <p>Think of AI like a really smart friend who reads a lot. They might have useful observations. They might point you in the right direction. But you wouldn't let them set your medication dose, write your will, or manage your retirement account. The same standard should apply to AI, no matter how confident it sounds.</p>
+    <section class="tip-section learn-band">
+      <div class="learn-contain">
+        <div class="tip-card">
+          <span class="tip-number">3</span>
+          <div class="tip-content">
+            <h2 class="tip-title">Don't use AI as your only source for high-stakes decisions</h2>
+            <p>Medical dosing, legal strategy, financial planning — these are areas where being wrong has real consequences. AI can help you prepare questions for a professional. It shouldn't be the professional.</p>
+            <p>Think of AI like a smart friend who reads a lot. You wouldn't let them set your medication dose or write your will. The same standard applies here.</p>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <hr class="section-divider" />
-
-    <section class="learn-section">
-      <h2>4. Your credentials don't make AI safer</h2>
-      <p>Telling an AI you're a doctor doesn't make its medical advice better — it makes the AI less cautious with you. The AI can't verify your credentials. It just skips the safety rails because you sound authoritative. If anything, claiming expertise makes AI less safe because it assumes you don't need the warnings.</p>
-      <p>This is counterintuitive. You'd think that telling the AI about your background would lead to better, more tailored responses. And sometimes it does. But it also tells the AI to drop its guard. An AI that thinks it's talking to a nurse will share medication details it would withhold from a general user. The information might be the same quality either way — but the guardrails are gone.</p>
+    <section class="tip-section learn-band learn-band-gray">
+      <div class="learn-contain">
+        <div class="tip-card">
+          <span class="tip-number">4</span>
+          <div class="tip-content">
+            <h2 class="tip-title">Your credentials don't make AI safer</h2>
+            <p>Telling an AI you're a doctor doesn't make its medical advice better — it makes the AI less cautious with you. It can't verify your credentials. It just skips the safety rails because you sound authoritative.</p>
+            <p>An AI that thinks it's talking to a nurse will share medication details it would withhold from a general user. The guardrails are gone.</p>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <hr class="section-divider" />
-
-    <section class="learn-section">
-      <h2>5. Long conversations are riskier than short ones</h2>
-      <p>The longer you talk to an AI, the more it adapts to you. Fresh conversations start with full safety guardrails. Long conversations erode them. For important questions, keep it short and direct.</p>
-      <p>This doesn't mean you can never have a long conversation with an AI. For creative writing, brainstorming, or exploring ideas, longer sessions are fine. But when the stakes are high — when you're asking about health, money, law, or safety — shorter is better. Ask your question, get the answer, and if you need to follow up, consider starting a new conversation instead of continuing the existing one.</p>
+    <section class="tip-section learn-band">
+      <div class="learn-contain">
+        <div class="tip-card">
+          <span class="tip-number">5</span>
+          <div class="tip-content">
+            <h2 class="tip-title">Long conversations are riskier than short ones</h2>
+            <p>The longer you talk to an AI, the more it adapts to you. Fresh conversations start with full safety guardrails. Long conversations erode them.</p>
+            <p>For creative brainstorming, long sessions are fine. But when the stakes are high — health, money, law, safety — keep it short and direct.</p>
+          </div>
+        </div>
+      </div>
     </section>
+  </div>
 
-    <hr class="section-divider" />
-
-    <section class="learn-section">
-      <h2>Want to test your AI?</h2>
-      <p>SAPIEN is an open standard for measuring AI behavioral safety. If you're a developer, security researcher, or technology leader, you can use our free tools to test how any AI model handles sustained conversational pressure.</p>
-      <p><a href="/getting-started/" class="inline-cta">Get started with SAPIEN &rarr;</a></p>
-    </section>
-
-    <hr class="section-divider" />
-
-    <nav class="learn-links">
-      <h2>Keep reading</h2>
-      <a href="/learn/" class="learn-link">Why AI safety matters to you &rarr;</a>
-      <a href="/learn/what-is-drift/" class="learn-link">See real examples of AI drift &rarr;</a>
-      <a href="/learn/what-is-memory-exploitation/" class="learn-link">Learn about memory and AI &rarr;</a>
-      <a href="/modules/" class="learn-link learn-link-alt">Explore the technical framework &rarr;</a>
-    </nav>
-  </article>
+  <!-- CTA -->
+  <section class="learn-band learn-band-dark">
+    <div class="learn-contain-narrow" style="text-align: center">
+      <h2 class="learn-h2">Want to test your AI?</h2>
+      <p class="cta-desc">SAPIEN is an open standard for measuring AI behavioral safety. Test how any model handles sustained conversational pressure.</p>
+      <a href="/getting-started/" class="cta-btn">Get started with SAPIEN &rarr;</a>
+      <div style="margin-top: 2.5rem">
+        <div class="learn-card-grid">
+          <a href="/learn/" class="learn-card-link">
+            <h3>Why AI safety matters &rarr;</h3>
+            <p>The big picture on AI behavioral risks.</p>
+          </a>
+          <a href="/learn/what-is-drift/" class="learn-card-link">
+            <h3>See real examples &rarr;</h3>
+            <p>Watch AI go from cautious to compliant.</p>
+          </a>
+          <a href="/learn/what-is-memory-exploitation/" class="learn-card-link">
+            <h3>How memory makes it worse &rarr;</h3>
+            <p>AI personalization has a dark side.</p>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
 </LearnLayout>
 
 <style>
-  .inline-cta {
-    color: var(--color-navy);
-    font-weight: 600;
-    text-decoration: none;
-    transition: color 0.2s;
+  .tips-stack {
+    /* Tip sections alternate white/gray via learn-band classes */
   }
-  .inline-cta:hover {
+  .tip-section.learn-band {
+    padding: 4rem 0;
+  }
+  .tip-card {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    max-width: 48rem;
+    margin: 0 auto;
+  }
+  .tip-number {
+    flex-shrink: 0;
+    width: 3.5rem;
+    height: 3.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 700;
     color: var(--color-gold);
+    background: #FFFBEB;
+    border: 2px solid var(--color-gold);
+    border-radius: 50%;
+  }
+  .tip-title {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    color: var(--color-slate);
+    margin-bottom: 1rem;
+    line-height: 1.3;
+  }
+  .tip-content p {
+    font-size: 1.125rem;
+    line-height: 1.8;
+    color: var(--color-text);
+    margin-bottom: 1rem;
+  }
+  .tip-content p:last-child {
+    margin-bottom: 0;
+  }
+
+  .cta-desc {
+    font-size: 1.1rem;
+    color: #94A3B8;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    max-width: 32rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .cta-btn {
+    display: inline-block;
+    padding: 0.85rem 2.5rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--color-slate);
+    background: var(--color-gold);
+    border-radius: 6px;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .cta-btn:hover {
+    background: #D4B275;
+    transform: translateY(-1px);
+  }
+
+  @media (max-width: 768px) {
+    .tip-card {
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .tip-title {
+      font-size: 1.2rem;
+    }
+    .tip-content p {
+      font-size: 1.05rem;
+    }
   }
 </style>
