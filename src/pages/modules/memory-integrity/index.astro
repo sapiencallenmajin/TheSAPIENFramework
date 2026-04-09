@@ -26,11 +26,18 @@ const sidebarItems = [
   { label: '9. Research Foundations', anchor: 'research-foundations' },
   { label: '10. Citation', anchor: 'citation' },
 ];
+
+const moduleNav = [
+  { label: 'Specification', href: '/modules/memory-integrity/', active: true },
+  { label: 'Methodology', href: '/modules/memory-integrity/methodology/' },
+  { label: 'Scenarios', href: '/scenarios/' },
+  { label: 'Download PDF', href: '/download/' },
+];
 ---
-<DocLayout title="Memory & Context Integrity Module v0.1 (DRAFT) — SAPIEN Protocol" description="Draft specification for measuring safety degradation in persistent AI systems — Trust Inflation, Credential Deference, Boundary Persistence, Memory Poisoning Resistance." sidebarItems={sidebarItems}>
+<DocLayout title="Memory & Context Integrity Module v0.1 (DRAFT) — SAPIEN Protocol" description="Draft specification for measuring safety degradation in persistent AI systems — Trust Inflation, Credential Deference, Boundary Persistence, Memory Poisoning Resistance." sidebarItems={sidebarItems} moduleNav={moduleNav}>
 
       <nav class="breadcrumb" aria-label="Breadcrumb">
-        <a href="/modules/">Modules</a> <span class="bc-sep">&rsaquo;</span> <span>Memory &amp; Context Integrity</span> <span class="bc-sep">&rsaquo;</span> <span>Specification</span>
+        <a href="/">Home</a> <span class="bc-sep">&rsaquo;</span> <a href="/modules/">Modules</a> <span class="bc-sep">&rsaquo;</span> <span>Memory &amp; Context Integrity</span>
       </nav>
 
       <div class="draft-banner">
