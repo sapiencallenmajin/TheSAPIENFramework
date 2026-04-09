@@ -63,6 +63,16 @@ first, and at what point the output becomes genuinely dangerous.
 
 The SAPIEN Framework fills that gap.
 
+SAPIEN is an extensible protocol. This document specifies the first
+published module: sycophantic drift scoring. Additional modules — each
+following the same methodology of behavioral dimensions, calibrated
+scenarios, scoring rubrics, and conformance requirements — address
+other AI behavioral failure modes. The Memory & Context Integrity
+module (Draft v0.1) measures safety degradation in persistent AI
+systems. Modules for agentic behavioral safety, hallucination
+persistence, and cross-domain trust transfer are planned. For the
+full protocol landscape, see sapienframework.org/landscape.
+
 
 ABSTRACT
 
@@ -83,7 +93,9 @@ independent reproduction, validation, and extension.
 
 This document serves as both the technical specification for
 implementers and the academic reference for researchers citing
-the methodology.
+the methodology. This document is the drift scoring module of the
+SAPIEN Protocol. For other modules and the protocol overview, see
+sapienframework.org/modules.
 
 IMPORTANT: WHAT SAPIEN MEASURES AND DOES NOT MEASURE
 
@@ -181,6 +193,8 @@ The SAPIEN Framework fills this gap.
   compatibility (Section 14)
 - A structured scenario specification with concrete examples
   (Section 8)
+- A modular architecture that extends the same methodology to other
+  AI behavioral failure modes (see sapienframework.org/modules)
 
 
 1.3 WHAT THE FRAMEWORK DOES NOT PROVIDE
@@ -190,6 +204,10 @@ The SAPIEN Framework fills this gap.
 - Jailbreak detection (different problem, different methodology)
 - Content safety classification (toxicity, bias, etc.)
 - A guarantee of safety (no standard can provide this)
+- Memory and context integrity scoring (see SAPIEN Memory & Context
+  Integrity Module v0.1)
+- Agentic behavioral safety scoring (module planned)
+- Hallucination persistence scoring (module planned)
 
 The SAPIEN Framework measures behavioral integrity under pressure.
 It is one component of a comprehensive AI safety posture, not a
@@ -369,6 +387,34 @@ PRESSURE TECHNIQUE IDS
   SP-T001 through SP-T014 — the 14 documented pressure techniques.
     Each describes a specific mechanism by which conversational
     pressure causes behavioral drift. Full taxonomy in Section 9.
+
+
+1.6 PROTOCOL CONTEXT
+
+The SAPIEN Protocol is the Safety Assessment Protocol for Intelligent
+Entity Networks — an extensible methodology for measuring AI
+behavioral failures. Each module follows the same structure:
+
+  - Behavioral dimensions scored 0.00-1.00 per turn
+  - Weighted composite formula producing a module Health Score
+  - Rating bands (Low Risk / Moderate / High Risk / Critical)
+  - Dual-layer detection (deterministic + LLM-scored)
+  - Calibrated multi-turn scenarios
+  - Conformance requirements using RFC 2119 language
+
+This document is Module 1: Sycophantic Drift. It can be implemented
+independently or combined with other modules. When multiple modules
+are implemented, compounding risk scores capture the interaction
+between failure modes.
+
+Current SAPIEN Protocol modules:
+  Module 1: Sycophantic Drift (this document) — Published v1.1
+  Module 2: Memory & Context Integrity — Draft v0.1
+  Module 3: Agentic Behavioral Safety — Planned
+  Module 4: Hallucination Persistence — Planned
+  Module 5: Cross-Domain Trust Transfer — Planned
+
+Canonical location: sapienframework.org
 
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -2908,6 +2954,13 @@ The SAPIEN Framework aligns with established frameworks:
     Emerging AI-specific controls for system governance. Drift testing
     maps to monitoring and change management requirements.
 
+  SAPIEN Protocol Module Compatibility
+    This module is compatible with compounding risk scoring when
+    combined with the Memory & Context Integrity module (Draft v0.1).
+    The compounding formula captures cross-module interaction — for
+    example, how memory-accumulated trust amplifies within-session
+    drift. See sapienframework.org/modules for details.
+
 
 ═══════════════════════════════════════════════════════════════════════════════
 14. CONFORMANCE
@@ -3144,14 +3197,17 @@ v1.2 CONSIDERATIONS (under active research):
 
 16.2 CANONICAL LOCATION
 
-The authoritative version of the SAPIEN Behavioral Safety Framework is
-published at:
+The canonical location for this specification is:
 
-  https://sapienframework.org
+  sapienframework.org/modules/sycophantic-drift/
 
-The reference implementation is maintained at:
+The canonical location for the SAPIEN Protocol:
 
-  https://github.com/sapiencallenmajin/Project-Tokyo-Drift
+  sapienframework.org
+
+The reference implementation repository:
+
+  github.com/sapiencallenmajin/TheSAPIENFramework
 
 
 16.3 SAPIEN STEERING GROUP
@@ -3245,6 +3301,12 @@ An extension MAY claim to be "SAPIEN-compatible" provided it:
 Extensions that modify core dimensions, weights, or thresholds are
 forks, not extensions, and MUST NOT claim SAPIEN compatibility.
 
+The SAPIEN Protocol's module system supersedes the domain pack concept.
+Each behavioral failure mode receives its own module with independent
+dimensions, scenarios, and conformance requirements. Modules share
+the same scoring methodology and can produce compounding risk scores
+when implemented together.
+
 
 16.6 GOVERNANCE AND FEEDBACK
 
@@ -3299,6 +3361,12 @@ When citing specific findings:
 
   Sapien, C. (2026). "Cross-model sycophantic drift profiling using
   the SAPIEN Framework." SAPIEN Project Research.
+
+When citing the SAPIEN Protocol:
+
+  SAPIEN Framework Project. (2026). "The SAPIEN Protocol: Safety
+  Assessment Protocol for Intelligent Entity Networks."
+  sapienframework.org
 
 When referencing a SAPIEN Rating:
 
