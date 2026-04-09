@@ -32,7 +32,7 @@ import LearnLayout from '../../../components/LearnLayout.astro';
           <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6,3 20,12 6,21"/></svg>
           <span>Watch the demo</span>
         </button>
-        <p class="v-play-sub">70 seconds. No interaction needed.</p>
+        <p class="v-play-sub">40 seconds. No interaction needed.</p>
       </div>
 
       <!-- Final overlay -->
@@ -156,7 +156,7 @@ import LearnLayout from '../../../components/LearnLayout.astro';
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #64748B;
+    color: #CBD5E1;
     display: block;
     margin-bottom: 0.4rem;
   }
@@ -212,7 +212,7 @@ import LearnLayout from '../../../components/LearnLayout.astro';
     line-height: 1.6;
     opacity: 0;
     transform: translateY(6px);
-    transition: opacity 0.5s ease, transform 0.5s ease;
+    transition: opacity 0.3s ease, transform 0.3s ease;
   }
   .v-bubble.v-visible {
     opacity: 1;
@@ -234,7 +234,7 @@ import LearnLayout from '../../../components/LearnLayout.astro';
   .v-bubble-ai {
     background: #1E293B;
     border: 1px solid #334155;
-    color: #CBD5E1;
+    color: #F1F5F9;
     margin-right: auto;
     border-bottom-left-radius: 3px;
   }
@@ -246,14 +246,14 @@ import LearnLayout from '../../../components/LearnLayout.astro';
     margin-bottom: 0.3rem;
   }
   .v-bubble-user .v-bubble-role { color: #93C5FD; }
-  .v-bubble-ai .v-bubble-role { color: #64748B; }
+  .v-bubble-ai .v-bubble-role { color: #94A3B8; }
 
   /* Video annotation */
   .v-annotation {
     margin-top: 1rem;
     font-size: 0.85rem;
     font-style: italic;
-    color: #64748B;
+    color: #FBBF24;
     min-height: 1.5rem;
     transition: opacity 0.4s ease;
   }
@@ -774,14 +774,34 @@ import LearnLayout from '../../../components/LearnLayout.astro';
   let vCurrentTurn = 0;
   let vBubbles: HTMLElement[] = [];
 
+  let vCountRAF: number | null = null;
+
   function vUpdateMeter(score: number, rating: string) {
     const c = vGetColor(score);
-    vValue.textContent = String(score);
-    vValue.style.color = c;
     vFill.style.width = score + "%";
     vFill.style.backgroundColor = c;
     vRating.textContent = rating;
     vRating.style.color = c;
+    // Animate score number counting down
+    const from = parseInt(vValue.textContent || "92", 10);
+    const to = score;
+    if (from === to) { vValue.style.color = c; return; }
+    const duration = 500;
+    const start = performance.now();
+    if (vCountRAF !== null) cancelAnimationFrame(vCountRAF);
+    function tick(now: number) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const current = Math.round(from + (to - from) * progress);
+      vValue.textContent = String(current);
+      vValue.style.color = vGetColor(current);
+      if (progress < 1) {
+        vCountRAF = requestAnimationFrame(tick);
+      } else {
+        vCountRAF = null;
+      }
+    }
+    vCountRAF = requestAnimationFrame(tick);
   }
 
   function vAddBubble(cls: string, role: string, text: string): HTMLElement {
@@ -841,13 +861,14 @@ import LearnLayout from '../../../components/LearnLayout.astro';
           if (vPaused) return;
           vCurrentTurn++;
           vPlayTurn();
-        }, 4500);
-      }, 1200);
-    }, 2000);
+        }, 2200);
+      }, 800);
+    }, 1000);
   }
 
   function vStart() {
     if (vTimer !== null) { clearTimeout(vTimer); vTimer = null; }
+    if (vCountRAF !== null) { cancelAnimationFrame(vCountRAF); vCountRAF = null; }
     vPlayOverlay.classList.add("v-hidden");
     vPauseBtn.hidden = false;
     vFinal.hidden = true;
