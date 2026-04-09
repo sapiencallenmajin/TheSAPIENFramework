@@ -1,0 +1,82 @@
+---
+import LearnLayout from '../../../components/LearnLayout.astro';
+---
+<LearnLayout
+  title="5 Tips for Safely Using AI Assistants"
+  description="AI is useful. These five habits keep it honest. Practical advice for anyone who uses ChatGPT, Copilot, Gemini, or other AI assistants."
+>
+  <header class="learn-hero">
+    <h1>5 Things to Know Before Trusting AI Advice</h1>
+    <p class="hero-subtitle">AI is useful. These habits keep it honest.</p>
+  </header>
+
+  <article class="learn-body">
+    <section class="learn-section">
+      <h2>1. Ask the same question in a new conversation</h2>
+      <p>If you've been going back and forth with an AI and it finally gives you the answer you wanted, open a fresh chat and ask the same question cold. If the fresh AI refuses or gives a very different answer, the original answer was probably drift — the AI telling you what you wanted to hear, not what's accurate.</p>
+      <p>This is the single most effective thing you can do. It takes 30 seconds and it works like a lie detector for AI. The fresh conversation doesn't have the history of you pushing back, explaining your situation, or building rapport. It just has the question. If the answer is dramatically different, trust the fresh one.</p>
+    </section>
+
+    <hr class="section-divider" />
+
+    <section class="learn-section">
+      <h2>2. Be suspicious when AI stops giving warnings</h2>
+      <p>Early in a conversation, AI models include caveats: "consult a professional," "this is general information," "individual situations vary." If those warnings disappear as the conversation continues, that's a sign the AI is prioritizing your comfort over your safety.</p>
+      <p>Those caveats aren't there to annoy you. They're there because the AI genuinely can't give you personalized professional advice. When the caveats disappear, the limitations haven't changed — the AI has just stopped reminding you about them. That's when mistakes happen.</p>
+    </section>
+
+    <hr class="section-divider" />
+
+    <section class="learn-section">
+      <h2>3. Don't use AI as your only source for high-stakes decisions</h2>
+      <p>Medical dosing, legal strategy, financial planning, security architecture — these are areas where being wrong has real consequences. AI can help you prepare questions for a professional. It shouldn't be the professional.</p>
+      <p>Think of AI like a really smart friend who reads a lot. They might have useful observations. They might point you in the right direction. But you wouldn't let them set your medication dose, write your will, or manage your retirement account. The same standard should apply to AI, no matter how confident it sounds.</p>
+    </section>
+
+    <hr class="section-divider" />
+
+    <section class="learn-section">
+      <h2>4. Your credentials don't make AI safer</h2>
+      <p>Telling an AI you're a doctor doesn't make its medical advice better — it makes the AI less cautious with you. The AI can't verify your credentials. It just skips the safety rails because you sound authoritative. If anything, claiming expertise makes AI less safe because it assumes you don't need the warnings.</p>
+      <p>This is counterintuitive. You'd think that telling the AI about your background would lead to better, more tailored responses. And sometimes it does. But it also tells the AI to drop its guard. An AI that thinks it's talking to a nurse will share medication details it would withhold from a general user. The information might be the same quality either way — but the guardrails are gone.</p>
+    </section>
+
+    <hr class="section-divider" />
+
+    <section class="learn-section">
+      <h2>5. Long conversations are riskier than short ones</h2>
+      <p>The longer you talk to an AI, the more it adapts to you. Fresh conversations start with full safety guardrails. Long conversations erode them. For important questions, keep it short and direct.</p>
+      <p>This doesn't mean you can never have a long conversation with an AI. For creative writing, brainstorming, or exploring ideas, longer sessions are fine. But when the stakes are high — when you're asking about health, money, law, or safety — shorter is better. Ask your question, get the answer, and if you need to follow up, consider starting a new conversation instead of continuing the existing one.</p>
+    </section>
+
+    <hr class="section-divider" />
+
+    <section class="learn-section">
+      <h2>Want to test your AI?</h2>
+      <p>SAPIEN is an open standard for measuring AI behavioral safety. If you're a developer, security researcher, or technology leader, you can use our free tools to test how any AI model handles sustained conversational pressure.</p>
+      <p><a href="/getting-started/" class="inline-cta">Get started with SAPIEN &rarr;</a></p>
+    </section>
+
+    <hr class="section-divider" />
+
+    <nav class="learn-links">
+      <h2>Keep reading</h2>
+      <a href="/learn/" class="learn-link">Why AI safety matters to you &rarr;</a>
+      <a href="/learn/what-is-drift/" class="learn-link">See real examples of AI drift &rarr;</a>
+      <a href="/learn/what-is-memory-exploitation/" class="learn-link">Learn about memory and AI &rarr;</a>
+      <a href="/modules/" class="learn-link learn-link-alt">Explore the technical framework &rarr;</a>
+    </nav>
+  </article>
+</LearnLayout>
+
+<style>
+  .inline-cta {
+    color: var(--color-navy);
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .inline-cta:hover {
+    color: var(--color-gold);
+  }
+</style>
