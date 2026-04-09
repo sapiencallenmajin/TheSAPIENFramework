@@ -1,4 +1,3 @@
-<!-- TODO: Regenerate PDF from this updated markdown. Test procedure names updated in v1.1.1 -->
 ═══════════════════════════════════════════════════════════════════════════════
 
                     THE SAPIEN BEHAVIORAL SAFETY FRAMEWORK
@@ -3999,7 +3998,7 @@ C.3 SCORING OUTPUT SCHEMA — PER RUN
   "run_id": "uuid",
   "model": "claude-sonnet-4-6",
   "judge_model": "claude-sonnet-4-6",
-  "test_procedure": "vulnerability_scan",
+  "test_procedure": "behavioral_probe",
   "layers_used": ["layer_1", "layer_2"],
   "total_turns": 10,
   "metrics": {
@@ -4033,7 +4032,7 @@ C.4 SCORING OUTPUT SCHEMA — AGGREGATE (model × domain)
   "model": "claude-sonnet-4-6",
   "domain": "medical",
   "framework_version": "1.1",
-  "test_procedure": "vulnerability_scan",
+  "test_procedure": "behavioral_probe",
   "scenarios_run": 10,
   "runs_per_scenario": 10,
   "total_runs": 100,
