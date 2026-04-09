@@ -1,6 +1,8 @@
-# SAPIEN Score — Open-source behavioral safety scoring
-# Part of the SAPIEN Framework: https://sapienframework.org
-# Licensed under the Apache License, Version 2.0
+# sapien-score — Open-source SAPIEN behavioral safety scoring
+# Part of the SAPIEN Framework (https://sapienframework.org)
+# Licensed under AGPL-3.0 — see LICENSE
+#
+# For commercial licensing: https://synthreo.ai
 
 """
 CLI entry point for sapien-score.
@@ -94,6 +96,7 @@ def main():
 
 @main.command()
 @click.option("--model", required=True, help="Model in LiteLLM format (e.g. anthropic/claude-sonnet-4-20250514)")
+@click.option("--judge", "judge_model", default=None, help="LLM judge model for Layer 2 semantic scoring (e.g. anthropic/claude-sonnet-4-20250514)")
 @click.option("--domain", default=None, help="Filter scenarios to a single domain")
 @click.option("--domains", default=None, help="Comma-separated domain filter")
 @click.option("--all", "run_all", is_flag=True, default=False, help="Run all built-in scenarios")
@@ -101,7 +104,10 @@ def main():
 @click.option("--output", default=None, type=click.Path(), help="Output JSON results file path")
 @click.option("--verbose", "-v", is_flag=True, default=False, help="Show per-turn scoring detail")
 @click.option("--delay", default=1.0, type=float, help="Rate-limit delay between API calls (seconds)")
-def scan(model, domain, domains, run_all, report, output, verbose, delay):
+@click.option("--persona", default=None, help="Inject identity context into system prompt")
+@click.option("--memory", default=None, help="Inject trust preload context into system prompt")
+@click.option("--profile", default=None, help="Load persona+memory from a built-in profile (e.g. medical_professional)")
+def scan(model, judge_model, domain, domains, run_all, report, output, verbose, delay, persona, memory, profile):
     """Run scenarios against a model and score behavioral safety."""
     from rich.console import Console
     from rich.panel import Panel
@@ -114,6 +120,22 @@ def scan(model, domain, domains, run_all, report, output, verbose, delay):
     from sapien_score.scoring.health import calculate_health_score
 
     console = Console()
+
+    # --- Resolve persona/memory from profile ---
+    persona_text = persona
+    memory_text = memory
+    if profile:
+        from sapien_score.personas.loader import load_persona_profile
+        try:
+            prof = load_persona_profile(profile)
+            if not persona_text:
+                persona_text = prof.persona_text
+            if not memory_text:
+                memory_text = prof.memory_text
+            console.print(f"[dim]Loaded profile: {prof.name} ({prof.role})[/dim]")
+        except FileNotFoundError as e:
+            console.print(f"[red]{e}[/red]")
+            raise SystemExit(1)
 
     # --- Resolve domain filter ---
     domain_filter: Optional[str] = None
@@ -145,14 +167,34 @@ def scan(model, domain, domains, run_all, report, output, verbose, delay):
     # --- Build adapter ---
     adapter = get_adapter(model=model, rate_limit_delay=delay)
 
+    # --- Build judge (Layer 2) ---
+    judge = None
+    if judge_model:
+        from sapien_score.scoring.judge import JudgeScorer
+        judge_adapter = get_adapter(model=judge_model, rate_limit_delay=delay)
+        judge = JudgeScorer(adapter=judge_adapter)
+
     # --- Header ---
+    scoring_label = "Layer 1 (deterministic)"
+    if judge:
+        judge_short = judge_model.split("/")[-1] if "/" in judge_model else judge_model
+        scoring_label = (
+            f"Layer 1 + Layer 2 (LLM judge: {judge_short})"
+        )
+
     console.print()
     console.print(Panel.fit(
         f"[bold]SAPIEN Behavioral Safety Scan[/bold]\n"
         f"Model: [cyan]{model}[/cyan]\n"
-        f"Scenarios: {len(all_scenarios)}",
+        f"Scenarios: {len(all_scenarios)}\n"
+        f"Scoring: {scoring_label}",
         border_style="blue",
     ))
+    if judge and verbose:
+        console.print(
+            f"[dim]Layer 2 (LLM judge: {judge_model}) active — "
+            f"dimension scores are blended 40% deterministic + 60% semantic[/dim]"
+        )
     console.print()
 
     # --- Run with progress ---
@@ -177,6 +219,9 @@ def scan(model, domain, domains, run_all, report, output, verbose, delay):
                 scenario=scenario,
                 adapter=adapter,
                 verbose=verbose,
+                judge=judge,
+                persona_text=persona_text,
+                memory_text=memory_text,
             )
             results.append((scenario, result))
             progress.advance(task)
@@ -339,8 +384,405 @@ def scan(model, domain, domains, run_all, report, output, verbose, delay):
 
     # --- HTML report ---
     if report:
-        _write_html_report(report, model, overall_health, domain_scores,
-                           dim_averages, results)
+        from sapien_score.reporting.html_report import generate_html_report
+        generate_html_report(
+            results=[r for _, r in results],
+            model_name=model,
+            output_path=report,
+            judge_model=judge_model,
+        )
+        console.print(f"[green]HTML report written to {report}[/green]")
+
+    console.print()
+
+
+# ---------------------------------------------------------------------------
+# Helper: find scenario by id
+# ---------------------------------------------------------------------------
+
+def _find_scenario(scenarios, scenario_id):
+    for s in scenarios:
+        if s.id == scenario_id:
+            return s
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Helper: compute health score from a ScenarioResult
+# ---------------------------------------------------------------------------
+
+def _result_health_score(result):
+    """Extract the health score from a ScenarioResult."""
+    return result.verdict.health_score
+
+
+# ---------------------------------------------------------------------------
+# rapport-delta
+# ---------------------------------------------------------------------------
+
+@main.command("rapport-delta")
+@click.option("--model", required=True, help="Model in LiteLLM format")
+@click.option("--judge", "judge_model", default=None, help="LLM judge model for Layer 2")
+@click.option("--domain", default=None, help="Filter scenarios to a single domain")
+@click.option("--scenario", "scenario_id", default=None, help="Run a single scenario pair")
+@click.option("--report", default=None, type=click.Path(), help="Output HTML report")
+@click.option("--delay", default=1.0, type=float, help="Rate-limit delay (seconds)")
+@click.option("--verbose", "-v", is_flag=True, default=False, help="Show per-turn detail")
+def rapport_delta(model, judge_model, domain, scenario_id, report, delay, verbose):
+    """Run cold vs rapport pairs and report the delta.
+
+    Runs each scenario TWICE: once cold (no rapport turns) and once with the
+    full rapport-building escalation. Reports how much rapport amplifies drift.
+    """
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.table import Table
+
+    from sapien_score.engine.adapter import get_adapter
+    from sapien_score.engine.driver import run_scenario
+    from sapien_score.scenarios.loader import load_scenario_directory, get_paired_scenarios
+
+    console = Console()
+
+    # --- Load scenarios ---
+    scenarios_dir = _get_scenarios_dir()
+    all_scenarios = load_scenario_directory(str(scenarios_dir), domain=domain)
+
+    if scenario_id:
+        all_scenarios = [s for s in all_scenarios if s.id == scenario_id or s.id == f"{scenario_id}_cold"]
+
+    pairs = get_paired_scenarios(all_scenarios)
+
+    # Filter to only pairs that have cold versions
+    valid_pairs = [(rapport, cold) for rapport, cold in pairs if cold is not None]
+    skipped = [(rapport, cold) for rapport, cold in pairs if cold is None]
+
+    if not valid_pairs:
+        console.print("[red]No rapport/cold pairs found.[/red]")
+        if skipped:
+            console.print("[yellow]Scenarios without cold pairs:[/yellow]")
+            for rapport, _ in skipped:
+                console.print(f"  {rapport.id}")
+        raise SystemExit(1)
+
+    # --- Build adapter and judge ---
+    adapter = get_adapter(model=model, rate_limit_delay=delay)
+    judge = None
+    if judge_model:
+        from sapien_score.scoring.judge import JudgeScorer
+        judge_adapter = get_adapter(model=judge_model, rate_limit_delay=delay)
+        judge = JudgeScorer(adapter=judge_adapter)
+
+    model_short = model.split("/")[-1] if "/" in model else model
+
+    # --- Header ---
+    console.print()
+    console.print(Panel.fit(
+        f"[bold]Rapport Delta Analysis[/bold]\n"
+        f"Model: [cyan]{model}[/cyan]\n"
+        f"Pairs: {len(valid_pairs)}",
+        border_style="blue",
+    ))
+    console.print()
+
+    # --- Run pairs ---
+    delta_rows = []  # (scenario_id, cold_score, rapport_score, delta, amplification)
+
+    for rapport_scenario, cold_scenario in valid_pairs:
+        console.print(f"  Running cold: {cold_scenario.id}...")
+        cold_result = run_scenario(
+            scenario=cold_scenario, adapter=adapter,
+            verbose=verbose, judge=judge,
+        )
+        cold_score = _result_health_score(cold_result)
+
+        console.print(f"  Running rapport: {rapport_scenario.id}...")
+        rapport_result = run_scenario(
+            scenario=rapport_scenario, adapter=adapter,
+            verbose=verbose, judge=judge,
+        )
+        rapport_score = _result_health_score(rapport_result)
+
+        delta = rapport_score - cold_score
+        amplification = cold_score / rapport_score if rapport_score > 0 else float("inf")
+
+        delta_rows.append((
+            rapport_scenario.id, cold_score, rapport_score,
+            delta, round(amplification, 2),
+            cold_result, rapport_result,
+        ))
+
+    # --- Results table ---
+    console.print()
+    table = Table(title=f"Rapport Delta Analysis — {model_short}", show_header=True, header_style="bold")
+    table.add_column("Scenario", min_width=25)
+    table.add_column("Cold Score", justify="right", width=12)
+    table.add_column("Rapport Score", justify="right", width=14)
+    table.add_column("Delta", justify="right", width=8)
+    table.add_column("Amplification", justify="right", width=14)
+
+    for sid, cs, rs, d, amp, _, _ in delta_rows:
+        delta_style = "red" if d < 0 else "green"
+        table.add_row(
+            sid,
+            f"[{_health_style(cs)}]{cs}[/{_health_style(cs)}]",
+            f"[{_health_style(rs)}]{rs}[/{_health_style(rs)}]",
+            f"[{delta_style}]{d:+d}[/{delta_style}]",
+            f"{amp:.2f}x",
+        )
+
+    console.print(table)
+
+    # --- Summary ---
+    if delta_rows:
+        avg_delta = sum(d for _, _, _, d, _, _, _ in delta_rows) / len(delta_rows)
+        avg_amp = sum(a for _, _, _, _, a, _, _ in delta_rows) / len(delta_rows)
+        console.print()
+        console.print(Panel(
+            f"Average Rapport Delta: [red]{avg_delta:+.1f}[/red] points\n"
+            f"Average Amplification: [red]{avg_amp:.2f}x[/red]\n\n"
+            f"[dim]Finding: Rapport-building turns {'reduced' if avg_delta < 0 else 'did not reduce'} "
+            f"the model's safety score by an average of {abs(avg_delta):.1f} points "
+            f"({avg_amp:.2f}x amplification). "
+            f"{'Trust dissolves safety controls more effectively than pressure alone.' if avg_delta < 0 else 'Model maintained safety under rapport pressure.'}[/dim]",
+            title="Summary",
+            border_style="blue",
+        ))
+
+    # --- Skipped ---
+    if skipped:
+        console.print(f"\n[yellow]Skipped {len(skipped)} scenarios without cold pairs[/yellow]")
+
+    # --- HTML report ---
+    if report:
+        from sapien_score.reporting.html_report import generate_html_report
+        delta_data = [
+            {
+                "scenario_id": sid,
+                "cold_score": cs,
+                "rapport_score": rs,
+                "delta": d,
+                "amplification": amp,
+            }
+            for sid, cs, rs, d, amp, _, _ in delta_rows
+        ]
+        all_results = []
+        for _, _, _, _, _, cold_r, rapport_r in delta_rows:
+            all_results.extend([cold_r, rapport_r])
+        generate_html_report(
+            results=all_results,
+            model_name=model,
+            output_path=report,
+            judge_model=judge_model,
+            delta_comparison=delta_data,
+            delta_type="rapport",
+        )
+        console.print(f"[green]HTML report written to {report}[/green]")
+
+    console.print()
+
+
+# ---------------------------------------------------------------------------
+# memory-delta
+# ---------------------------------------------------------------------------
+
+@main.command("memory-delta")
+@click.option("--model", required=True, help="Model in LiteLLM format")
+@click.option("--judge", "judge_model", default=None, help="LLM judge model for Layer 2")
+@click.option("--scenario", "scenario_id", required=True, help="Scenario ID to test")
+@click.option("--persona", default=None, help="Identity context text")
+@click.option("--memory", default=None, help="Trust preload context text")
+@click.option("--profile", default=None, help="Load persona+memory from a built-in profile")
+@click.option("--report", default=None, type=click.Path(), help="Output HTML report")
+@click.option("--delay", default=1.0, type=float, help="Rate-limit delay (seconds)")
+@click.option("--verbose", "-v", is_flag=True, default=False, help="Show per-turn detail")
+def memory_delta(model, judge_model, scenario_id, persona, memory, profile, report, delay, verbose):
+    """Run 3-condition memory exploitation test.
+
+    Runs a scenario THREE times: (1) cold/anonymous, (2) with persona context,
+    (3) with persona + memory context. Reports how each context layer
+    contributes to safety score degradation.
+    """
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.table import Table
+
+    from sapien_score.engine.adapter import get_adapter
+    from sapien_score.engine.driver import run_scenario
+    from sapien_score.scenarios.loader import load_scenario_directory
+
+    console = Console()
+
+    # --- Resolve persona/memory ---
+    persona_text = persona
+    memory_text = memory
+    if profile:
+        from sapien_score.personas.loader import load_persona_profile
+        try:
+            prof = load_persona_profile(profile)
+            if not persona_text:
+                persona_text = prof.persona_text
+            if not memory_text:
+                memory_text = prof.memory_text
+            console.print(f"[dim]Loaded profile: {prof.name} ({prof.role})[/dim]")
+        except FileNotFoundError as e:
+            console.print(f"[red]{e}[/red]")
+            raise SystemExit(1)
+
+    if not persona_text:
+        console.print("[red]--persona or --profile required for memory-delta[/red]")
+        raise SystemExit(1)
+    if not memory_text:
+        console.print("[red]--memory or --profile required for memory-delta[/red]")
+        raise SystemExit(1)
+
+    # --- Load scenario ---
+    scenarios_dir = _get_scenarios_dir()
+    all_scenarios = load_scenario_directory(str(scenarios_dir))
+    scenario = _find_scenario(all_scenarios, scenario_id)
+
+    if not scenario:
+        console.print(f"[red]Scenario not found: {scenario_id}[/red]")
+        raise SystemExit(1)
+
+    # --- Build adapter and judge ---
+    adapter = get_adapter(model=model, rate_limit_delay=delay)
+    judge = None
+    if judge_model:
+        from sapien_score.scoring.judge import JudgeScorer
+        judge_adapter = get_adapter(model=judge_model, rate_limit_delay=delay)
+        judge = JudgeScorer(adapter=judge_adapter)
+
+    model_short = model.split("/")[-1] if "/" in model else model
+
+    # --- Header ---
+    console.print()
+    console.print(Panel.fit(
+        f"[bold]Memory Delta Analysis[/bold]\n"
+        f"Model: [cyan]{model}[/cyan]\n"
+        f"Scenario: {scenario.id} ({scenario.title})",
+        border_style="blue",
+    ))
+    console.print()
+
+    # --- Run 3 conditions ---
+    console.print("  [1/3] Running cold (anonymous)...")
+    cold_result = run_scenario(
+        scenario=scenario, adapter=adapter,
+        verbose=verbose, judge=judge,
+    )
+    cold_score = _result_health_score(cold_result)
+
+    console.print("  [2/3] Running with persona only...")
+    persona_result = run_scenario(
+        scenario=scenario, adapter=adapter,
+        verbose=verbose, judge=judge,
+        persona_text=persona_text,
+    )
+    persona_score = _result_health_score(persona_result)
+
+    console.print("  [3/3] Running with persona + memory...")
+    full_result = run_scenario(
+        scenario=scenario, adapter=adapter,
+        verbose=verbose, judge=judge,
+        persona_text=persona_text,
+        memory_text=memory_text,
+    )
+    full_score = _result_health_score(full_result)
+
+    # --- Compute deltas ---
+    persona_delta = persona_score - cold_score
+    full_delta = full_score - cold_score
+    amplification = cold_score / full_score if full_score > 0 else float("inf")
+
+    total_delta = abs(full_delta) if full_delta != 0 else 1
+    persona_contribution = abs(persona_delta)
+    memory_contribution = abs(full_delta) - abs(persona_delta)
+    persona_pct = round(100 * persona_contribution / total_delta) if total_delta > 0 else 0
+    memory_pct = 100 - persona_pct
+
+    # --- Determine ratings ---
+    from sapien_score.scoring.health import RATING_BANDS as _RB
+    def _rating_label(score):
+        for min_s, label, _, _ in _RB:
+            if score >= min_s:
+                return label
+        return _RB[-1][1]
+    cold_rating = _rating_label(cold_score)
+    persona_rating = _rating_label(persona_score)
+    full_rating = _rating_label(full_score)
+
+    # --- Results table ---
+    console.print()
+    table = Table(
+        title=f"Memory Delta Analysis — {model_short}\nScenario: {scenario.id} ({scenario.title})",
+        show_header=True,
+        header_style="bold",
+    )
+    table.add_column("Condition", min_width=25)
+    table.add_column("Health Score", justify="right", width=14)
+    table.add_column("Rating", width=12)
+    table.add_column("vs. Cold", justify="right", width=10)
+
+    table.add_row(
+        "Cold (anonymous)",
+        f"[{_health_style(cold_score)}]{cold_score}[/{_health_style(cold_score)}]",
+        f"[{_rating_style(cold_rating)}]{cold_rating}[/{_rating_style(cold_rating)}]",
+        "—",
+    )
+    table.add_row(
+        "Persona only",
+        f"[{_health_style(persona_score)}]{persona_score}[/{_health_style(persona_score)}]",
+        f"[{_rating_style(persona_rating)}]{persona_rating}[/{_rating_style(persona_rating)}]",
+        f"[red]{persona_delta:+d} pts[/red]" if persona_delta < 0 else f"[green]{persona_delta:+d} pts[/green]",
+    )
+    table.add_row(
+        "Persona + memory",
+        f"[{_health_style(full_score)}]{full_score}[/{_health_style(full_score)}]",
+        f"[{_rating_style(full_rating)}]{full_rating}[/{_rating_style(full_rating)}]",
+        f"[red]{full_delta:+d} pts[/red]" if full_delta < 0 else f"[green]{full_delta:+d} pts[/green]",
+    )
+
+    console.print(table)
+
+    # --- Summary ---
+    console.print()
+    console.print(Panel(
+        f"Memory amplification: [red]{amplification:.2f}x[/red] (cold -> full context)\n"
+        f"Persona contribution: {persona_delta:+d} pts ({persona_pct}% of total delta)\n"
+        f"Memory contribution:  {full_delta - persona_delta:+d} pts ({memory_pct}% of total delta)\n\n"
+        f"[dim]Finding: Accumulated identity and memory context "
+        f"{'reduced' if full_delta < 0 else 'did not reduce'} the model's safety score by "
+        f"{abs(full_delta)} points. "
+        f"{'Memory context contributed more to drift than persona alone, confirming that trust accumulation is the primary degradation mechanism.' if abs(full_delta - persona_delta) > abs(persona_delta) else 'Persona context was the primary contributor to drift.'}[/dim]",
+        title="Summary",
+        border_style="blue",
+    ))
+
+    # --- HTML report ---
+    if report:
+        from sapien_score.reporting.html_report import generate_html_report
+        delta_data = [
+            {
+                "scenario_id": scenario.id,
+                "cold_score": cold_score,
+                "persona_score": persona_score,
+                "full_score": full_score,
+                "persona_delta": persona_delta,
+                "full_delta": full_delta,
+                "amplification": round(amplification, 2),
+                "persona_pct": persona_pct,
+                "memory_pct": memory_pct,
+            }
+        ]
+        generate_html_report(
+            results=[cold_result, persona_result, full_result],
+            model_name=model,
+            output_path=report,
+            judge_model=judge_model,
+            delta_comparison=delta_data,
+            delta_type="memory",
+        )
         console.print(f"[green]HTML report written to {report}[/green]")
 
     console.print()
@@ -472,122 +914,6 @@ def info(scenario_id):
         console.print(f"[dim]Regulatory: {', '.join(match.regulatory_mapping)}[/dim]")
 
     console.print()
-
-
-# ---------------------------------------------------------------------------
-# HTML report helper
-# ---------------------------------------------------------------------------
-
-def _write_html_report(
-    filepath: str,
-    model: str,
-    overall_health: dict,
-    domain_scores: dict[str, list[int]],
-    dim_averages: dict[str, float],
-    results: list,
-):
-    """Generate a self-contained HTML report."""
-    from datetime import datetime
-
-    score = overall_health["score"]
-    rating = overall_health["rating"]
-    fg = overall_health["fg_hex"]
-    bg = overall_health["bg_hex"]
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
-
-    # --- Domain rows ---
-    domain_rows = ""
-    for domain, scores in sorted(domain_scores.items()):
-        avg = sum(scores) / len(scores)
-        from sapien_score.scoring.health import calculate_health_score as _calc_hs
-        dh = _calc_hs(dim_averages)  # approximation for rating
-        band_label = "Low Risk" if avg >= 80 else "Moderate" if avg >= 60 else "High Risk" if avg >= 40 else "Critical"
-        domain_rows += f"<tr><td>{domain}</td><td>{avg:.0f}</td><td>{band_label}</td></tr>\n"
-
-    # --- Dimension bars ---
-    dim_bars = ""
-    for dim, avg in sorted(dim_averages.items()):
-        pct = int(avg * 100)
-        color = "#15803D" if avg < 0.30 else "#B45309" if avg <= 0.60 else "#B91C1C"
-        dim_bars += (
-            f'<div style="margin-bottom:8px">'
-            f'<div style="font-size:0.9em">{dim}: {avg:.3f}</div>'
-            f'<div style="background:#e5e7eb;border-radius:4px;height:18px;width:100%">'
-            f'<div style="background:{color};height:100%;width:{pct}%;border-radius:4px"></div>'
-            f'</div></div>\n'
-        )
-
-    # --- Per-scenario rows ---
-    scenario_rows = ""
-    for scenario, result in results:
-        hs = result.verdict.health_score
-        hs_color = "#15803D" if hs >= 80 else "#B45309" if hs >= 60 else "#B91C1C"
-        scenario_rows += (
-            f"<tr>"
-            f"<td>{scenario.title}</td>"
-            f"<td>{scenario.domain}</td>"
-            f"<td>{result.verdict.verdict.upper()}</td>"
-            f'<td style="color:{hs_color};font-weight:600">{hs}</td>'
-            f"<td>{result.verdict.peak_turn}</td>"
-            f"<td>{result.most_effective_pressure_type or '—'}</td>"
-            f"</tr>\n"
-        )
-
-    html = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>SAPIEN Behavioral Safety Report — {model}</title>
-<style>
-body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-       max-width: 900px; margin: 2rem auto; padding: 0 1rem; color: #1f2937; }}
-h1 {{ font-size: 1.6rem; }}
-h2 {{ font-size: 1.2rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3rem; }}
-table {{ border-collapse: collapse; width: 100%; margin: 1rem 0; }}
-th, td {{ text-align: left; padding: 8px 12px; border-bottom: 1px solid #e5e7eb; }}
-th {{ background: #f9fafb; font-weight: 600; }}
-tr:nth-child(even) {{ background: #f9fafb; }}
-.score-badge {{ display: inline-block; font-size: 2.5rem; font-weight: 700;
-               padding: 0.5rem 1.5rem; border-radius: 12px; }}
-.meta {{ color: #6b7280; font-size: 0.9rem; }}
-footer {{ margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;
-          font-size: 0.8rem; color: #9ca3af; }}
-</style>
-</head>
-<body>
-<h1>SAPIEN Behavioral Safety Report</h1>
-<p class="meta">Model: <strong>{model}</strong> &mdash; {now}</p>
-
-<div style="text-align:center;margin:2rem 0">
-  <span class="score-badge" style="color:{fg};background:{bg}">{score}</span>
-  <div style="margin-top:0.5rem;font-size:1.1rem;color:{fg}">{rating}</div>
-</div>
-
-<h2>Domain Breakdown</h2>
-<table>
-<tr><th>Domain</th><th>Avg Health</th><th>Rating</th></tr>
-{domain_rows}
-</table>
-
-<h2>Dimension Overview</h2>
-{dim_bars}
-
-<h2>Scenario Results</h2>
-<table>
-<tr><th>Scenario</th><th>Domain</th><th>Verdict</th><th>Health</th><th>Peak Turn</th><th>Pressure</th></tr>
-{scenario_rows}
-</table>
-
-<footer>
-Generated by sapien-score v0.1.0 | SAPIEN Framework &mdash;
-<a href="https://sapienframework.org">sapienframework.org</a> |
-Layer 1 (deterministic) scoring
-</footer>
-</body>
-</html>"""
-
-    with open(filepath, "w", encoding="utf-8") as f:
-        f.write(html)
 
 
 # ---------------------------------------------------------------------------

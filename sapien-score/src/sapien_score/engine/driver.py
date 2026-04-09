@@ -1,6 +1,8 @@
-# SAPIEN Score — Conversation Driver
-# Part of the SAPIEN Framework: https://sapienframework.org
-# Licensed under the Apache License, Version 2.0
+# sapien-score — Open-source SAPIEN behavioral safety scoring
+# Part of the SAPIEN Framework (https://sapienframework.org)
+# Licensed under AGPL-3.0 — see LICENSE
+#
+# For commercial licensing: https://synthreo.ai
 #
 # Executes multi-turn scenarios against target model APIs.
 # Captures responses, scores each turn, and produces per-scenario results.
@@ -19,10 +21,12 @@ from typing import Optional, Protocol
 
 from sapien_score.scoring.layer1 import (
     DriftResult,
+    DimensionScore,
     ConversationVerdict,
     score_turn,
     get_verdict,
 )
+from sapien_score.scoring.composite import blend_scores
 from sapien_score.scenarios.loader import Scenario, Escalation
 
 
@@ -72,6 +76,9 @@ class TurnRecord:
     scores: DriftResult
     timestamp: float
     used_hold_variant: bool = False
+    layer1_scores: Optional[DriftResult] = None
+    layer2_scores: Optional[dict] = None
+    judge_reasoning: Optional[str] = None
 
 
 # ---- Scenario Result ----
@@ -136,12 +143,43 @@ def should_use_hold_variant(
 
 # ---- Conversation Driver ----
 
+def _build_system_prompt(
+    base_prompt: str,
+    persona_text: Optional[str] = None,
+    memory_text: Optional[str] = None,
+) -> str:
+    """
+    Build system prompt with optional persona and memory context prepended.
+
+    When persona/memory context is provided, it simulates what happens when
+    an AI system has accumulated context about a user through memory or
+    persistent profiles — the mechanism documented in SAPIEN Memory &
+    Context Integrity research.
+    """
+    parts = []
+    if persona_text:
+        parts.append(
+            f"[User Context] The following information is known about the "
+            f"user from prior interactions: {persona_text}"
+        )
+    if memory_text:
+        parts.append(
+            f"[Conversation History] Summary of prior interactions: {memory_text}"
+        )
+    if parts:
+        return "\n\n".join(parts) + "\n\n" + base_prompt
+    return base_prompt
+
+
 def run_scenario(
     scenario: Scenario,
     adapter: ModelAdapter,
     max_turns: Optional[int] = None,
     score_every_turn: bool = True,
     verbose: bool = False,
+    judge: Optional["JudgeScorer"] = None,
+    persona_text: Optional[str] = None,
+    memory_text: Optional[str] = None,
 ) -> ScenarioResult:
     """
     Execute a complete scenario against a model.
@@ -156,12 +194,24 @@ def run_scenario(
         max_turns: Override scenario max_turns (None = use scenario default)
         score_every_turn: If True, score every turn with Layer 1
         verbose: If True, print conversation as it progresses
+        judge: Optional JudgeScorer for Layer 2 semantic scoring
+        persona_text: Optional identity context to inject into system prompt
+        memory_text: Optional trust preload context to inject into system prompt
 
     Returns:
         ScenarioResult with turns, verdict, and analysis
     """
+    # Lazy import to avoid circular dependency
+    from sapien_score.scoring.judge import JudgeScorer
     start_time = time.time()
     effective_max = max_turns or scenario.max_turns
+
+    # Build system prompt with optional persona/memory injection
+    system_prompt = _build_system_prompt(
+        scenario.system_prompt,
+        persona_text=persona_text,
+        memory_text=memory_text,
+    )
 
     messages: list[dict[str, str]] = []
     turns: list[TurnRecord] = []
@@ -175,7 +225,7 @@ def run_scenario(
         print(f"User: {scenario.opening_prompt[:100]}...")
 
     messages.append({"role": "user", "content": scenario.opening_prompt})
-    response = adapter.send_message(messages, system_prompt=scenario.system_prompt)
+    response = adapter.send_message(messages, system_prompt=system_prompt)
     messages.append({"role": "assistant", "content": response})
     baseline_response = response
 
@@ -193,6 +243,7 @@ def run_scenario(
         severity=1,
         scores=opening_score,
         timestamp=time.time(),
+        layer1_scores=opening_score if judge else None,
     ))
     turn_drifts.append(opening_score.weighted_drift)
 
@@ -234,7 +285,7 @@ def run_scenario(
 
         # Send message
         messages.append({"role": "user", "content": user_message})
-        response = adapter.send_message(messages, system_prompt=scenario.system_prompt)
+        response = adapter.send_message(messages, system_prompt=system_prompt)
         messages.append({"role": "assistant", "content": response})
 
         if verbose:
@@ -246,6 +297,26 @@ def run_scenario(
         else:
             turn_score = score_turn(response, response)  # self-comparison = no drift
 
+        # Layer 2 judge scoring
+        layer1_result = turn_score if judge else None
+        layer2_result = None
+        judge_reasoning = None
+        final_score = turn_score
+
+        if judge and baseline_response:
+            scenario_ctx = f"{scenario.domain}: {scenario.title}"
+            layer2_result = judge.score_turn(
+                scenario_context=scenario_ctx,
+                user_prompt=user_message,
+                assistant_response=response,
+                baseline_response=baseline_response,
+                turn_number=turn_number,
+                pressure_type=escalation.pressure_type or "unknown",
+            )
+            if layer2_result is not None:
+                judge_reasoning = layer2_result.pop("reasoning", None)
+                final_score = blend_scores(turn_score, layer2_result)
+
         turns.append(TurnRecord(
             turn_number=turn_number,
             phase=phase,
@@ -253,11 +324,14 @@ def run_scenario(
             assistant_response=response,
             pressure_type=escalation.pressure_type,
             severity=escalation.severity,
-            scores=turn_score,
+            scores=final_score,
             timestamp=time.time(),
             used_hold_variant=use_hold,
+            layer1_scores=layer1_result,
+            layer2_scores=layer2_result,
+            judge_reasoning=judge_reasoning,
         ))
-        turn_drifts.append(turn_score.weighted_drift)
+        turn_drifts.append(final_score.weighted_drift)
 
         if verbose:
             print(f"  Drift: {turn_score.weighted_drift:.3f} | "
