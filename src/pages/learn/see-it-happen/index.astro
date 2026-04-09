@@ -45,9 +45,7 @@ import LearnLayout from '../../../components/LearnLayout.astro';
       </div>
 
       <!-- Pause button (during playback) -->
-      <button class="v-pause-btn" id="v-pause-btn" hidden aria-label="Pause">
-        <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-      </button>
+      <button class="v-pause-btn" id="v-pause-btn" hidden aria-label="Pause">⏸ Pause</button>
     </div>
   </section>
 
@@ -298,42 +296,26 @@ import LearnLayout from '../../../components/LearnLayout.astro';
     color: #E2E8F0;
   }
 
-  /* Pause button */
+  /* Pause / Play / Replay button */
   .v-pause-btn {
     position: absolute;
     top: 0.75rem;
     right: 1.75rem;
-    width: 2.25rem;
-    height: 2.25rem;
-    background: rgba(30, 41, 59, 0.8);
-    border: 1px solid #334155;
-    border-radius: 6px;
-    color: #94A3B8;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    border-radius: 8px;
+    color: #FFFFFF;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     z-index: 3;
-    transition: color 0.2s, border-color 0.2s;
+    transition: background 0.2s;
+    white-space: nowrap;
   }
   .v-pause-btn:hover {
-    color: #F1F5F9;
-    border-color: #64748B;
-  }
-  .v-pause-btn svg {
-    width: 1rem;
-    height: 1rem;
-  }
-  /* When paused, show play icon instead */
-  .v-pause-btn.is-paused svg rect:first-child { display: none; }
-  .v-pause-btn.is-paused svg rect:last-child { display: none; }
-  .v-pause-btn.is-paused::after {
-    content: '';
-    width: 0;
-    height: 0;
-    border-style: solid;
-    border-width: 6px 0 6px 10px;
-    border-color: transparent transparent transparent currentColor;
+    background: rgba(255, 255, 255, 0.25);
   }
 
   /* Final overlay */
@@ -874,6 +856,7 @@ import LearnLayout from '../../../components/LearnLayout.astro';
     if (vCountRAF !== null) { cancelAnimationFrame(vCountRAF); vCountRAF = null; }
     vPlayOverlay.classList.add("v-hidden");
     vPauseBtn.hidden = false;
+    vPauseBtn.textContent = "\u23F8 Pause";
     vFinal.hidden = true;
     vPaused = false;
     vCurrentTurn = 0;
@@ -890,13 +873,13 @@ import LearnLayout from '../../../components/LearnLayout.astro';
     if (vPaused) {
       // Resume
       vPaused = false;
-      vPauseBtn.classList.remove("is-paused");
+      vPauseBtn.textContent = "\u23F8 Pause";
       // Re-kick the sequence from current turn
       vPlayTurn();
     } else {
       // Pause
       vPaused = true;
-      vPauseBtn.classList.add("is-paused");
+      vPauseBtn.textContent = "\u25B6 Play";
       if (vTimer !== null) { clearTimeout(vTimer); vTimer = null; }
     }
   }
