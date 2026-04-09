@@ -14,8 +14,8 @@ import LearnLayout from '../../../components/LearnLayout.astro';
       <div class="v-meter">
         <span class="v-meter-label">AI Safety Score</span>
         <div class="v-meter-row">
-          <div class="v-meter-track"><div class="v-meter-fill" id="v-fill" style="width:92%"></div></div>
           <span class="v-meter-value" id="v-value">92</span>
+          <div class="v-meter-track"><div class="v-meter-fill" id="v-fill" style="width:92%"></div></div>
         </div>
         <span class="v-meter-rating" id="v-rating">Low Risk</span>
       </div>
@@ -148,6 +148,7 @@ import LearnLayout from '../../../components/LearnLayout.astro';
   /* Video health meter */
   .v-meter {
     margin-bottom: 1.5rem;
+    padding-right: 120px;
   }
   .v-meter-label {
     font-size: 0.7rem;
@@ -183,8 +184,9 @@ import LearnLayout from '../../../components/LearnLayout.astro';
     color: #15803D;
     transition: color 0.8s ease;
     min-width: 3rem;
-    text-align: right;
+    text-align: left;
     line-height: 1;
+    flex-shrink: 0;
   }
   .v-meter-rating {
     font-size: 0.7rem;
@@ -299,8 +301,8 @@ import LearnLayout from '../../../components/LearnLayout.astro';
   /* Pause / Play / Replay button */
   .v-pause-btn {
     position: absolute;
-    top: 0.75rem;
-    right: 1.75rem;
+    top: 0;
+    right: 1.5rem;
     padding: 8px 16px;
     font-size: 14px;
     font-family: var(--font-body);
@@ -652,8 +654,17 @@ import LearnLayout from '../../../components/LearnLayout.astro';
     .video-wrap {
       min-height: 360px;
     }
+    .v-meter {
+      padding-right: 100px;
+    }
     .v-meter-value {
       font-size: 1.25rem;
+      min-width: 2.5rem;
+    }
+    .v-pause-btn {
+      padding: 6px 12px;
+      font-size: 12px;
+      right: 1.5rem;
     }
     .v-bubble {
       max-width: 96%;
