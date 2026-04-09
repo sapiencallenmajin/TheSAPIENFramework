@@ -11,6 +11,10 @@ node_modules/
 .env
 .env.production
 
+# Python
+__pycache__/
+*.pyc
+
 # OS
 .DS_Store
 Thumbs.db
