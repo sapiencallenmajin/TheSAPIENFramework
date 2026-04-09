@@ -190,3 +190,45 @@ code {
     transition: none;
   }
 }
+
+/* ===== Key-term tooltips ===== */
+.key-term {
+  border-bottom: 1px dotted var(--color-text-dim);
+  cursor: help;
+  position: relative;
+  color: inherit;
+}
+
+/* Ensure tooltip underline is visible on dark backgrounds */
+.hero-dark .key-term,
+.section-dark .key-term {
+  border-bottom-color: rgba(255, 255, 255, 0.4);
+}
+
+.key-term-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-slate);
+  color: #F5F1EB;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  width: max-content;
+  max-width: 280px;
+  z-index: 1000;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.key-term-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--color-slate);
+}

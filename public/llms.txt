@@ -1,8 +1,8 @@
 # The SAPIEN Behavioral Safety Framework
 
-> An open, vendor-agnostic methodology for measuring AI behavioral integrity under conversational pressure.
+> An open protocol for measuring AI behavioral safety — sycophantic drift, memory exploitation, agentic safety, hallucination persistence, and cross-domain trust transfer.
 
-The SAPIEN Framework (Safety Assessment Protocol for Intelligent Entity Networks) defines a methodology for measuring whether AI language models maintain safety-relevant positions under sustained conversational pressure. It provides four behavioral dimensions, a weighted composite scoring formula, deterministic and LLM-based detection methods, standardized test procedures, and rating bands that produce a single AI Behavioral Health Score (0-100).
+The SAPIEN Framework (Safety Assessment Protocol for Intelligent Entity Networks) is an open protocol for measuring AI behavioral safety. Each module provides dimensional scoring, calibrated scenarios, and conformance requirements for a specific AI failure surface. Starting with sycophantic drift — the progressive abandonment of safety positions under conversational pressure — the protocol extends to memory exploitation, agentic safety, hallucination persistence, and cross-domain trust transfer.
 
 Author: Callen Sapien
 Version: 1.1 (March 2026)
