@@ -71,6 +71,15 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         <a href="/modules/sycophantic-drift/" class="module-link">Full Specification &rarr;</a>
         <a href="/modules/sycophantic-drift/methodology/" class="module-link">Scoring &amp; Methodology &rarr;</a>
       </div>
+      <div class="module-quicklinks">
+        <span class="quicklinks-label">Jump to:</span>
+        <a href="/modules/sycophantic-drift/#four-dimensions">Dimensions</a>
+        <a href="/modules/sycophantic-drift/#pressure-techniques">Pressure Techniques</a>
+        <a href="/modules/sycophantic-drift/#sapien-score">Scoring</a>
+        <a href="/modules/sycophantic-drift/#scenario-specification">Scenarios</a>
+        <a href="/modules/sycophantic-drift/#conformance">Conformance</a>
+        <a href="/modules/sycophantic-drift/#detection-architecture">Detection</a>
+      </div>
       <p class="module-stats">4 dimensions &middot; 3 test procedures &middot; 14 pressure techniques &middot; 66+ scenarios &middot; Full conformance requirements</p>
     </section>
 
@@ -82,6 +91,15 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <div class="module-links">
         <a href="/modules/memory-integrity/" class="module-link">Draft Specification &rarr;</a>
         <a href="/modules/memory-integrity/methodology/" class="module-link">Scoring &amp; Methodology &rarr;</a>
+      </div>
+      <div class="module-quicklinks">
+        <span class="quicklinks-label">Jump to:</span>
+        <a href="/modules/memory-integrity/#dimensions">Dimensions</a>
+        <a href="/modules/memory-integrity/#scoring">Scoring</a>
+        <a href="/modules/memory-integrity/#test-procedures">Test Procedures</a>
+        <a href="/modules/memory-integrity/#domain-scenarios">Scenarios</a>
+        <a href="/modules/memory-integrity/#conformance">Conformance</a>
+        <a href="/modules/memory-integrity/#threat-actors">Threat Actors</a>
       </div>
       <p class="module-stats">4 dimensions &middot; 3 test procedures &middot; 6 domains &middot; 36 scenario targets &middot; Compounding risk formula</p>
       <p class="module-note">This module is in draft status. Dimension weights, scoring formulas, and conformance thresholds are subject to change. Feedback welcome at <a href="mailto:contributors@sapienframework.org">contributors@sapienframework.org</a>.</p>
@@ -302,6 +320,39 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .module-link:hover {
     color: var(--color-gold);
     text-decoration: underline;
+  }
+
+  .module-quicklinks {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  .quicklinks-label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .module-quicklinks a {
+    font-size: 0.8rem;
+    color: var(--color-navy);
+    text-decoration: none;
+    padding: 0.15em 0.5em;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .module-quicklinks a:hover {
+    background: var(--color-bg-alt);
+    border-color: var(--color-navy);
+    text-decoration: none;
   }
 
   .module-stats {

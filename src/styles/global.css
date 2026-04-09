@@ -191,6 +191,87 @@ code {
   }
 }
 
+/* ===== Module sub-navigation (shared across layouts) ===== */
+.module-subnav {
+  position: sticky;
+  top: var(--header-height);
+  z-index: 50;
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.module-subnav-inner {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  overflow-x: auto;
+}
+
+.module-subnav-link {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text-dim);
+  text-decoration: none;
+  padding: 0.65rem 1.25rem;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.module-subnav-link:hover {
+  color: var(--color-slate);
+  text-decoration: none;
+}
+
+.module-subnav-link.active {
+  color: var(--color-navy);
+  font-weight: 600;
+  border-bottom-color: var(--color-gold);
+}
+
+/* Breadcrumb (shared) */
+.breadcrumb {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--color-text-dim);
+  margin-bottom: 1.5rem;
+}
+.breadcrumb a { color: var(--color-navy); text-decoration: none; }
+.breadcrumb a:hover { color: var(--color-gold); text-decoration: underline; }
+.bc-sep { margin: 0 0.35rem; color: var(--color-text-dim); }
+
+/* ===== Heading anchors (deep links) ===== */
+.heading-anchor {
+  position: absolute;
+  left: -1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.85rem;
+  color: var(--color-text-dim);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  line-height: 1;
+}
+
+.heading-anchor:hover {
+  color: var(--color-gold);
+  text-decoration: none;
+}
+
+h2:hover .heading-anchor,
+h3:hover .heading-anchor,
+.heading-anchor:focus {
+  opacity: 1;
+}
+
+.content-area h2[id],
+.content-area h3[id] {
+  position: relative;
+}
+
 /* ===== Key-term tooltips ===== */
 .key-term {
   border-bottom: 1px dotted var(--color-text-dim);

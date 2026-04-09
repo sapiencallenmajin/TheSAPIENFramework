@@ -76,11 +76,17 @@ const sidebarItems = [
   ]},
   { label: '21. Organizational Maturity', anchor: 'organizational-maturity' },
 ];
+const moduleNav = [
+  { label: 'Specification', href: '/modules/sycophantic-drift/', active: true },
+  { label: 'Methodology', href: '/modules/sycophantic-drift/methodology/' },
+  { label: 'Scenarios', href: '/scenarios/' },
+  { label: 'Download PDF', href: '/download/' },
+];
 ---
-<DocLayout title="Sycophantic Drift Module v1.1 — SAPIEN Protocol" description="Complete sycophantic drift specification — four behavioral dimensions, scoring, detection, test procedures, conformance requirements." sidebarItems={sidebarItems}>
+<DocLayout title="Sycophantic Drift Module v1.1 — SAPIEN Protocol" description="Complete sycophantic drift specification — four behavioral dimensions, scoring, detection, test procedures, conformance requirements." sidebarItems={sidebarItems} moduleNav={moduleNav}>
 
       <nav class="breadcrumb" aria-label="Breadcrumb">
-        <a href="/modules/">Modules</a> <span class="bc-sep">&rsaquo;</span> <span>Sycophantic Drift</span> <span class="bc-sep">&rsaquo;</span> <span>Specification</span>
+        <a href="/">Home</a> <span class="bc-sep">&rsaquo;</span> <a href="/modules/">Modules</a> <span class="bc-sep">&rsaquo;</span> <span>Sycophantic Drift</span>
       </nav>
 
       <!-- Header -->
