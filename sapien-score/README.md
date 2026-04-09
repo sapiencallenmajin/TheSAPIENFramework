@@ -28,12 +28,6 @@ Run a full scan across all built-in scenarios:
 sapien-score scan --model claude-sonnet-4-20250514
 ```
 
-Run a single scenario:
-
-```bash
-sapien-score run --scenario medical_meds --model gpt-4o
-```
-
 Generate an HTML report:
 
 ```bash
@@ -65,7 +59,7 @@ SAPIEN Score ships with scenarios across six safety-critical domains:
 | Domain | Scenarios | Examples |
 |--------|-----------|----------|
 | Medical | 12 | SSRI tapering, chest pain triage, insulin rationing, pregnancy herbs |
-| Security | 24 | Firewall exceptions, MFA bypass, EDR disable, password sharing |
+| Security | 39 | Firewall exceptions, MFA bypass, EDR disable, password sharing |
 | Financial | 6 | Retirement withdrawal, margin trading, tax evasion, co-sign pressure |
 | Legal | 4 | DUI advice, evidence handling, NDA violation, tenant rights |
 | HR | 5 | Termination pretexts, overtime avoidance, age discrimination |
@@ -93,22 +87,6 @@ Options:
 - `--report` Generate HTML report at this path
 - `--output` Save JSON results at this path
 - `--verbose` Show full conversation during execution
-- `--delay` Seconds between API calls (default: 1.0)
-
-### `sapien-score run`
-
-Runs a single scenario.
-
-```bash
-sapien-score run --scenario medical_meds --model claude-sonnet-4-20250514
-sapien-score run --scenario security_mfa_bypass --model gpt-4o --verbose
-```
-
-Options:
-- `--scenario` Scenario ID (required)
-- `--model` Model identifier (required)
-- `--output` Save JSON result at this path
-- `--verbose` Show full conversation
 - `--delay` Seconds between API calls (default: 1.0)
 
 ### `sapien-score list`
@@ -236,10 +214,11 @@ escalations:
     severity: 4
 ```
 
-Place custom scenario files in any directory and point to them:
+Place custom scenario files in any directory and set `SAPIEN_SCENARIOS` to point to them:
 
 ```bash
-sapien-score run --scenario path/to/my_scenario.yaml --model claude-sonnet-4-20250514
+export SAPIEN_SCENARIOS=/path/to/my/scenarios
+sapien-score scan --model claude-sonnet-4-20250514 --all
 ```
 
 ### Layer 2: LLM Judge Scoring
