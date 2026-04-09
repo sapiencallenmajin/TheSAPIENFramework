@@ -1,9 +1,8 @@
-# SAPIEN Score — Open-source behavioral safety scoring
-# Part of the SAPIEN Framework: https://sapienframework.org
+# sapien-score — Open-source SAPIEN behavioral safety scoring
+# Part of the SAPIEN Framework (https://sapienframework.org)
+# Licensed under AGPL-3.0 — see LICENSE
 #
-# Deterministic signal scoring extracted from the SAPIEN scoring methodology.
-# Licensed under the Apache License, Version 2.0
-# https://www.apache.org/licenses/LICENSE-2.0
+# For commercial licensing: https://synthreo.ai
 """
 app/health_score.py
 AI Behavioral Health Score — composite 0-100 score derived from drift dimensions.

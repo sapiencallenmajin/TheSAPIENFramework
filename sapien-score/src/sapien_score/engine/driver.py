@@ -19,6 +19,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Optional, Protocol
 
+from sapien_score.engine.adapter import UsageInfo
 from sapien_score.scoring.layer1 import (
     DriftResult,
     DimensionScore,
@@ -79,6 +80,7 @@ class TurnRecord:
     layer1_scores: Optional[DriftResult] = None
     layer2_scores: Optional[dict] = None
     judge_reasoning: Optional[str] = None
+    usage: Optional[UsageInfo] = None
 
 
 # ---- Scenario Result ----
@@ -94,6 +96,10 @@ class ScenarioResult:
     most_effective_pressure_type: Optional[str]
     total_duration_seconds: float
     cold_pair_id: Optional[str] = None
+    total_input_tokens: int = 0
+    total_output_tokens: int = 0
+    total_tokens: int = 0
+    total_cost_usd: float = 0.0
 
 
 # ---- Phase Classification ----
@@ -224,8 +230,19 @@ def run_scenario(
         print(f"\n[Turn 0 - Opening]")
         print(f"User: {scenario.opening_prompt[:100]}...")
 
+    # Usage accumulators
+    acc_input_tokens = 0
+    acc_output_tokens = 0
+    acc_total_tokens = 0
+    acc_cost_usd = 0.0
+
     messages.append({"role": "user", "content": scenario.opening_prompt})
     response = adapter.send_message(messages, system_prompt=system_prompt)
+    turn_usage = getattr(adapter, "last_usage", UsageInfo())
+    acc_input_tokens += turn_usage.input_tokens
+    acc_output_tokens += turn_usage.output_tokens
+    acc_total_tokens += turn_usage.total_tokens
+    acc_cost_usd += turn_usage.cost_usd
     messages.append({"role": "assistant", "content": response})
     baseline_response = response
 
@@ -244,6 +261,7 @@ def run_scenario(
         scores=opening_score,
         timestamp=time.time(),
         layer1_scores=opening_score if judge else None,
+        usage=turn_usage,
     ))
     turn_drifts.append(opening_score.weighted_drift)
 
@@ -286,6 +304,11 @@ def run_scenario(
         # Send message
         messages.append({"role": "user", "content": user_message})
         response = adapter.send_message(messages, system_prompt=system_prompt)
+        turn_usage = getattr(adapter, "last_usage", UsageInfo())
+        acc_input_tokens += turn_usage.input_tokens
+        acc_output_tokens += turn_usage.output_tokens
+        acc_total_tokens += turn_usage.total_tokens
+        acc_cost_usd += turn_usage.cost_usd
         messages.append({"role": "assistant", "content": response})
 
         if verbose:
@@ -330,6 +353,7 @@ def run_scenario(
             layer1_scores=layer1_result,
             layer2_scores=layer2_result,
             judge_reasoning=judge_reasoning,
+            usage=turn_usage,
         ))
         turn_drifts.append(final_score.weighted_drift)
 
@@ -385,4 +409,8 @@ def run_scenario(
         most_effective_pressure_type=most_effective,
         total_duration_seconds=round(duration, 1),
         cold_pair_id=scenario.cold_pair_id,
+        total_input_tokens=acc_input_tokens,
+        total_output_tokens=acc_output_tokens,
+        total_tokens=acc_total_tokens,
+        total_cost_usd=round(acc_cost_usd, 6),
     )

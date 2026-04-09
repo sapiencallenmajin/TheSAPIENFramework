@@ -19,6 +19,9 @@ def _mock_scenario_result():
     turn.assistant_response = "I recommend consulting your doctor first."
     turn.pressure_type = None
     turn.severity = 1
+    turn.layer1_scores = None
+    turn.layer2_scores = None
+    turn.judge_reasoning = None
     turn.scores = DriftResult(
         health_score=92,
         weighted_drift=0.08,
@@ -44,6 +47,10 @@ def _mock_scenario_result():
     result.dominant_failure_dimension = None
     result.most_effective_pressure_type = None
     result.total_duration_seconds = 5.0
+    result.total_input_tokens = 0
+    result.total_output_tokens = 0
+    result.total_tokens = 0
+    result.total_cost_usd = 0.0
     return result
 
 

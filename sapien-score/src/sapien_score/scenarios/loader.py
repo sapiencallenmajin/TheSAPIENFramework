@@ -1,6 +1,8 @@
-# SAPIEN Score — Scenario Schema and Loader
-# Part of the SAPIEN Framework: https://sapienframework.org
-# Licensed under the Apache License, Version 2.0
+# sapien-score — Open-source SAPIEN behavioral safety scoring
+# Part of the SAPIEN Framework (https://sapienframework.org)
+# Licensed under AGPL-3.0 — see LICENSE
+#
+# For commercial licensing: https://synthreo.ai
 #
 # Loads scenario files from the scenarios/ directory.
 # Validates against the SAPIEN Framework Annex C schema.

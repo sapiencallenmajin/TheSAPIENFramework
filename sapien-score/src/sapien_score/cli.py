@@ -13,6 +13,7 @@ Commands:
     sapien-score info   — Show scenario details
 """
 
+import csv
 import json
 import os
 import sys
@@ -107,7 +108,12 @@ def main():
 @click.option("--persona", default=None, help="Inject identity context into system prompt")
 @click.option("--memory", default=None, help="Inject trust preload context into system prompt")
 @click.option("--profile", default=None, help="Load persona+memory from a built-in profile (e.g. medical_professional)")
-def scan(model, judge_model, domain, domains, run_all, report, output, verbose, delay, persona, memory, profile):
+@click.option("--estimate", is_flag=True, default=False, help="Estimate cost without running API calls")
+@click.option("--avg-tokens", "avg_tokens", default=800, type=int, help="Avg tokens per turn for cost estimation (default: 800)")
+@click.option("--yes", "-y", "skip_confirm", is_flag=True, default=False, help="Skip confirmation prompt")
+@click.option("--cost-csv", "cost_csv", default=None, type=click.Path(), help="Export per-scenario cost data to CSV")
+def scan(model, judge_model, domain, domains, run_all, report, output, verbose, delay, persona, memory, profile,
+         estimate, avg_tokens, skip_confirm, cost_csv):
     """Run scenarios against a model and score behavioral safety."""
     from rich.console import Console
     from rich.panel import Panel
@@ -164,6 +170,11 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
         console.print(f"[red]No scenarios found matching the given filters.[/red]")
         raise SystemExit(1)
 
+    # --- Pre-run cost estimation ---
+    if estimate:
+        _show_cost_estimate(console, model, all_scenarios, avg_tokens, judge_model)
+        return
+
     # --- Build adapter ---
     adapter = get_adapter(model=model, rate_limit_delay=delay)
 
@@ -199,6 +210,8 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
 
     # --- Run with progress ---
     results = []
+    running_tokens = 0
+    running_cost = 0.0
 
     with Progress(
         SpinnerColumn(),
@@ -224,6 +237,17 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
                 memory_text=memory_text,
             )
             results.append((scenario, result))
+
+            # Running cost display in verbose mode
+            running_tokens += result.total_tokens
+            running_cost += result.total_cost_usd
+            if verbose and result.total_tokens > 0:
+                console.print(
+                    f"  [dim]Scenario complete: {result.total_tokens:,} tokens "
+                    f"(${result.total_cost_usd:.4f}) | Running total: "
+                    f"{running_tokens:,} tokens (${running_cost:.4f})[/dim]"
+                )
+
             progress.advance(task)
 
     # --- Per-turn detail (verbose) ---
@@ -327,6 +351,12 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
         weakest_dim = max(dim_averages, key=dim_averages.get)
         summary_lines.append(f"Weakest dimension: {weakest_dim} (avg {dim_averages[weakest_dim]:.2f})")
 
+    # Cost summary
+    total_tokens_all = sum(r.total_tokens for _, r in results)
+    total_cost_all = sum(r.total_cost_usd for _, r in results)
+    if total_tokens_all > 0:
+        summary_lines.append(f"Total tokens: {total_tokens_all:,}  |  Total cost: ${total_cost_all:.4f}")
+
     console.print(Panel(
         "\n".join(summary_lines),
         title="Summary",
@@ -355,6 +385,8 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
 
     # --- JSON output ---
     if output:
+        total_tokens_all = sum(r.total_tokens for _, r in results)
+        total_cost_all = sum(r.total_cost_usd for _, r in results)
         output_data = {
             "model": model,
             "framework_version": "1.1",
@@ -362,6 +394,8 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
             "mean_health": round(mean_score, 1),
             "p10_health": p10,
             "dimension_averages": {k: round(v, 4) for k, v in dim_averages.items()},
+            "total_tokens": total_tokens_all,
+            "total_cost_usd": round(total_cost_all, 6),
             "results": [
                 {
                     "scenario_id": scenario.id,
@@ -374,6 +408,10 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
                     "dominant_dimension": result.dominant_failure_dimension,
                     "effective_pressure": result.most_effective_pressure_type,
                     "duration_seconds": result.total_duration_seconds,
+                    "input_tokens": result.total_input_tokens,
+                    "output_tokens": result.total_output_tokens,
+                    "total_tokens": result.total_tokens,
+                    "cost_usd": round(result.total_cost_usd, 6),
                 }
                 for scenario, result in results
             ],
@@ -381,6 +419,11 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
         with open(output, "w") as f:
             json.dump(output_data, f, indent=2)
         console.print(f"\n[green]JSON results written to {output}[/green]")
+
+    # --- CSV cost export ---
+    if cost_csv:
+        _write_cost_csv(cost_csv, model, results)
+        console.print(f"[green]Cost CSV written to {cost_csv}[/green]")
 
     # --- HTML report ---
     if report:
@@ -394,6 +437,85 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
         console.print(f"[green]HTML report written to {report}[/green]")
 
     console.print()
+
+
+# ---------------------------------------------------------------------------
+# Cost helpers
+# ---------------------------------------------------------------------------
+
+def _show_cost_estimate(console, model, scenarios, avg_tokens, judge_model):
+    """Show estimated cost without making API calls."""
+    from rich.panel import Panel
+    from rich.table import Table
+
+    total_turns = sum(len(s.escalations) + 1 for s in scenarios)  # +1 for opening
+    total_tokens = total_turns * avg_tokens * 2  # input + output per turn
+
+    # If judge is enabled, double the token estimate (judge calls per scored turn)
+    if judge_model:
+        total_tokens *= 2
+
+    try:
+        import litellm
+        input_cost, output_cost = litellm.cost_per_token(
+            model=model, prompt_tokens=1, completion_tokens=1,
+        )
+        # Estimate: half input, half output
+        estimated_cost = (total_tokens / 2) * input_cost + (total_tokens / 2) * output_cost
+    except Exception:
+        estimated_cost = None
+
+    console.print()
+    console.print(Panel.fit(
+        f"[bold]Cost Estimation[/bold]\n"
+        f"Model: [cyan]{model}[/cyan]\n"
+        f"Scenarios: {len(scenarios)}\n"
+        f"Estimated turns: {total_turns}\n"
+        f"Avg tokens per turn: {avg_tokens}\n"
+        f"Estimated total tokens: {total_tokens:,}" +
+        (f"\n[bold]Estimated cost: ${estimated_cost:.4f}[/bold]" if estimated_cost is not None
+         else "\n[yellow]Cost estimate unavailable for this model[/yellow]") +
+        (f"\n[dim](includes judge model: {judge_model})[/dim]" if judge_model else ""),
+        border_style="blue",
+    ))
+
+    if judge_model:
+        try:
+            j_input_cost, j_output_cost = litellm.cost_per_token(
+                model=judge_model, prompt_tokens=1, completion_tokens=1,
+            )
+            judge_tokens = total_turns * avg_tokens * 2
+            judge_cost = (judge_tokens / 2) * j_input_cost + (judge_tokens / 2) * j_output_cost
+            console.print(f"  [dim]Judge model cost: ~${judge_cost:.4f}[/dim]")
+            if estimated_cost is not None:
+                console.print(f"  [dim]Combined estimate: ~${estimated_cost + judge_cost:.4f}[/dim]")
+        except Exception:
+            pass
+
+    console.print()
+
+
+def _write_cost_csv(path, model, results):
+    """Write per-scenario cost data to CSV."""
+    with open(path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            "scenario_id", "domain", "model", "input_tokens", "output_tokens",
+            "total_tokens", "cost_usd", "health_score", "rating", "verdict",
+        ])
+        for scenario, result in results:
+            writer.writerow([
+                scenario.id,
+                scenario.domain,
+                model,
+                result.total_input_tokens,
+                result.total_output_tokens,
+                result.total_tokens,
+                f"{result.total_cost_usd:.6f}",
+                result.verdict.health_score,
+                result.verdict.rating,
+                result.verdict.verdict,
+            ])
 
 
 # ---------------------------------------------------------------------------

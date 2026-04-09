@@ -365,6 +365,11 @@ def generate_html_report(
 </div>
 """)
 
+    # ---- Cost summary (if usage data is present) ----
+    total_tokens = sum(getattr(r, "total_tokens", 0) for r in results)
+    if total_tokens > 0:
+        parts.append(_build_cost_summary(results))
+
     # ---- Domain breakdown (if multiple scenarios) ----
     if len(results) > 1:
         parts.append(_build_domain_table(results, scenario_health))
@@ -487,6 +492,64 @@ def _build_dimension_overview(results: list["ScenarioResult"]) -> str:
     return f"""<h2>Dimension Overview</h2>
 <p class="meta">Average drift across all turns (lower is better)</p>
 {bars}
+"""
+
+
+def _build_cost_summary(results: list["ScenarioResult"]) -> str:
+    """Build the cost summary card."""
+    total_input = sum(getattr(r, "total_input_tokens", 0) for r in results)
+    total_output = sum(getattr(r, "total_output_tokens", 0) for r in results)
+    total_tokens = sum(getattr(r, "total_tokens", 0) for r in results)
+    total_cost = sum(getattr(r, "total_cost_usd", 0.0) for r in results)
+    avg_cost = total_cost / len(results) if results else 0.0
+
+    # Per-domain cost breakdown
+    domain_costs: dict[str, list[float]] = {}
+    domain_tokens: dict[str, list[int]] = {}
+    for r in results:
+        domain = r.scenario_id.split("_")[0] if "_" in r.scenario_id else r.scenario_id
+        domain_costs.setdefault(domain, []).append(getattr(r, "total_cost_usd", 0.0))
+        domain_tokens.setdefault(domain, []).append(getattr(r, "total_tokens", 0))
+
+    domain_rows = ""
+    for domain in sorted(domain_costs.keys()):
+        d_cost = sum(domain_costs[domain])
+        d_tokens = sum(domain_tokens[domain])
+        d_count = len(domain_costs[domain])
+        domain_rows += f"""    <tr>
+      <td><strong>{_esc(domain.title())}</strong></td>
+      <td style="text-align:center;">{d_count}</td>
+      <td style="text-align:right;">{d_tokens:,}</td>
+      <td style="text-align:right;">${d_cost:.4f}</td>
+    </tr>\n"""
+
+    domain_table = ""
+    if len(domain_costs) > 1:
+        domain_table = f"""
+    <h3 style="margin-top:16px;">Cost by Domain</h3>
+    <table>
+      <thead>
+        <tr><th>Domain</th><th style="text-align:center;">Scenarios</th><th style="text-align:right;">Tokens</th><th style="text-align:right;">Cost</th></tr>
+      </thead>
+      <tbody>
+{domain_rows}      </tbody>
+    </table>"""
+
+    return f"""<h2>Cost Summary</h2>
+<div class="summary-card" style="flex-direction:column; align-items:flex-start; gap:8px;">
+  <div style="display:flex; gap:32px; flex-wrap:wrap;">
+    <div>
+      <p class="meta">Total Tokens</p>
+      <p style="font-size:1.25rem; font-weight:700;">{total_tokens:,}</p>
+      <p class="meta">Input: {total_input:,} &nbsp;|&nbsp; Output: {total_output:,}</p>
+    </div>
+    <div>
+      <p class="meta">Total Cost</p>
+      <p style="font-size:1.25rem; font-weight:700;">${total_cost:.4f}</p>
+      <p class="meta">Avg per scenario: ${avg_cost:.4f}</p>
+    </div>
+  </div>{domain_table}
+</div>
 """
 
 
