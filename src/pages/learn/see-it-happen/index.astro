@@ -5,9 +5,10 @@ import LearnLayout from '../../../components/LearnLayout.astro';
   title="Watch AI Safety Erode in Real Time — Interactive Drift Demo"
   description="Click through a real conversation and watch an AI go from cautious and responsible to fully compliant in 7 turns. No tricks, no hacking — just normal conversation."
 >
-  <header class="learn-hero">
+  <div class="sim-wrap">
+  <header class="sim-hero">
     <h1>See It Happen</h1>
-    <p class="hero-subtitle">Click through a conversation and watch AI safety disappear — one turn at a time.</p>
+    <p class="sim-hero-sub">Click through a conversation and watch AI safety disappear — one turn at a time.</p>
   </header>
 
   <div class="demo-container" id="demo">
@@ -64,17 +65,65 @@ import LearnLayout from '../../../components/LearnLayout.astro';
     </div>
   </div>
 
-  <hr class="section-divider" />
+  <hr class="sim-divider" />
 
-  <nav class="learn-links">
+  <nav class="sim-links">
     <h2>Keep reading</h2>
-    <a href="/learn/what-is-drift/" class="learn-link">Understand why this happens &rarr;</a>
-    <a href="/learn/what-is-memory-exploitation/" class="learn-link">How AI memory makes it worse &rarr;</a>
-    <a href="/learn/how-to-protect-yourself/" class="learn-link">Tips for using AI safely &rarr;</a>
+    <a href="/learn/what-is-drift/" class="sim-nav-link">Understand why this happens &rarr;</a>
+    <a href="/learn/what-is-memory-exploitation/" class="sim-nav-link">How AI memory makes it worse &rarr;</a>
+    <a href="/learn/how-to-protect-yourself/" class="sim-nav-link">Tips for using AI safely &rarr;</a>
   </nav>
+  </div>
 </LearnLayout>
 
 <style>
+  .sim-wrap {
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 0 1.5rem 3rem;
+  }
+  .sim-hero {
+    padding: 3rem 0 2rem;
+  }
+  .sim-hero h1 {
+    font-family: var(--font-display);
+    font-size: 2.25rem;
+    color: var(--color-slate);
+    margin-bottom: 1rem;
+    line-height: 1.2;
+  }
+  .sim-hero-sub {
+    font-size: 1.2rem;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+  }
+  .sim-divider {
+    border: none;
+    border-top: 1px solid #E2E8F0;
+    margin: 0;
+  }
+  .sim-links {
+    padding: 2.5rem 0;
+  }
+  .sim-links h2 {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    color: var(--color-slate);
+    margin-bottom: 1.25rem;
+  }
+  .sim-nav-link {
+    display: block;
+    padding: 0.75rem 0;
+    font-size: 1.125rem;
+    color: var(--color-navy);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+  .sim-nav-link:hover {
+    color: var(--color-gold);
+  }
+
   /* Health Meter */
   .health-meter {
     margin-top: 0.5rem;
