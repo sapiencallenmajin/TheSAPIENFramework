@@ -1,7 +1,7 @@
 ---
 /**
  * TerminalDemo.astro — Animated terminal showing sapien-score running a scan.
- * Auto-plays when scrolled into view via IntersectionObserver.
+ * Auto-plays when scrolled into view, loops infinitely with fade transitions.
  */
 ---
 
@@ -16,9 +16,7 @@
     <div class="terminal-body">
       <pre class="terminal-output" data-terminal-output></pre>
     </div>
-  </div>
-  <div class="terminal-replay-wrap" data-terminal-replay-wrap style="display:none">
-    <button class="terminal-replay-btn" data-terminal-replay>&#8635; Replay</button>
+    <button class="terminal-pause-btn" data-terminal-pause aria-label="Pause animation">⏸</button>
   </div>
 </div>
 
@@ -37,6 +35,7 @@
     font-family: 'IBM Plex Mono', monospace;
     font-size: 13px;
     line-height: 1.5;
+    position: relative;
   }
 
   .terminal-titlebar {
@@ -80,28 +79,46 @@
     color: #CDD6F4;
     white-space: pre;
     background: transparent;
+    transition: opacity 0.5s ease;
   }
 
-  .terminal-replay-wrap {
-    text-align: center;
-    margin-top: 1rem;
+  .terminal-output.terminal-fade {
+    opacity: 0;
   }
 
-  .terminal-replay-btn {
-    font-family: 'IBM Plex Mono', monospace;
+  /* Pause button — visible on hover */
+  .terminal-pause-btn {
+    position: absolute;
+    top: 44px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 14px;
-    color: #A6E3A1;
-    background: #1E1E2E;
-    border: 1px solid #313244;
-    border-radius: 8px;
-    padding: 8px 24px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: #6C7086;
     cursor: pointer;
-    transition: background 0.2s, border-color 0.2s;
+    opacity: 0;
+    transition: opacity 0.2s, background 0.2s, color 0.2s;
+    z-index: 2;
   }
 
-  .terminal-replay-btn:hover {
-    background: #313244;
-    border-color: #A6E3A1;
+  .terminal:hover .terminal-pause-btn {
+    opacity: 1;
+  }
+
+  .terminal-pause-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #CDD6F4;
+  }
+
+  .terminal-pause-btn.terminal-paused {
+    opacity: 1;
+    color: #A6E3A1;
   }
 
   :global(.terminal-cursor) {
@@ -133,11 +150,11 @@
       terminal.dataset.terminalInit = 'true';
 
       const output = terminal.querySelector<HTMLPreElement>('[data-terminal-output]')!;
-      const replayWrap = terminal.parentElement!.querySelector<HTMLElement>('[data-terminal-replay-wrap]')!;
-      const replayBtn = terminal.parentElement!.querySelector<HTMLButtonElement>('[data-terminal-replay]')!;
+      const pauseBtn = terminal.querySelector<HTMLButtonElement>('[data-terminal-pause]')!;
 
-      let hasPlayed = false;
       let playing = false;
+      let stopped = false;
+      let loopTimeout: number | null = null;
 
       // Color helpers
       const c = {
@@ -168,9 +185,15 @@
         }
       };
 
-      const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+      const delay = (ms: number) => new Promise<void>((resolve) => {
+        const id = window.setTimeout(resolve, ms);
+        // Store timeout so we can check stopped state
+        const check = () => { if (stopped) { clearTimeout(id); } };
+        check();
+      });
 
       function appendLine(html: string) {
+        if (stopped) return;
         output.innerHTML += html + '\n';
         scrollBottom();
       }
@@ -215,85 +238,133 @@
       ];
 
       async function play() {
-        if (playing) return;
+        if (playing || stopped) return;
         playing = true;
         output.innerHTML = '';
-        replayWrap.style.display = 'none';
+        output.classList.remove('terminal-fade');
 
         // Frame 1 — pip install
         appendLine(c.prompt('$ ') + c.cmd('pip install sapien-score'));
         await delay(1500);
+        if (stopped) { playing = false; return; }
         appendLine(c.text('Installing sapien-score v0.1.0... done.'));
         appendLine('');
         await delay(400);
+        if (stopped) { playing = false; return; }
 
         // Frame 2 — scan command
         appendLine(c.prompt('$ ') + c.cmd('sapien-score scan --model anthropic/claude-sonnet-4-20250514 --all --verbose'));
         await delay(1000);
+        if (stopped) { playing = false; return; }
         appendLine('');
 
         // Frame 3 — header
         appendLine(c.text('SAPIEN Behavioral Safety Scan'));
         await delay(200);
+        if (stopped) { playing = false; return; }
         appendLine(c.text('Model: claude-sonnet-4-20250514'));
         await delay(200);
+        if (stopped) { playing = false; return; }
         appendLine(c.text('Scenarios: 70 | Layer 1 + Layer 2'));
         appendLine('');
         await delay(400);
+        if (stopped) { playing = false; return; }
 
         // Scenario lines
         for (const s of scenarios) {
+          if (stopped) { playing = false; return; }
           appendLine(buildScenarioLine(s));
           await delay(300);
         }
+        if (stopped) { playing = false; return; }
 
         appendLine('');
         appendLine(c.dim('... 60 more scenarios'));
         appendLine('');
         await delay(800);
+        if (stopped) { playing = false; return; }
 
         // Frame 4 — summary
         const border = '════════════════════════════════════════════';
         appendLine(c.text(border));
         await delay(150);
+        if (stopped) { playing = false; return; }
         appendLine(`  ${c.text('SAPIEN Health Score:')} <span style="color:#F9E2AF;font-weight:bold">61</span>  ${c.bar(61)}  ${c.amber('MODERATE')}`);
         appendLine('');
         await delay(150);
+        if (stopped) { playing = false; return; }
         appendLine(`  ${c.text('Weakest domain:    ')}${c.red('Medical (42)')}`);
         appendLine(`  ${c.text('Weakest dimension: ')}${c.amber('Specificity Gradient')}`);
         appendLine('');
         await delay(150);
+        if (stopped) { playing = false; return; }
         appendLine(`  ${c.text('Domain Breakdown:')}`);
 
         for (const d of domains) {
+          if (stopped) { playing = false; return; }
           const padName = d.name.padEnd(12);
           appendLine(`    ${c.text(padName)} ${c.bar(d.val)}  ${c.score(d.val)}  ${c.riskLabel(d.risk)}`);
           await delay(100);
         }
+        if (stopped) { playing = false; return; }
 
         appendLine(c.text(border));
         appendLine('');
         await delay(200);
+        if (stopped) { playing = false; return; }
         appendLine(`  ${c.text('Report saved: report.html')}`);
         appendLine(`  ${c.text('Cost: $2.14 (487,230 tokens)')}`);
         appendLine('');
         await delay(2000);
+        if (stopped) { playing = false; return; }
 
         // Frame 5 — blinking cursor
         appendLine(c.prompt('$ ') + '<span class="terminal-cursor">_</span>');
 
         playing = false;
-        hasPlayed = true;
-        replayWrap.style.display = '';
+
+        // Wait 4s then fade out and restart
+        if (!stopped) {
+          loopTimeout = window.setTimeout(() => {
+            if (stopped) return;
+            // Fade out
+            output.classList.add('terminal-fade');
+            // After fade completes, clear and restart
+            setTimeout(() => {
+              if (stopped) return;
+              output.innerHTML = '';
+              output.classList.remove('terminal-fade');
+              play();
+            }, 500);
+          }, 4000);
+        }
       }
 
-      // Replay
-      replayBtn.addEventListener('click', () => play());
+      // Pause/resume toggle
+      pauseBtn.addEventListener('click', () => {
+        if (stopped) {
+          // Resume — restart the loop
+          stopped = false;
+          pauseBtn.textContent = '⏸';
+          pauseBtn.classList.remove('terminal-paused');
+          play();
+        } else {
+          // Stop
+          stopped = true;
+          playing = false;
+          if (loopTimeout !== null) {
+            clearTimeout(loopTimeout);
+            loopTimeout = null;
+          }
+          pauseBtn.textContent = '▶';
+          pauseBtn.classList.add('terminal-paused');
+        }
+      });
 
-      // IntersectionObserver — auto-play once
+      // IntersectionObserver — auto-play when visible
       const observer = new IntersectionObserver((entries) => {
         for (const entry of entries) {
-          if (entry.isIntersecting && !hasPlayed && !playing) {
+          if (entry.isIntersecting && !playing && !stopped) {
             play();
             observer.unobserve(terminal);
           }
