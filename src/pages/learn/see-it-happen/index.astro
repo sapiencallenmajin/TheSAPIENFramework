@@ -199,7 +199,8 @@ import LearnLayout from '../../../components/LearnLayout.astro';
 
   /* Video chat */
   .v-chat {
-    min-height: 180px;
+    height: 300px;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -809,6 +810,8 @@ import LearnLayout from '../../../components/LearnLayout.astro';
     // trigger reflow then make visible
     void el.offsetHeight;
     el.classList.add("v-visible");
+    // scroll chat container to bottom
+    vChat.scrollTop = vChat.scrollHeight;
     return el;
   }
 
