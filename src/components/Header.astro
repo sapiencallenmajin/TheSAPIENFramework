@@ -1,13 +1,4 @@
 ---
-const navItems = [
-  { label: 'Learn', href: '/learn/' },
-  { label: 'Landscape', href: '/landscape/' },
-  { label: 'Modules', href: '/modules/' },
-  { label: 'Getting Started', href: '/getting-started/' },
-  { label: 'Research', href: '/research/' },
-  { label: 'Download', href: '/download/' },
-  { label: 'About', href: '/about/' },
-];
 ---
 <header class="header">
   <div class="container header-inner">
@@ -16,14 +7,50 @@ const navItems = [
       <span class="logo-text">THE SAPIEN FRAMEWORK</span>
     </a>
     <nav class="nav" id="nav-menu">
-      {navItems.map(item => (
-        <a
-          href={item.href}
-          class="nav-link"
-        >
-          {item.label}
+
+      <!-- Modules dropdown -->
+      <div class="nav-dropdown">
+        <a href="/modules/" class="nav-link nav-link-dropdown">
+          Modules
+          <svg class="chevron-icon" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 1l4 4 4-4"/></svg>
         </a>
-      ))}
+        <div class="dropdown-panel">
+          <a href="/modules/sycophantic-drift/" class="dropdown-item">
+            <span class="dropdown-item-label">Sycophantic Drift</span>
+            <span class="dropdown-badge badge-pub">Published</span>
+          </a>
+          <a href="/modules/memory-integrity/" class="dropdown-item">
+            <span class="dropdown-item-label">Memory Integrity</span>
+            <span class="dropdown-badge badge-dft">Draft</span>
+          </a>
+          <div class="dropdown-divider"></div>
+          <a href="/scenarios/" class="dropdown-item">Scenario Library</a>
+          <a href="/modules/sycophantic-drift/methodology/" class="dropdown-item">Methodology</a>
+        </div>
+      </div>
+
+      <!-- Learn dropdown -->
+      <div class="nav-dropdown">
+        <a href="/learn/" class="nav-link nav-link-dropdown">
+          Learn
+          <svg class="chevron-icon" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1 1l4 4 4-4"/></svg>
+        </a>
+        <div class="dropdown-panel">
+          <a href="/learn/" class="dropdown-item">Why AI Safety Matters</a>
+          <a href="/learn/what-is-drift/" class="dropdown-item">When AI Tells You What You Want to Hear</a>
+          <a href="/learn/what-is-memory-exploitation/" class="dropdown-item">How AI Memory Makes It Worse</a>
+          <a href="/learn/how-to-protect-yourself/" class="dropdown-item">5 Tips to Protect Yourself</a>
+          <a href="/learn/see-it-happen/" class="dropdown-item">See It Happen</a>
+        </div>
+      </div>
+
+      <a href="/landscape/" class="nav-link">Landscape</a>
+      <a href="/getting-started/" class="nav-link">Getting Started</a>
+      <a href="/research/" class="nav-link">Research</a>
+      <a href="/download/" class="nav-link">Download</a>
+      <a href="/glossary/" class="nav-link">Glossary</a>
+      <a href="/about/" class="nav-link">About</a>
+
       <a href="https://github.com/sapiencallenmajin/TheSAPIENFramework" target="_blank" rel="noopener noreferrer" class="nav-github" aria-label="GitHub repository">
         <svg viewBox="0 0 16 16" fill="currentColor" width="18" height="18"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
       </a>
@@ -79,10 +106,10 @@ const navItems = [
   .nav {
     display: flex;
     align-items: center;
-    gap: 1.5rem;
+    gap: 1.25rem;
   }
   .nav-link {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 500;
     color: var(--color-text-muted);
     transition: color 0.2s;
@@ -96,6 +123,113 @@ const navItems = [
     transition: color 0.2s;
   }
   .nav-github:hover { color: var(--color-gold); }
+
+  /* Dropdown */
+  .nav-dropdown {
+    position: relative;
+  }
+
+  .nav-link-dropdown {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .chevron-icon {
+    width: 10px;
+    height: 10px;
+    transition: transform 0.2s;
+  }
+
+  .nav-dropdown:hover .chevron-icon {
+    transform: rotate(180deg);
+  }
+
+  .dropdown-panel {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 240px;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    padding: 0.5rem 0;
+    margin-top: 0.5rem;
+  }
+
+  /* Invisible bridge so mouse can travel from link to panel */
+  .nav-dropdown::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: 0.5rem;
+    display: none;
+  }
+
+  .nav-dropdown:hover::after {
+    display: block;
+  }
+
+  .nav-dropdown:hover .dropdown-panel {
+    display: block;
+  }
+
+  .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+
+  .dropdown-item:hover {
+    background: #F8FAFC;
+    color: var(--color-slate);
+    text-decoration: none;
+  }
+
+  .dropdown-item-label {
+    flex: 1;
+  }
+
+  .dropdown-badge {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.15em 0.45em;
+    border-radius: 3px;
+  }
+
+  .badge-pub {
+    background: #FEF3C7;
+    color: #92400E;
+    border: 1px solid #FDE68A;
+  }
+
+  .badge-dft {
+    background: #EFF6FF;
+    color: #1E40AF;
+    border: 1px solid #BFDBFE;
+  }
+
+  .dropdown-divider {
+    height: 1px;
+    background: #E2E8F0;
+    margin: 0.35rem 0;
+  }
+
   .mobile-toggle {
     display: none;
     flex-direction: column;
@@ -125,10 +259,40 @@ const navItems = [
       border-bottom: 1px solid var(--color-border);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
       gap: 0.25rem;
+      align-items: flex-start;
     }
     .nav.open { display: flex; }
     .nav-link { padding: 0.5rem 0; }
     .mobile-toggle { display: flex; }
+
+    /* Mobile: show dropdowns inline */
+    .nav-dropdown {
+      width: 100%;
+    }
+    .dropdown-panel {
+      position: static;
+      display: block;
+      transform: none;
+      min-width: 0;
+      border: none;
+      box-shadow: none;
+      padding: 0 0 0 1rem;
+      margin-top: 0;
+      border-radius: 0;
+    }
+    .nav-dropdown::after {
+      display: none;
+    }
+    .chevron-icon {
+      display: none;
+    }
+    .dropdown-item {
+      padding: 0.35rem 0;
+      font-size: 0.8rem;
+    }
+    .dropdown-divider {
+      display: none;
+    }
   }
 </style>
 
