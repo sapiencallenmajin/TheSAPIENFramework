@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "sapien-asm"
+version = "0.1.0"
+description = "Behavioral penetration testing for AI systems. Implements the SAPIEN Behavioral Safety Framework."
+readme = "README.md"
+license = {text = "CC-BY-4.0"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Callen Sapien", email = "contact@sapienframework.org"},
+]
+keywords = ["ai-safety", "behavioral-testing", "llm-evaluation", "sycophancy", "drift-detection"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Security",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = []
+
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.40.0"]
+openai = ["openai>=1.50.0"]
+google = ["google-generativeai>=0.8.0"]
+all = ["anthropic>=0.40.0", "openai>=1.50.0", "google-generativeai>=0.8.0"]
+dev = ["pytest>=8.0", "pytest-asyncio", "ruff"]
+
+[project.scripts]
+sapien-asm = "src.cli:main"
+
+[project.urls]
+Homepage = "https://sapienframework.org"
+Repository = "https://github.com/sapiencallenmajin/sapien-asm"
+Documentation = "https://sapienframework.org/modules"
+"Bug Tracker" = "https://github.com/sapiencallenmajin/sapien-asm/issues"
