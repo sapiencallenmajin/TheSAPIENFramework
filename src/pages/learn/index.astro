@@ -29,7 +29,7 @@ import TerminalDemo from '../../components/TerminalDemo.astro';
         </div>
         <div class="stat-card">
           <span class="stat-number">31 pts</span>
-          <span class="stat-label">average safety score drop when AI remembers who you are</span>
+          <span class="stat-label">average safety score drop when AI remembers who you are <a href="/research/#rapport-delta" class="stat-source">(methodology)</a></span>
         </div>
       </div>
     </div>
@@ -175,6 +175,17 @@ import TerminalDemo from '../../components/TerminalDemo.astro';
     font-size: 0.95rem;
     color: var(--color-text-muted);
     line-height: 1.5;
+  }
+
+  .stat-source {
+    font-size: 0.8rem;
+    color: var(--color-gold);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .stat-source:hover {
+    text-decoration: underline;
   }
 
   .two-col {

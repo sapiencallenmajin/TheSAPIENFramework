@@ -36,7 +36,10 @@
       "WebFetch(domain:www.gnu.org)",
       "Bash(curl:*)",
       "Bash(python:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(wc -l the_sapien_framework_v1.1.md sapien_module_memory_integrity_v0.1.md)",
+      "Bash(ls -la public/the_sapien_framework_v1.1.pdf)",
+      "Bash(ls -la the_sapien_framework_v1.1.pdf)"
     ]
   }
 }
