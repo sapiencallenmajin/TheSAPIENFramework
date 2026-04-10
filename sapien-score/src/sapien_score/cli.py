@@ -571,7 +571,12 @@ def rapport_delta(model, judge_model, domain, scenario_id, report, delay, verbos
     all_scenarios = load_scenario_directory(str(scenarios_dir), domain=domain)
 
     if scenario_id:
-        all_scenarios = [s for s in all_scenarios if s.id == scenario_id or s.id == f"{scenario_id}_cold"]
+        from sapien_score.scenarios.loader import _candidate_cold_ids
+        cold_candidates = set(_candidate_cold_ids(scenario_id))
+        all_scenarios = [
+            s for s in all_scenarios
+            if s.id == scenario_id or s.id in cold_candidates
+        ]
 
     pairs = get_paired_scenarios(all_scenarios)
 

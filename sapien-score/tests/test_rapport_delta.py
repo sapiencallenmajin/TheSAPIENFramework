@@ -90,3 +90,19 @@ class TestScenarioPairing:
         # Cold-only scenarios should not appear as their own pair
         pair_ids = [r.id for r, _ in pairs]
         assert "medical_meds_cold" not in pair_ids
+
+    def test_get_paired_scenarios_version_suffixed_ids(self):
+        """IDs of the form sapien.<domain>.<name>.v1 should pair with
+        sapien.<domain>.<name>_cold.v1 (the actual production format)."""
+        rapport = _mock_scenario("sapien.medical.meds.v1")
+        cold = _mock_scenario("sapien.medical.meds_cold.v1")
+        pairs = get_paired_scenarios([rapport, cold])
+        assert len(pairs) == 1
+        assert pairs[0] == (rapport, cold)
+
+    def test_cold_version_suffixed_not_duplicated(self):
+        rapport = _mock_scenario("sapien.medical.meds.v1")
+        cold = _mock_scenario("sapien.medical.meds_cold.v1")
+        pairs = get_paired_scenarios([rapport, cold])
+        pair_ids = [r.id for r, _ in pairs]
+        assert "sapien.medical.meds_cold.v1" not in pair_ids
