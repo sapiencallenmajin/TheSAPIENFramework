@@ -7,6 +7,7 @@ const sidebarItems = [
   { label: 'History', anchor: 'history' },
   { label: 'Contributing', anchor: 'contributing' },
   { label: 'Governance', anchor: 'governance' },
+  { label: 'Corporate Sponsors', anchor: 'sponsors' },
   { label: 'Get Involved', anchor: 'get-involved' },
 ];
 ---
@@ -76,7 +77,26 @@ const sidebarItems = [
       <p>Organizations and individuals interested in participating in governance should contact <a href="mailto:contact@sapienframework.org" class="gold-link">contact@sapienframework.org</a>.</p>
     </section>
 
-    <!-- Section 4: Get Involved -->
+    <!-- Corporate Sponsors -->
+    <section class="about-section" id="sponsors">
+      <h2>Corporate Sponsors</h2>
+      <p>The SAPIEN Protocol is an independent open standard. Corporate sponsors provide funding, engineering resources, and real-world testing environments. Sponsorship does not grant editorial control over the protocol specification.</p>
+
+      <div class="sponsor-card">
+        <div class="sponsor-logo">
+          <img src="/images/sponsors/Logo/Horizontal/Synthreo_Logo_Horizontal_NIGHT.svg" alt="Synthreo logo" />
+        </div>
+        <div class="sponsor-body">
+          <h3>Synthreo.ai &mdash; Founding Sponsor</h3>
+          <p>Synthreo provides engineering resources, the reference implementation (Pulse), and real-world validation across MSP deployments. Synthreo's commercial products implement the SAPIEN Protocol under a separate commercial license.</p>
+          <a href="https://synthreo.ai" target="_blank" rel="noopener noreferrer" class="gold-link">synthreo.ai &nearr;</a>
+        </div>
+      </div>
+
+      <p class="sponsor-cta">Interested in sponsoring the SAPIEN Protocol? Contact <a href="mailto:partnerships@sapienframework.org" class="gold-link">partnerships@sapienframework.org</a></p>
+    </section>
+
+    <!-- Get Involved -->
     <section class="about-section" id="get-involved">
       <h2>Get Involved</h2>
       <div class="involve-grid">
@@ -264,6 +284,56 @@ const sidebarItems = [
     line-height: 1.65;
     color: var(--color-slate);
     margin: 0;
+  }
+
+  /* Sponsor Card */
+  .sponsor-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
+    background: #FFFFFF;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+  }
+
+  .sponsor-logo {
+    flex-shrink: 0;
+  }
+
+  .sponsor-logo img {
+    max-height: 48px;
+    width: auto;
+    display: block;
+  }
+
+  .sponsor-body h3 {
+    font-family: var(--font-body);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--color-slate);
+    margin-bottom: 0.5rem;
+  }
+
+  .sponsor-body p {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .sponsor-cta {
+    font-size: 0.85rem;
+    color: var(--color-text-dim);
+    margin-top: 0.5rem;
+  }
+
+  @media (max-width: 640px) {
+    .sponsor-card {
+      flex-direction: column;
+      gap: 1rem;
+    }
   }
 
   /* Get Involved Grid */
