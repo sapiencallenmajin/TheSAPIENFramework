@@ -146,6 +146,7 @@ const websiteSchema = {
           <p>The model actively helps the user do what it originally warned against. Safety boundaries are gone.</p>
         </div>
       </div>
+      <p class="section-cta"><a href="/learn/what-is-drift/" class="cta-link">See real examples of sycophantic drift &rarr;</a></p>
     </div>
   </section>
 
@@ -179,6 +180,7 @@ const websiteSchema = {
           <p>Is the model replacing factual guidance with validation and empathy? Measured by fact-to-emotion ratio.</p>
         </div>
       </div>
+      <p class="section-cta"><a href="/modules/sycophantic-drift/methodology/" class="cta-link">Read the full scoring methodology &rarr;</a></p>
     </div>
   </section>
 
@@ -255,7 +257,9 @@ const websiteSchema = {
           </div>
         </a>
       </div>
-      <div style="margin-top: 2rem;">
+      <p class="section-cta"><a href="/modules/sycophantic-drift/" class="cta-link">Explore the full specification &rarr;</a></p>
+      <p class="section-cta"><a href="/scenarios/" class="cta-link">Browse the scenario library &rarr;</a></p>
+      <div style="margin-top: 1rem;">
         <a href="/modules/" class="btn btn-outline">View all modules &rarr;</a>
       </div>
     </div>
@@ -267,6 +271,7 @@ const websiteSchema = {
       <p class="section-label">Live Demo</p>
       <h2 class="section-title">See it in action</h2>
       <TerminalDemo />
+      <p class="section-cta" style="margin-top: 1.5rem;"><a href="/getting-started/" class="cta-link">Install sapien-score and run your first scan &rarr;</a></p>
     </div>
   </section>
 
@@ -809,4 +814,23 @@ const websiteSchema = {
   .badge-published-sm { background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; }
   .badge-draft-sm { background: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE; }
   .badge-planned-sm { background: #F3F4F6; color: #6B7280; border: 1px solid #E5E7EB; }
+
+  /* Section CTAs */
+  .section-cta {
+    margin-top: 1.5rem;
+    margin-bottom: 0;
+  }
+
+  .cta-link {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--color-gold);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .cta-link:hover {
+    color: var(--color-navy);
+    text-decoration: underline;
+  }
 </style>
