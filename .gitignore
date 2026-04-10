@@ -1,22 +1,54 @@
-# build output
-dist/
-
-# dependencies
-node_modules/
-
-# astro
-.astro/
-
-# environment variables
-.env
-.env.production
-
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage
+htmlcov/
+build/
+dist/
+*.whl
 
-# OS
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Node / Astro (site moved to separate repo — keep ignored in case of local builds)
+node_modules/
+.astro/
+package.json
+package-lock.json
+
+# Environment secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Editor / tooling
+.claude/
+.idea/
+.vscode/
+*.swp
 .DS_Store
 Thumbs.db
+
+# Local benchmark outputs (may contain API keys in tracebacks)
+sapien-score/results/
+run-benchmarks.ps1
+run-benchmarks.sh
+
+# Assets from prior repo layout — now external
 synthreo-pulse/
+synthreo-pulse.zip
 sapien-asm/
+sapien-asm-v0.1/
+sapien-asm-v0.1.zip
+files/
+files.zip
