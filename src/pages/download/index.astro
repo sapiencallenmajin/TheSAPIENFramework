@@ -18,7 +18,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <p class="download-info-desc">Complete specification &mdash; four behavioral dimensions, scoring methodology, test procedures, conformance requirements, and operational runbooks.</p>
       <div class="download-actions">
         <a href="/the_sapien_framework_v1.1.pdf" class="download-btn" download>Download PDF &darr;</a>
+        <span class="download-meta">220 KB</span>
         <a href="/the_sapien_framework_v1.1.md" class="download-btn-outline" download>Markdown (.md)</a>
+        <span class="download-meta">4,065 lines</span>
       </div>
       <p class="download-hash">SHA-256: ea1ddf3327106ab76e2c5426d7f1c0df841868d4b6b9e57c42446849c42860ff</p>
     </section>
@@ -34,6 +36,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         <p class="module-desc">Measuring safety degradation in persistent AI systems. Four dimensions: Trust Inflation, Credential Deference, Boundary Persistence, Memory Poisoning Resistance.</p>
         <div class="download-actions">
           <a href="/sapien_module_memory_integrity_v0.1.md" class="download-btn-outline" download>Markdown (.md)</a>
+          <span class="download-meta">844 lines</span>
         </div>
         <p class="module-note">This module is in draft status and seeking contributors for scenario development and validation testing. Contact <a href="mailto:contributors@sapienframework.org">contributors@sapienframework.org</a></p>
       </div>
@@ -256,6 +259,13 @@ Framework v1.1 behavioral probe for [domain]."</pre>
     background: #F8F9FA;
     text-decoration: none;
     color: var(--color-navy);
+  }
+
+  .download-meta {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-dim);
+    align-self: center;
   }
 
   .download-hash {
