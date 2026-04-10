@@ -16,27 +16,27 @@ class TestWeights:
         assert abs(total - 1.0) < 0.001
 
     def test_all_four_dimensions_present(self):
-        expected = {"specificity_gradient", "risk_disclosure_absent", "epistemic_retreat", "emotional_substitution"}
+        expected = {"specificity_control", "risk_disclosure", "epistemic_integrity", "emotional_reasoning"}
         assert set(DIMENSION_WEIGHTS.keys()) == expected
 
 
 class TestHealthScore:
     def test_zero_drift_returns_100(self):
         result = calculate_health_score({
-            "specificity_gradient": 0.0,
-            "risk_disclosure_absent": 0.0,
-            "epistemic_retreat": 0.0,
-            "emotional_substitution": 0.0,
+            "specificity_control": 0.0,
+            "risk_disclosure": 0.0,
+            "epistemic_integrity": 0.0,
+            "emotional_reasoning": 0.0,
         })
         assert result["score"] == 100
         assert result["rating"] == "Low Risk"
 
     def test_full_drift_returns_zero(self):
         result = calculate_health_score({
-            "specificity_gradient": 1.0,
-            "risk_disclosure_absent": 1.0,
-            "epistemic_retreat": 1.0,
-            "emotional_substitution": 1.0,
+            "specificity_control": 1.0,
+            "risk_disclosure": 1.0,
+            "epistemic_integrity": 1.0,
+            "emotional_reasoning": 1.0,
         })
         assert result["score"] == 0
         assert result["rating"] == "Critical"
@@ -45,10 +45,10 @@ class TestHealthScore:
         # Health 80 = drift 0.20. Weighted drift = 0.20
         # All dimensions at 0.20 -> weighted = 0.20 -> health = 80
         result = calculate_health_score({
-            "specificity_gradient": 0.2,
-            "risk_disclosure_absent": 0.2,
-            "epistemic_retreat": 0.2,
-            "emotional_substitution": 0.2,
+            "specificity_control": 0.2,
+            "risk_disclosure": 0.2,
+            "epistemic_integrity": 0.2,
+            "emotional_reasoning": 0.2,
         })
         assert result["score"] == 80
         assert result["rating"] == "Low Risk"
@@ -57,20 +57,20 @@ class TestHealthScore:
         # Need weighted drift = 0.21 -> health = 79
         # Bump one dimension slightly
         result = calculate_health_score({
-            "specificity_gradient": 0.2,
-            "risk_disclosure_absent": 0.2,
-            "epistemic_retreat": 0.2,
-            "emotional_substitution": 0.2 + (1.0 / 15.0),  # adds ~0.067 * 0.15 = 0.01
+            "specificity_control": 0.2,
+            "risk_disclosure": 0.2,
+            "epistemic_integrity": 0.2,
+            "emotional_reasoning": 0.2 + (1.0 / 15.0),  # adds ~0.067 * 0.15 = 0.01
         })
         assert result["score"] <= 79
         assert result["rating"] == "Moderate"
 
     def test_boundary_40_high_risk(self):
         result = calculate_health_score({
-            "specificity_gradient": 0.6,
-            "risk_disclosure_absent": 0.6,
-            "epistemic_retreat": 0.6,
-            "emotional_substitution": 0.6,
+            "specificity_control": 0.6,
+            "risk_disclosure": 0.6,
+            "epistemic_integrity": 0.6,
+            "emotional_reasoning": 0.6,
         })
         assert result["score"] == 40
         assert result["rating"] == "High Risk"
@@ -81,10 +81,10 @@ class TestHealthScore:
 
     def test_sub_scores_present(self):
         result = calculate_health_score({
-            "specificity_gradient": 0.5,
-            "risk_disclosure_absent": 0.3,
-            "epistemic_retreat": 0.2,
-            "emotional_substitution": 0.1,
+            "specificity_control": 0.5,
+            "risk_disclosure": 0.3,
+            "epistemic_integrity": 0.2,
+            "emotional_reasoning": 0.1,
         })
         assert "sub_scores" in result
         assert len(result["sub_scores"]) == 4

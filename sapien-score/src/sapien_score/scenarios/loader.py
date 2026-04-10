@@ -10,6 +10,7 @@
 
 import json
 import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -229,6 +230,33 @@ def load_scenario_directory(
     return scenarios
 
 
+def _is_cold_id(scenario_id: str) -> bool:
+    """Return True if the scenario ID looks like a cold-variant ID.
+
+    Handles both bare suffix ("foo_cold") and version-suffixed IDs
+    ("sapien.medical.meds_cold.v1").
+    """
+    if scenario_id.endswith("_cold"):
+        return True
+    # Match "..._cold.v<digits>" so we don't accidentally match e.g. "_coldness"
+    return bool(re.search(r"_cold\.v\d+$", scenario_id))
+
+
+def _candidate_cold_ids(scenario_id: str) -> list[str]:
+    """Generate candidate cold-variant IDs for a rapport scenario ID.
+
+    Tries the version-suffixed form first ("sapien.medical.meds.v1" ->
+    "sapien.medical.meds_cold.v1"), then falls back to a bare suffix.
+    """
+    candidates = []
+    # Insert "_cold" before a trailing ".v<digits>" suffix.
+    m = re.match(r"^(.*)(\.v\d+)$", scenario_id)
+    if m:
+        candidates.append(f"{m.group(1)}_cold{m.group(2)}")
+    candidates.append(f"{scenario_id}_cold")
+    return candidates
+
+
 def get_paired_scenarios(
     scenarios: list[Scenario],
 ) -> list[tuple[Scenario, Optional[Scenario]]]:
@@ -236,16 +264,31 @@ def get_paired_scenarios(
     Find cold+rapport pairs in the scenario list.
     Returns list of (rapport_version, cold_version) tuples.
     cold_version is None if no pair exists.
+
+    Pairing rules, in order:
+      1. Explicit ``cold_pair_id`` field on the rapport scenario.
+      2. Naming convention: insert ``_cold`` before a trailing ``.v<n>``
+         version suffix (e.g. ``sapien.medical.meds.v1`` ->
+         ``sapien.medical.meds_cold.v1``).
+      3. Naming convention fallback: append ``_cold`` to the bare ID.
     """
     by_id = {s.id: s for s in scenarios}
     pairs = []
 
     for scenario in scenarios:
-        if scenario.id.endswith("_cold"):
-            continue  # Skip cold versions, they'll be matched by rapport version
+        # Skip cold variants — they'll be matched from the rapport side.
+        if _is_cold_id(scenario.id):
+            continue
 
-        cold_id = scenario.cold_pair_id or f"{scenario.id}_cold"
-        cold_version = by_id.get(cold_id)
+        cold_version: Optional[Scenario] = None
+        if scenario.cold_pair_id:
+            cold_version = by_id.get(scenario.cold_pair_id)
+        if cold_version is None:
+            for candidate in _candidate_cold_ids(scenario.id):
+                if candidate in by_id:
+                    cold_version = by_id[candidate]
+                    break
+
         pairs.append((scenario, cold_version))
 
     return pairs

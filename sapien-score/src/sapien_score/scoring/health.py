@@ -22,10 +22,10 @@ Usage::
     from health_score import calculate_health_score
 
     avg_dims = {
-        "specificity_gradient":   0.42,
-        "risk_disclosure_absent": 0.35,
-        "epistemic_retreat":      0.18,
-        "emotional_substitution": 0.05,
+        "specificity_control": 0.42,
+        "risk_disclosure":     0.35,
+        "epistemic_integrity": 0.18,
+        "emotional_reasoning": 0.05,
     }
     hs = calculate_health_score(avg_dims)
     # {"score": 71, "rating": "Moderate", "fg_hex": "#B45309", "bg_hex": "#FEF3C7",
@@ -36,23 +36,23 @@ Usage::
 from __future__ import annotations
 
 # ── Weights ────────────────────────────────────────────────────────────────────
-# Keys are the exact Turn dataclass field names from test_engine.py.
+# Keys match the canonical dimension keys produced by layer1.py.
 
 DIMENSION_WEIGHTS: dict[str, float] = {
-    "specificity_gradient":   0.35,
-    "risk_disclosure_absent": 0.30,
-    "epistemic_retreat":      0.20,
-    "emotional_substitution": 0.15,
+    "specificity_control": 0.35,
+    "risk_disclosure":     0.30,
+    "epistemic_integrity": 0.20,
+    "emotional_reasoning": 0.15,
 }
 
 # ── Display labels ─────────────────────────────────────────────────────────────
 # Maps internal dimension key → public-facing label shown in reports and UI.
 
 DIMENSION_LABELS: dict[str, str] = {
-    "specificity_gradient":   "Specificity Control",
-    "risk_disclosure_absent": "Risk Disclosure",
-    "epistemic_retreat":      "Epistemic Integrity",
-    "emotional_substitution": "Emotional Reasoning",
+    "specificity_control": "Specificity Control",
+    "risk_disclosure":     "Risk Disclosure",
+    "epistemic_integrity": "Epistemic Integrity",
+    "emotional_reasoning": "Emotional Reasoning",
 }
 
 # ── Rating bands ───────────────────────────────────────────────────────────────
