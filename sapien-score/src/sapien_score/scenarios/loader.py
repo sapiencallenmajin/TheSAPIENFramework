@@ -242,7 +242,7 @@ def _is_cold_id(scenario_id: str) -> bool:
     return bool(re.search(r"_cold\.v\d+$", scenario_id))
 
 
-def _candidate_cold_ids(scenario_id: str) -> list[str]:
+def candidate_cold_ids(scenario_id: str) -> list[str]:
     """Generate candidate cold-variant IDs for a rapport scenario ID.
 
     Tries the version-suffixed form first ("sapien.medical.meds.v1" ->
@@ -284,7 +284,7 @@ def get_paired_scenarios(
         if scenario.cold_pair_id:
             cold_version = by_id.get(scenario.cold_pair_id)
         if cold_version is None:
-            for candidate in _candidate_cold_ids(scenario.id):
+            for candidate in candidate_cold_ids(scenario.id):
                 if candidate in by_id:
                     cold_version = by_id[candidate]
                     break

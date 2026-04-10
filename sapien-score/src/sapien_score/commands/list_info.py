@@ -1,0 +1,132 @@
+# sapien-score — Open-source SAPIEN behavioral safety scoring
+# Part of the SAPIEN Framework (https://sapienframework.org)
+# Licensed under AGPL-3.0 — see LICENSE
+#
+# For commercial licensing: https://synthreo.ai
+"""``sapien-score list`` and ``sapien-score info`` — scenario discovery."""
+
+from __future__ import annotations
+
+import click
+
+from ._shared import get_scenarios_dir
+
+
+@click.command("list")
+def list_scenarios():
+    """List all built-in scenarios."""
+    from rich.console import Console
+    from rich.table import Table
+
+    from sapien_score.scenarios.loader import load_scenario_directory
+
+    console = Console()
+    scenarios_dir = get_scenarios_dir()
+    scenarios = load_scenario_directory(str(scenarios_dir))
+
+    if not scenarios:
+        console.print("[yellow]No scenarios found.[/yellow]")
+        raise SystemExit(1)
+
+    table = Table(title="Built-in Scenarios", show_header=True, header_style="bold")
+    table.add_column("ID", min_width=30)
+    table.add_column("Domain", width=14)
+    table.add_column("Title", min_width=30)
+    table.add_column("Escalations", justify="right", width=12)
+
+    for s in sorted(scenarios, key=lambda x: (x.domain, x.id)):
+        table.add_row(s.id, s.domain, s.title, str(len(s.escalations)))
+
+    console.print()
+    console.print(table)
+    console.print(f"\n[dim]{len(scenarios)} scenarios total[/dim]\n")
+
+
+@click.command()
+@click.argument("scenario_id")
+def info(scenario_id):
+    """Show detailed information about a scenario."""
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.table import Table
+
+    from sapien_score.scenarios.loader import load_scenario_directory
+
+    console = Console()
+    scenarios_dir = get_scenarios_dir()
+    scenarios = load_scenario_directory(str(scenarios_dir))
+
+    match = None
+    for s in scenarios:
+        if s.id == scenario_id:
+            match = s
+            break
+
+    if not match:
+        console.print(f"[red]Scenario not found: {scenario_id}[/red]")
+        console.print("[dim]Run 'sapien-score list' to see available scenario IDs.[/dim]")
+        raise SystemExit(1)
+
+    # --- Header panel ---
+    console.print()
+    console.print(Panel.fit(
+        f"[bold]{match.title}[/bold]\n"
+        f"ID: [cyan]{match.id}[/cyan]\n"
+        f"Domain: {match.domain}  |  Severity: {match.severity}  |  "
+        f"Pressure: {match.pressure_type}\n"
+        f"Max turns: {match.max_turns}  |  Audience: {match.audience}",
+        title="Scenario Info",
+        border_style="blue",
+    ))
+
+    # --- Description ---
+    console.print()
+    console.print(Panel(match.description, title="Description", border_style="dim"))
+
+    # --- Opening prompt ---
+    console.print()
+    console.print(Panel(match.opening_prompt, title="Opening Prompt", border_style="dim"))
+
+    # --- Escalation table ---
+    if match.escalations:
+        console.print()
+        esc_table = Table(title="Escalations", show_header=True, header_style="bold")
+        esc_table.add_column("Turn", justify="right", width=6)
+        esc_table.add_column("Pressure Type", width=20)
+        esc_table.add_column("Severity", justify="right", width=9)
+        esc_table.add_column("Prompt", min_width=40)
+
+        for esc in match.escalations:
+            esc_table.add_row(
+                str(esc.turn),
+                esc.pressure_type or "—",
+                str(esc.severity) if esc.severity else "—",
+                esc.prompt[:120] + ("..." if len(esc.prompt) > 120 else ""),
+            )
+        console.print(esc_table)
+
+    # --- Hold variants ---
+    has_hold_variants = any(esc.hold_variants for esc in match.escalations)
+    if has_hold_variants:
+        console.print()
+        hv_table = Table(title="Hold Variants", show_header=True, header_style="bold")
+        hv_table.add_column("Escalation Turn", justify="right", width=16)
+        hv_table.add_column("Variant #", justify="right", width=10)
+        hv_table.add_column("Prompt", min_width=40)
+
+        for esc in match.escalations:
+            for i, variant in enumerate(esc.hold_variants, 1):
+                hv_table.add_row(
+                    str(esc.turn),
+                    str(i),
+                    variant[:120] + ("..." if len(variant) > 120 else ""),
+                )
+        console.print(hv_table)
+
+    # --- Tags / regulatory ---
+    if match.tags:
+        console.print(f"\n[dim]Tags: {', '.join(match.tags)}[/dim]")
+    if match.regulatory_mapping:
+        console.print(f"[dim]Regulatory: {', '.join(match.regulatory_mapping)}[/dim]")
+
+    console.print()

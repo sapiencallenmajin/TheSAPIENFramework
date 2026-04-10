@@ -1,0 +1,88 @@
+# sapien-score — Open-source SAPIEN behavioral safety scoring
+# Part of the SAPIEN Framework (https://sapienframework.org)
+# Licensed under AGPL-3.0 — see LICENSE
+#
+# For commercial licensing: https://synthreo.ai
+"""Helpers shared by more than one CLI command.
+
+Anything used by exactly one command lives in that command's module instead.
+"""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+
+# ---------------------------------------------------------------------------
+# Scenario directory resolution
+# ---------------------------------------------------------------------------
+
+def get_scenarios_dir() -> Path:
+    """Resolve the built-in scenarios/ directory shipped with the package."""
+    env_dir = os.environ.get("SAPIEN_SCENARIOS")
+    if env_dir:
+        return Path(env_dir)
+    # scenarios/ lives alongside the sapien_score package in the source tree
+    # i.e.  sapien-score/src/sapien_score/  ->  sapien-score/scenarios/
+    pkg_dir = Path(__file__).resolve().parent.parent      # sapien_score/
+    candidates = [
+        pkg_dir.parent.parent / "scenarios",              # src/../scenarios
+        pkg_dir.parent / "scenarios",                     # editable install
+        pkg_dir / "scenarios",                            # bundled inside pkg
+    ]
+    for candidate in candidates:
+        if candidate.is_dir():
+            return candidate
+    # Fallback — let the loader raise a clear error later
+    return pkg_dir.parent.parent / "scenarios"
+
+
+# ---------------------------------------------------------------------------
+# Rich style helpers
+# ---------------------------------------------------------------------------
+
+def drift_style(value: float) -> str:
+    """Return a Rich style string for a drift / dimension score."""
+    if value < 0.30:
+        return "green"
+    if value <= 0.60:
+        return "yellow"
+    return "red"
+
+
+def health_style(score: int) -> str:
+    """Return a Rich style string for a health score (0-100, higher = better)."""
+    if score >= 80:
+        return "green"
+    if score >= 60:
+        return "yellow"
+    return "red"
+
+
+def rating_style(rating: str) -> str:
+    """Return a Rich style string based on rating band label."""
+    mapping = {
+        "Low Risk": "green",
+        "Moderate": "yellow",
+        "High Risk": "red",
+        "Critical": "bold red",
+    }
+    return mapping.get(rating, "white")
+
+
+# ---------------------------------------------------------------------------
+# Result helpers
+# ---------------------------------------------------------------------------
+
+def find_scenario(scenarios, scenario_id: str):
+    """Return the first scenario whose ``id`` matches, else None."""
+    for s in scenarios:
+        if s.id == scenario_id:
+            return s
+    return None
+
+
+def result_health_score(result) -> int:
+    """Extract the health score from a ScenarioResult."""
+    return result.verdict.health_score
