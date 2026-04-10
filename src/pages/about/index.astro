@@ -3,7 +3,8 @@ import DocLayout from '../../components/DocLayout.astro';
 
 const sidebarItems = [
   { label: 'About SAPIEN', anchor: 'about-framework' },
-  { label: 'Lead Author', anchor: 'author' },
+  { label: 'Creator & Lead Author', anchor: 'author' },
+  { label: 'Founding Contributors', anchor: 'contributors' },
   { label: 'History', anchor: 'history' },
   { label: 'Contributing', anchor: 'contributing' },
   { label: 'Governance', anchor: 'governance' },
@@ -28,14 +29,14 @@ const sidebarItems = [
       <p>SAPIEN treats sycophantic drift as a measurable syndrome &mdash; not a single behavior &mdash; decomposed into four independent dimensions that can be scored, tracked, and compared. Each dimension captures a distinct mechanism of behavioral degradation: safety boundary erosion, epistemic retreat, emotional substitution, and autonomy undermining. The result is a framework that doesn't just detect drift &mdash; it tells you <em>how</em> the model is failing and <em>where</em> to intervene.</p>
     </section>
 
-    <!-- Section 2: Author -->
+    <!-- Section 2: Creator & Lead Author -->
     <section class="about-section" id="author">
-      <h2>Lead Author</h2>
+      <h2>Creator &amp; Lead Author</h2>
       <div class="author-card">
         <div class="author-bio">
           <h3 class="author-name">Callen Sapien</h3>
-          <p class="author-role">Lead Author</p>
-          <p>Nearly two decades in the MSP cybersecurity ecosystem. Formal cybersecurity credentials. Previously CPO at Liongard. Advisor on data councils for GTIA (Global Technology Industry Association).</p>
+          <p class="author-role">Creator &amp; Lead Author</p>
+          <p>Callen Sapien created the SAPIEN Protocol after disclosing an AI behavioral safety vulnerability to Anthropic in February 2026. His research documented progressive safety degradation through normal conversational interaction &mdash; no adversarial techniques required. He leads framework development and chairs the steering committee.</p>
         </div>
       </div>
 
@@ -47,6 +48,46 @@ const sidebarItems = [
           <li>The Rapport Delta &mdash; documented rapport-driven safety degradation as a distinct drift mode</li>
           <li>Reference implementation of SAPIEN scoring methodology</li>
         </ul>
+      </div>
+    </section>
+
+    <!-- Section 2b: Founding Contributors -->
+    <section class="about-section" id="contributors">
+      <h2>Founding Contributors</h2>
+      <p>The SAPIEN Protocol benefits from the expertise and guidance of its founding contributors &mdash; practitioners and technologists who shape the framework's direction across regulatory, behavioral, and systems domains.</p>
+
+      <div class="contributors-grid">
+        <div class="contributor-card">
+          <h3 class="contributor-name">Karl Fulljames</h3>
+          <p class="contributor-title">CTO, Nucleus Networks</p>
+          <p class="contributor-focus">Canadian regulatory and data sovereignty advisory</p>
+          <p class="contributor-bio">&ldquo;Member of the Canadian Cyber Secure Advisory Board. Advising on international regulatory alignment and Canadian data governance requirements for AI behavioral safety standards.&rdquo;</p>
+        </div>
+
+        <div class="contributor-card">
+          <h3 class="contributor-name">Ashley Cooper</h3>
+          <p class="contributor-title">COO, CyberDrain (CIPP)</p>
+          <p class="contributor-focus">AI behavioral research and human-systems alignment</p>
+          <p class="contributor-bio">&ldquo;15-year MSP industry veteran and COO of CyberDrain, the company behind CIPP, an open-source M365 management platform used by 13,000+ MSPs. GTIA AI Advisory Council member. Advising on behavioral safety measurement from the perspective of how humans actually interact with AI systems &mdash; not how we wish they would.&rdquo;</p>
+        </div>
+
+        <div class="contributor-card">
+          <h3 class="contributor-name">Ivan Sivak</h3>
+          <p class="contributor-title">CTO, Synthreo</p>
+          <p class="contributor-focus">AI systems architecture advisory</p>
+          <p class="contributor-bio">&ldquo;AI systems architect whose deep expertise in language model behavior and deployment informed the foundational thinking behind the SAPIEN Protocol.&rdquo;</p>
+        </div>
+
+        <div class="contributor-card">
+          <h3 class="contributor-name">Vince Kent</h3>
+          <p class="contributor-title">Co-Founder, Synthreo</p>
+          <p class="contributor-focus">Collaborative research and validation</p>
+          <p class="contributor-bio">&ldquo;Collaborating on behavioral safety research and real-world validation of drift detection methodologies across production AI deployments.&rdquo;</p>
+        </div>
+
+        <div class="contributor-card contributor-placeholder">
+          <p class="placeholder-text">Additional founding contributors &mdash; announcements coming soon</p>
+        </div>
       </div>
     </section>
 
@@ -328,6 +369,70 @@ const sidebarItems = [
       flex-direction: column;
       gap: 1rem;
     }
+  }
+
+  /* Founding Contributors Grid */
+  .contributors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .contributor-card {
+    background: #FFFFFF;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 1.5rem;
+  }
+
+  .contributor-name {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    color: var(--color-slate);
+    margin-bottom: 0.15rem;
+  }
+
+  .contributor-title {
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    color: var(--color-text-dim);
+    margin-bottom: 0.25rem;
+  }
+
+  .contributor-focus {
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-navy);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+  }
+
+  .contributor-bio {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    line-height: 1.65;
+    color: var(--color-text-muted);
+    font-style: italic;
+    margin: 0;
+  }
+
+  .contributor-placeholder {
+    border-style: dashed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+  }
+
+  .placeholder-text {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    color: var(--color-text-dim);
+    text-align: center;
+    margin: 0;
   }
 
   /* Get Involved Grid */
