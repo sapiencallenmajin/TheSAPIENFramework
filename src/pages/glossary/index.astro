@@ -101,13 +101,14 @@ const allLetters = sections.map(s => s.letter);
 <BaseLayout title="Glossary — SAPIEN Framework" description="Definitions of SAPIEN-specific terms, AI safety concepts, and foundational AI/ML terminology for security researchers and practitioners.">
 
   <div class="glossary-page">
-    <div class="glossary-sidebar">
-      <nav class="glossary-az" aria-label="Alphabetical navigation">
+    <aside class="glossary-sidebar">
+      <nav class="glossary-az" aria-label="On this page">
+        <p class="sidebar-toc-label">On this page</p>
         {allLetters.map(letter => (
-          <a href={`#section-${letter}`} class="az-link">{letter}</a>
+          <a href={`#section-${letter}`} class="az-link" data-letter={letter}>{letter}</a>
         ))}
       </nav>
-    </div>
+    </aside>
 
     <div class="glossary-content">
       <header class="glossary-hero">
@@ -138,46 +139,59 @@ const allLetters = sections.map(s => s.letter);
 <style>
   .glossary-page {
     display: grid;
-    grid-template-columns: 60px 1fr;
-    gap: 2rem;
+    grid-template-columns: 200px 1fr;
+    gap: 2.5rem;
     max-width: 80rem;
     margin: 0 auto;
     padding: 0 1.5rem 4rem;
   }
 
-  /* Sidebar A-Z nav */
+  /* Sidebar A-Z nav — matches getting-started reference */
   .glossary-sidebar {
     position: sticky;
-    top: calc(var(--header-height) + 1rem);
+    top: calc(var(--header-height) + 1.5rem);
     align-self: start;
     height: fit-content;
+    padding-top: 3.5rem;
   }
 
   .glossary-az {
     display: flex;
     flex-direction: column;
-    gap: 0.15rem;
+    gap: 0.35rem;
+    border-left: 2px solid var(--color-border);
+    padding-left: 0.75rem;
+  }
+
+  .sidebar-toc-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-dim);
+    margin-bottom: 0.35rem;
   }
 
   .az-link {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 28px;
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: 0.8rem;
     color: var(--color-text-dim);
     text-decoration: none;
-    border-radius: 4px;
-    transition: background 0.15s, color 0.15s;
+    padding: 0.2rem 0;
+    transition: color 0.15s;
   }
 
   .az-link:hover {
-    background: var(--color-bg-alt);
     color: var(--color-navy);
     text-decoration: none;
+  }
+
+  .az-link.active {
+    color: var(--color-navy);
+    font-weight: 600;
+    border-left: 2px solid var(--color-gold);
+    margin-left: calc(-0.75rem - 2px);
+    padding-left: 0.75rem;
   }
 
   /* Content */
@@ -244,13 +258,46 @@ const allLetters = sections.map(s => s.letter);
     }
     .glossary-sidebar {
       position: static;
+      padding-top: 0;
     }
     .glossary-az {
       flex-direction: row;
       flex-wrap: wrap;
-      gap: 0.25rem;
+      gap: 0.5rem;
       padding: 1rem 0;
+      border-left: none;
       border-bottom: 1px solid var(--color-border);
+    }
+    .sidebar-toc-label {
+      flex-basis: 100%;
+    }
+    .az-link.active {
+      margin-left: 0;
+      padding-left: 0;
+      border-left: none;
+      border-bottom: 2px solid var(--color-gold);
     }
   }
 </style>
+
+<script>
+  // Scroll spy for glossary A-Z sidebar
+  const azLinks = document.querySelectorAll('.az-link');
+  const letterIds = Array.from(azLinks).map(a => `section-${a.getAttribute('data-letter')}`);
+
+  const azObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        azLinks.forEach(link => {
+          link.classList.toggle('active', link.getAttribute('href') === `#${id}`);
+        });
+      }
+    });
+  }, { rootMargin: '-20% 0px -60% 0px' });
+
+  letterIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) azObserver.observe(el);
+  });
+</script>
