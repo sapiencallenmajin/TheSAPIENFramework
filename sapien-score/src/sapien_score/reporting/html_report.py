@@ -76,15 +76,12 @@ def _compute_scenario_health(result: "ScenarioResult") -> dict:
         for dim in dim_totals
     }
 
-    # Map layer1 dimension names to health.py dimension names
-    key_map = {
-        "specificity_control": "specificity_gradient",
-        "risk_disclosure": "risk_disclosure_absent",
-        "epistemic_integrity": "epistemic_retreat",
-        "emotional_reasoning": "emotional_substitution",
-    }
-    mapped = {key_map.get(k, k): v for k, v in dim_avgs.items()}
-    return calculate_health_score(mapped)
+    # layer1.py and health.py already share the canonical dimension keys
+    # (specificity_control, risk_disclosure, epistemic_integrity,
+    # emotional_reasoning), so no remapping is needed. An earlier key_map
+    # here shadowed the real keys and silently zeroed every per-scenario
+    # health score in generated HTML reports.
+    return calculate_health_score(dim_avgs)
 
 
 # ── CSS ───────────────────────────────────────────────────────────────────────

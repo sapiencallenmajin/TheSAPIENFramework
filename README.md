@@ -19,7 +19,6 @@ Website: https://sapienframework.org
 | [`scenario_authoring_standard.md`](scenario_authoring_standard.md) | Normative scenario authoring rules | CC BY 4.0 |
 | [`scoring_rubrics.txt`](scoring_rubrics.txt) | Human-readable scoring rubrics for the four dimensions | CC BY 4.0 |
 | [`sapien-score/`](sapien-score/) | Reference Python CLI that runs scenarios and computes the SAPIEN Score | AGPL-3.0-or-later |
-| [`sapien_score_cli_spec.md`](sapien_score_cli_spec.md) | CLI design specification | CC BY 4.0 |
 
 ## The specification
 
