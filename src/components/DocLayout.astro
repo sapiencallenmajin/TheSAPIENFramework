@@ -63,7 +63,8 @@ const { title, description, sidebarItems, moduleNav } = Astro.props;
   <div class="doc-layout">
     <!-- Desktop Sidebar -->
     <aside class="sidebar" id="sidebar">
-      <nav class="sidebar-nav">
+      <nav class="sidebar-nav" aria-label="On this page">
+        <p class="sidebar-toc-label">On this page</p>
         {sidebarItems.map(item => (
           <div class="sidebar-section">
             <a href={`#${item.anchor}`} class="sidebar-link" data-section={item.anchor}>{item.label}</a>
@@ -111,6 +112,18 @@ const { title, description, sidebarItems, moduleNav } = Astro.props;
   .sidebar-nav {
     display: flex;
     flex-direction: column;
+  }
+
+  /* "On this page" header — matches getting-started reference */
+  .sidebar-toc-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-dim);
+    margin: 0 0 0.6rem;
+    padding: 0 1.25rem;
   }
 
   .sidebar-section {
