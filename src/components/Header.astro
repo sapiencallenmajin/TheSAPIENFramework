@@ -149,15 +149,15 @@
     display: none;
     position: absolute;
     top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    min-width: 240px;
+    left: 0;
+    min-width: 260px;
     background: #FFFFFF;
     border: 1px solid #E2E8F0;
     border-radius: 8px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
     padding: 0.5rem 0;
     margin-top: 0.5rem;
+    z-index: 50;
   }
 
   /* Invisible bridge so mouse can travel from link to panel */
@@ -183,7 +183,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.45rem 1rem;
+    padding: 8px 16px;
     font-size: 0.85rem;
     font-weight: 500;
     color: var(--color-text-muted);
@@ -265,26 +265,37 @@
     .nav-link { padding: 0.5rem 0; }
     .mobile-toggle { display: flex; }
 
-    /* Mobile: show dropdowns inline */
+    /* Mobile: accordion dropdowns */
     .nav-dropdown {
       width: 100%;
     }
+    .nav-dropdown:hover .dropdown-panel {
+      display: none;
+    }
+    .nav-dropdown:hover::after {
+      display: none;
+    }
+    .nav-dropdown.accordion-open .dropdown-panel {
+      display: block;
+    }
     .dropdown-panel {
       position: static;
-      display: block;
-      transform: none;
       min-width: 0;
       border: none;
       box-shadow: none;
       padding: 0 0 0 1rem;
       margin-top: 0;
       border-radius: 0;
-    }
-    .nav-dropdown::after {
-      display: none;
+      z-index: auto;
     }
     .chevron-icon {
-      display: none;
+      transition: transform 0.2s;
+    }
+    .nav-dropdown:hover .chevron-icon {
+      transform: none;
+    }
+    .nav-dropdown.accordion-open .chevron-icon {
+      transform: rotate(180deg);
     }
     .dropdown-item {
       padding: 0.35rem 0;
@@ -304,6 +315,18 @@
       menu.classList.toggle('open');
     });
   }
+
+  // Mobile accordion dropdowns
+  const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+  document.querySelectorAll('.nav-link-dropdown').forEach(link => {
+    link.addEventListener('click', (e) => {
+      if (isMobile()) {
+        e.preventDefault();
+        const dropdown = link.closest('.nav-dropdown');
+        if (dropdown) dropdown.classList.toggle('accordion-open');
+      }
+    });
+  });
 
   // Search trigger
   const searchBtn = document.getElementById('search-trigger');
