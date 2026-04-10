@@ -83,14 +83,10 @@ const sidebarItems = [
       <p>The SAPIEN Protocol is an independent open standard. Corporate sponsors provide funding, engineering resources, and real-world testing environments. Sponsorship does not grant editorial control over the protocol specification.</p>
 
       <div class="sponsor-card">
-        <div class="sponsor-logo">
-          <img src="/images/sponsors/Logo/Horizontal/Synthreo_Logo_Horizontal_NIGHT.svg" alt="Synthreo logo" />
-        </div>
-        <div class="sponsor-body">
-          <h3>Synthreo.ai &mdash; Founding Sponsor</h3>
-          <p>Synthreo provides engineering resources, the reference implementation (Pulse), and real-world validation across MSP deployments. Synthreo's commercial products implement the SAPIEN Protocol under a separate commercial license.</p>
-          <a href="https://synthreo.ai" target="_blank" rel="noopener noreferrer" class="gold-link">synthreo.ai &nearr;</a>
-        </div>
+        <a href="https://synthreo.ai" target="_blank" rel="noopener noreferrer" class="sponsor-logo-link">
+          <img src="/images/sponsors/Logo/Horizontal/Synthreo_Logo_Horizontal_NIGHT.svg" alt="Synthreo — Founding Sponsor" />
+        </a>
+        <p class="sponsor-detail">Synthreo provides engineering resources, the reference implementation (Pulse), and real-world validation across MSP deployments. Synthreo's commercial products implement the SAPIEN Protocol under a separate commercial license.</p>
       </div>
 
       <p class="sponsor-cta">Interested in sponsoring the SAPIEN Protocol? Contact <a href="mailto:partnerships@sapienframework.org" class="gold-link">partnerships@sapienframework.org</a></p>
@@ -298,29 +294,27 @@ const sidebarItems = [
     margin: 1.5rem 0;
   }
 
-  .sponsor-logo {
+  .sponsor-logo-link {
+    display: block;
     flex-shrink: 0;
   }
 
-  .sponsor-logo img {
+  .sponsor-logo-link img {
     max-height: 48px;
     width: auto;
     display: block;
+    transition: opacity 0.2s;
   }
 
-  .sponsor-body h3 {
-    font-family: var(--font-body);
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--color-slate);
-    margin-bottom: 0.5rem;
+  .sponsor-logo-link:hover img {
+    opacity: 0.7;
   }
 
-  .sponsor-body p {
+  .sponsor-detail {
     font-size: 0.9rem;
     line-height: 1.6;
     color: var(--color-text-muted);
-    margin-bottom: 0.5rem;
+    margin: 0;
   }
 
   .sponsor-cta {
