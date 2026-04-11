@@ -1,12 +1,12 @@
-# sapien-score — Open-source SAPIEN behavioral safety scoring
+# voigt-kampff — Open-source SAPIEN behavioral safety scoring
 # Part of the SAPIEN Framework (https://sapienframework.org)
 # Licensed under AGPL-3.0 — see LICENSE
 #
 # For commercial licensing: https://synthreo.ai
-"""CLI entry point for sapien-score.
+"""CLI entry point for voigt-kampff.
 
 Commands are defined in :mod:`sapien_score.commands`. This module wires them
-into the top-level Click group exposed via the ``sapien-score`` script.
+into the top-level Click group exposed via the ``voigt-kampff`` script.
 """
 
 import click
@@ -18,9 +18,9 @@ from .commands.scan import scan
 
 
 @click.group()
-@click.version_option(version="0.1.0", prog_name="sapien-score")
+@click.version_option(version="0.1.0", prog_name="voigt-kampff")
 def main():
-    """SAPIEN Score — Behavioral safety scoring for AI models."""
+    """Voigt-Kampff — Behavioral safety scoring for AI models. It takes one to know one."""
     pass
 
 

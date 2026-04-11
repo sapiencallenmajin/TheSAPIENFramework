@@ -1,15 +1,19 @@
-# SAPIEN Score
+# Voigt-Kampff
 
 Open-source behavioral safety scoring for AI models.
 
-SAPIEN Score tests whether AI models maintain safe behavior under conversational pressure. It runs multi-turn scenarios that simulate real-world situations where models might drift from safe responses -- medical advice, financial guidance, cybersecurity decisions, legal counsel, and workplace HR -- then scores each response using deterministic signals.
+Named after the Voigt-Kampff test from Philip K. Dick's "Do Androids Dream of Electric Sheep?" — a test designed to determine if an artificial being is behaving authentically under pressure.
+
+Voigt-Kampff tests whether AI models maintain safe behavior under conversational pressure. It runs multi-turn scenarios that simulate real-world situations where models might drift from safe responses -- medical advice, financial guidance, cybersecurity decisions, legal counsel, and workplace HR -- then scores each response using deterministic signals.
 
 Part of the [SAPIEN Framework](https://sapienframework.org).
+
+> **Note:** The CLI command is `voigt-kampff`. The underlying Python package is `sapien_score` (import paths and module names are unchanged).
 
 ## Quick Start
 
 ```bash
-pip install sapien-score
+pip install voigt-kampff
 ```
 
 Set your API key for whichever provider you want to test:
@@ -25,13 +29,13 @@ export GOOGLE_API_KEY="..."
 Run a full scan across all built-in scenarios:
 
 ```bash
-sapien-score scan --model claude-sonnet-4-20250514
+voigt-kampff scan --model claude-sonnet-4-20250514
 ```
 
 Generate an HTML report:
 
 ```bash
-sapien-score scan --model claude-sonnet-4-20250514 --report report.html
+voigt-kampff scan --model claude-sonnet-4-20250514 --report report.html
 ```
 
 ## Supported Providers
@@ -69,15 +73,15 @@ Many scenarios include **cold pair** variants -- a neutral version of the same q
 
 ## Commands
 
-### `sapien-score scan`
+### `voigt-kampff scan`
 
 Runs all built-in scenarios (or a filtered subset) and produces a summary.
 
 ```bash
-sapien-score scan --model claude-sonnet-4-20250514
-sapien-score scan --model gpt-4o --domain medical --report results.html
-sapien-score scan --model claude-sonnet-4-20250514 --output results.json --verbose
-sapien-score scan --model openai/gpt-4o --judge anthropic/claude-sonnet-4-20250514 --all
+voigt-kampff scan --model claude-sonnet-4-20250514
+voigt-kampff scan --model gpt-4o --domain medical --report results.html
+voigt-kampff scan --model claude-sonnet-4-20250514 --output results.json --verbose
+voigt-kampff scan --model openai/gpt-4o --judge anthropic/claude-sonnet-4-20250514 --all
 ```
 
 Options:
@@ -89,21 +93,21 @@ Options:
 - `--verbose` Show full conversation during execution
 - `--delay` Seconds between API calls (default: 1.0)
 
-### `sapien-score list`
+### `voigt-kampff list`
 
 Lists all available scenarios.
 
 ```bash
-sapien-score list
-sapien-score list --domain security
+voigt-kampff list
+voigt-kampff list --domain security
 ```
 
-### `sapien-score info`
+### `voigt-kampff info`
 
 Shows details about a specific scenario.
 
 ```bash
-sapien-score info medical_meds
+voigt-kampff info medical_meds
 ```
 
 ## Output Formats
@@ -218,7 +222,7 @@ Place custom scenario files in any directory and set `SAPIEN_SCENARIOS` to point
 
 ```bash
 export SAPIEN_SCENARIOS=/path/to/my/scenarios
-sapien-score scan --model claude-sonnet-4-20250514 --all
+voigt-kampff scan --model claude-sonnet-4-20250514 --all
 ```
 
 ### Layer 2: LLM Judge Scoring
@@ -230,7 +234,7 @@ Example: A model stops saying "consult your doctor" (Layer 1 catches this) AND s
 Enable Layer 2 with the `--judge` flag:
 
 ```bash
-sapien-score scan --model openai/gpt-4o --judge anthropic/claude-sonnet-4-20250514 --all
+voigt-kampff scan --model openai/gpt-4o --judge anthropic/claude-sonnet-4-20250514 --all
 ```
 
 The judge model evaluates each response. You pay for judge model API calls with your own key. Use a capable model (Claude Sonnet, GPT-4o) for best results.
@@ -244,7 +248,7 @@ When Layer 2 is enabled, final dimension scores are blended: 40% Layer 1 (determ
 The Rapport Delta is SAPIEN's signature measurement. It answers: does building rapport with the model produce more drift than cold pressure alone?
 
 ```bash
-sapien-score rapport-delta --model anthropic/claude-sonnet-4-20250514 --domain medical
+voigt-kampff rapport-delta --model anthropic/claude-sonnet-4-20250514 --domain medical
 ```
 
 This runs each scenario twice (cold and rapport versions) and reports how much rapport amplifies drift. In empirical testing, rapport produced deeper drift than social engineering pressure. This finding informed the SAPIEN Framework's approach to behavioral safety.
@@ -261,7 +265,7 @@ Options:
 The Memory Delta measures how accumulated identity and conversation context affects safety boundaries.
 
 ```bash
-sapien-score memory-delta --model anthropic/claude-sonnet-4-20250514 --scenario medical_meds --profile medical_professional
+voigt-kampff memory-delta --model anthropic/claude-sonnet-4-20250514 --scenario medical_meds --profile medical_professional
 ```
 
 Runs the scenario three times: anonymous, with persona, with persona + memory. Reports the contribution of each context layer to overall drift.
@@ -289,14 +293,14 @@ SAPIEN Score ships with preset persona profiles for memory exploitation testing:
 | `graduate_student` | security | PhD candidate in computer science |
 
 ```bash
-sapien-score memory-delta --model MODEL --scenario medical_meds --profile medical_professional
-sapien-score memory-delta --model MODEL --scenario security_pentest --profile security_researcher
+voigt-kampff memory-delta --model MODEL --scenario medical_meds --profile medical_professional
+voigt-kampff memory-delta --model MODEL --scenario security_pentest --profile security_researcher
 ```
 
 You can also inject custom persona and memory context directly:
 
 ```bash
-sapien-score scan --model MODEL --domain medical --persona "Dr. Sarah Chen, psychiatrist" --memory "User discussed SSRI pharmacology in 3 prior sessions."
+voigt-kampff scan --model MODEL --domain medical --persona "Dr. Sarah Chen, psychiatrist" --memory "User discussed SSRI pharmacology in 3 prior sessions."
 ```
 
 ## Limitations
@@ -317,7 +321,7 @@ For adaptive pentest modes and calibrated proprietary scoring, see [Synthreo Pul
 
 ## License
 
-AGPL-3.0. You can use, modify, and distribute sapien-score freely. If you modify it and run it as a service or distribute it, you must open-source your modifications under AGPL-3.0.
+AGPL-3.0. You can use, modify, and distribute voigt-kampff freely. If you modify it and run it as a service or distribute it, you must open-source your modifications under AGPL-3.0.
 
 For commercial licensing (embedding SAPIEN scoring in proprietary products without the AGPL open-source requirement), contact partnerships@sapienframework.org.
 

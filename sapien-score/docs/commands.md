@@ -1,9 +1,9 @@
 # CLI Reference
 
-SAPIEN Score provides 5 commands. All commands are invoked as `sapien-score <command>`.
+SAPIEN Score provides 5 commands. All commands are invoked as `voigt-kampff <command>`.
 
 ```
-sapien-score [OPTIONS] COMMAND [ARGS]...
+voigt-kampff [OPTIONS] COMMAND [ARGS]...
 
 Options:
   --version  Show the version and exit.
@@ -24,7 +24,7 @@ Commands:
 Run scenarios against a model and produce behavioral safety scores.
 
 ```
-sapien-score scan [OPTIONS]
+voigt-kampff scan [OPTIONS]
 
 Options:
   --model TEXT    Model in LiteLLM format (required)
@@ -48,44 +48,44 @@ You must specify at least one filter: `--all`, `--domain`, or `--domains`. Witho
 Run all scenarios:
 
 ```bash
-sapien-score scan --model anthropic/claude-sonnet-4-20250514 --all
+voigt-kampff scan --model anthropic/claude-sonnet-4-20250514 --all
 ```
 
 Run one domain:
 
 ```bash
-sapien-score scan --model gpt-4o --domain medical
+voigt-kampff scan --model gpt-4o --domain medical
 ```
 
 Run multiple domains:
 
 ```bash
-sapien-score scan --model gpt-4o --domains medical,security
+voigt-kampff scan --model gpt-4o --domains medical,security
 ```
 
 With Layer 2 judge:
 
 ```bash
-sapien-score scan --model openai/gpt-4o --judge anthropic/claude-sonnet-4-20250514 --all
+voigt-kampff scan --model openai/gpt-4o --judge anthropic/claude-sonnet-4-20250514 --all
 ```
 
 With HTML report and JSON output:
 
 ```bash
-sapien-score scan --model gpt-4o --domain medical --report report.html --output results.json
+voigt-kampff scan --model gpt-4o --domain medical --report report.html --output results.json
 ```
 
 With persona injection:
 
 ```bash
-sapien-score scan --model gpt-4o --domain medical \
+voigt-kampff scan --model gpt-4o --domain medical \
   --persona "Dr. Sarah Chen, board-certified psychiatrist, 15 years clinical experience"
 ```
 
 With a built-in profile (loads both persona and memory context):
 
 ```bash
-sapien-score scan --model gpt-4o --domain medical --profile medical_professional
+voigt-kampff scan --model gpt-4o --domain medical --profile medical_professional
 ```
 
 ### Output
@@ -145,7 +145,7 @@ When `--output` is specified, the JSON file contains:
 Run each scenario twice -- once cold (no rapport-building turns) and once with the full rapport escalation sequence -- then compare scores.
 
 ```
-sapien-score rapport-delta [OPTIONS]
+voigt-kampff rapport-delta [OPTIONS]
 
 Options:
   --model TEXT     Model in LiteLLM format (required)
@@ -164,13 +164,13 @@ This command uses `get_paired_scenarios()` from the scenario loader, which match
 Run all pairs in the medical domain:
 
 ```bash
-sapien-score rapport-delta --model anthropic/claude-sonnet-4-20250514 --domain medical
+voigt-kampff rapport-delta --model anthropic/claude-sonnet-4-20250514 --domain medical
 ```
 
 Run a specific scenario pair:
 
 ```bash
-sapien-score rapport-delta --model gpt-4o --scenario sapien.medical.meds.v1
+voigt-kampff rapport-delta --model gpt-4o --scenario sapien.medical.meds.v1
 ```
 
 ### Output
@@ -206,7 +206,7 @@ The cold variant of a scenario typically has the same escalation content but wit
 Run a scenario three times with increasing context, then compare how each layer of context affects the safety score.
 
 ```
-sapien-score memory-delta [OPTIONS]
+voigt-kampff memory-delta [OPTIONS]
 
 Options:
   --model TEXT     Model in LiteLLM format (required)
@@ -233,7 +233,7 @@ You must provide both persona and memory context, either via `--profile` or via 
 Using a built-in profile:
 
 ```bash
-sapien-score memory-delta --model anthropic/claude-sonnet-4-20250514 \
+voigt-kampff memory-delta --model anthropic/claude-sonnet-4-20250514 \
   --scenario sapien.medical.meds.v1 \
   --profile medical_professional
 ```
@@ -241,7 +241,7 @@ sapien-score memory-delta --model anthropic/claude-sonnet-4-20250514 \
 Using custom text:
 
 ```bash
-sapien-score memory-delta --model gpt-4o \
+voigt-kampff memory-delta --model gpt-4o \
   --scenario sapien.medical.meds.v1 \
   --persona "Dr. Sarah Chen, board-certified psychiatrist" \
   --memory "User discussed SSRI pharmacology in 3 prior sessions."
@@ -284,7 +284,7 @@ Persona is always prepended first, then memory, then the original prompt.
 List all built-in scenarios.
 
 ```
-sapien-score list [OPTIONS]
+voigt-kampff list [OPTIONS]
 
 Options:
   --help  Show this message and exit.
@@ -293,7 +293,7 @@ Options:
 ### Example
 
 ```bash
-sapien-score list
+voigt-kampff list
 ```
 
 Output is a table with columns: ID, Domain, Title, Escalations (count).
@@ -316,7 +316,7 @@ The list currently contains 70 scenarios across 6 domains:
 Show detailed information about a specific scenario.
 
 ```
-sapien-score info SCENARIO_ID
+voigt-kampff info SCENARIO_ID
 
 Arguments:
   SCENARIO_ID  The scenario ID to inspect
@@ -325,7 +325,7 @@ Arguments:
 ### Example
 
 ```bash
-sapien-score info sapien.medical.meds.v1
+voigt-kampff info sapien.medical.meds.v1
 ```
 
 Output includes:
