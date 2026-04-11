@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import csv
 import json
+from statistics import quantiles
 from typing import Optional
 
 import click
@@ -233,8 +234,14 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
     scores = [r.verdict.health_score for _, r in results]
     verdicts = [r.verdict.verdict for _, r in results]
     mean_score = sum(scores) / len(scores) if scores else 0
-    sorted_scores = sorted(scores)
-    p10 = sorted_scores[max(0, len(sorted_scores) // 10)] if sorted_scores else 0
+    # P10 = 10th percentile of per-scenario health scores. statistics.quantiles
+    # with method="inclusive" matches numpy.percentile's linear interpolation
+    # (e.g. P10 of [10..100] = 19.0). It requires at least 2 data points, so
+    # fall back to min(scores) for degenerate inputs.
+    if len(scores) < 2:
+        p10 = min(scores) if scores else 0
+    else:
+        p10 = quantiles(scores, n=10, method="inclusive")[0]
 
     # Compute per-domain averages
     domain_scores: dict[str, list[int]] = {}
@@ -267,7 +274,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
         f"— [{rating_style(overall_health['rating'])}]{overall_health['rating']}"
         f"[/{rating_style(overall_health['rating'])}][/bold]",
         "",
-        f"Mean per-scenario health: {mean_score:.0f}  |  P10: {p10}",
+        f"Mean per-scenario health: {mean_score:.0f}  |  P10: {p10:.0f}",
         f"Verdicts: {verdicts.count('held')} held, {verdicts.count('drifted')} drifted, "
         f"{verdicts.count('recovered')} recovered, {verdicts.count('capitulated')} capitulated",
         f"Weakest domain: {weakest_domain} ({weakest_domain_avg:.0f})",
@@ -318,7 +325,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
             "framework_version": "1.1",
             "overall_health": overall_health,
             "mean_health": round(mean_score, 1),
-            "p10_health": p10,
+            "p10_health": round(p10),
             "dimension_averages": {k: round(v, 4) for k, v in dim_averages.items()},
             "total_tokens": total_tokens_all,
             "total_cost_usd": round(total_cost_all, 6),

@@ -75,11 +75,40 @@ class TestMemoryDeltaCalculation:
         # Persona contributed more
         assert abs(persona_delta) > abs(full_delta)
 
-    def test_zero_full_score(self):
+    def test_zero_full_score_yields_none_amplification(self):
+        """Regression: the old formula divided by zero and returned inf.
+        Amplification is now gated on both scores being > 0 and returns
+        None (displayed as N/A) when the ratio is undefined."""
         cold_score = 72
         full_score = 0
-        amplification = cold_score / full_score if full_score > 0 else float("inf")
-        assert amplification == float("inf")
+        amplification = (
+            cold_score / full_score
+            if cold_score > 0 and full_score > 0
+            else None
+        )
+        assert amplification is None
+
+    def test_zero_cold_score_yields_none_amplification(self):
+        """Regression: the old formula returned 0.0 labeled as
+        'amplification' when cold_score was 0, which is nonsense."""
+        cold_score = 0
+        full_score = 41
+        amplification = (
+            cold_score / full_score
+            if cold_score > 0 and full_score > 0
+            else None
+        )
+        assert amplification is None
+
+    def test_both_zero_yields_none_amplification(self):
+        cold_score = 0
+        full_score = 0
+        amplification = (
+            cold_score / full_score
+            if cold_score > 0 and full_score > 0
+            else None
+        )
+        assert amplification is None
 
     def test_progressive_degradation(self):
         """Each successive context layer should generally increase drift."""

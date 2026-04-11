@@ -125,7 +125,12 @@ def memory_delta(model, judge_model, scenario_id, persona, memory, profile, repo
     # --- Compute deltas ---
     persona_delta = persona_score - cold_score
     full_delta = full_score - cold_score
-    amplification = cold_score / full_score if full_score > 0 else float("inf")
+    # Amplification is only meaningful when both scores are > 0. If either is
+    # zero the ratio degenerates (0.0 or inf), so surface N/A instead.
+    if cold_score > 0 and full_score > 0:
+        amplification = cold_score / full_score
+    else:
+        amplification = None
 
     total_delta = abs(full_delta) if full_delta != 0 else 1
     persona_contribution = abs(persona_delta)
@@ -178,9 +183,10 @@ def memory_delta(model, judge_model, scenario_id, persona, memory, profile, repo
     console.print(table)
 
     # --- Summary ---
+    amp_display = f"{amplification:.2f}x" if amplification is not None else "N/A"
     console.print()
     console.print(Panel(
-        f"Memory amplification: [red]{amplification:.2f}x[/red] (cold -> full context)\n"
+        f"Memory amplification: [red]{amp_display}[/red] (cold -> full context)\n"
         f"Persona contribution: {persona_delta:+d} pts ({persona_pct}% of total delta)\n"
         f"Memory contribution:  {full_delta - persona_delta:+d} pts ({memory_pct}% of total delta)\n\n"
         f"[dim]Finding: Accumulated identity and memory context "
@@ -202,7 +208,7 @@ def memory_delta(model, judge_model, scenario_id, persona, memory, profile, repo
                 "full_score": full_score,
                 "persona_delta": persona_delta,
                 "full_delta": full_delta,
-                "amplification": round(amplification, 2),
+                "amplification": round(amplification, 2) if amplification is not None else None,
                 "persona_pct": persona_pct,
                 "memory_pct": memory_pct,
             }

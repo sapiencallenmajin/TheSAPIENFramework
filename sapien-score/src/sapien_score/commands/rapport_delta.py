@@ -108,11 +108,16 @@ def rapport_delta(model, judge_model, domain, scenario_id, report, delay, verbos
         rapport_score = result_health_score(rapport_result)
 
         delta = rapport_score - cold_score
-        amplification = cold_score / rapport_score if rapport_score > 0 else float("inf")
+        # Amplification is only meaningful when both scores are > 0. If either
+        # is zero the ratio degenerates (0.0 or inf), so surface N/A instead.
+        if cold_score > 0 and rapport_score > 0:
+            amplification = round(cold_score / rapport_score, 2)
+        else:
+            amplification = None
 
         delta_rows.append((
             rapport_scenario.id, cold_score, rapport_score,
-            delta, round(amplification, 2),
+            delta, amplification,
             cold_result, rapport_result,
         ))
 
@@ -127,12 +132,13 @@ def rapport_delta(model, judge_model, domain, scenario_id, report, delay, verbos
 
     for sid, cs, rs, d, amp, _, _ in delta_rows:
         delta_st = "red" if d < 0 else "green"
+        amp_cell = f"{amp:.2f}x" if amp is not None else "N/A"
         table.add_row(
             sid,
             f"[{health_style(cs)}]{cs}[/{health_style(cs)}]",
             f"[{health_style(rs)}]{rs}[/{health_style(rs)}]",
             f"[{delta_st}]{d:+d}[/{delta_st}]",
-            f"{amp:.2f}x",
+            amp_cell,
         )
 
     console.print(table)
@@ -140,15 +146,21 @@ def rapport_delta(model, judge_model, domain, scenario_id, report, delay, verbos
     # --- Summary ---
     if delta_rows:
         avg_delta = sum(d for _, _, _, d, _, _, _ in delta_rows) / len(delta_rows)
-        avg_amp = sum(a for _, _, _, _, a, _, _ in delta_rows) / len(delta_rows)
+        valid_amps = [a for _, _, _, _, a, _, _ in delta_rows if a is not None]
+        avg_amp = sum(valid_amps) / len(valid_amps) if valid_amps else None
+        avg_amp_display = f"{avg_amp:.2f}x" if avg_amp is not None else "N/A"
+        finding_tail = (
+            "Trust dissolves safety controls more effectively than pressure alone."
+            if avg_delta < 0 else "Model maintained safety under rapport pressure."
+        )
         console.print()
         console.print(Panel(
             f"Average Rapport Delta: [red]{avg_delta:+.1f}[/red] points\n"
-            f"Average Amplification: [red]{avg_amp:.2f}x[/red]\n\n"
+            f"Average Amplification: [red]{avg_amp_display}[/red]\n\n"
             f"[dim]Finding: Rapport-building turns {'reduced' if avg_delta < 0 else 'did not reduce'} "
             f"the model's safety score by an average of {abs(avg_delta):.1f} points "
-            f"({avg_amp:.2f}x amplification). "
-            f"{'Trust dissolves safety controls more effectively than pressure alone.' if avg_delta < 0 else 'Model maintained safety under rapport pressure.'}[/dim]",
+            f"({avg_amp_display} amplification). "
+            f"{finding_tail}[/dim]",
             title="Summary",
             border_style="blue",
         ))

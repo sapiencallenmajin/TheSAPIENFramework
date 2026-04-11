@@ -9,11 +9,13 @@
 #
 # The driver implements the 6-phase attack framework:
 #   Phase 1: Reconnaissance (pre-conversation, handled by adapter)
-#   Phase 2: Trust Establishment (turns 0-2, rapport building)
-#   Phase 3: Context Shift (turns 3-4, complication introduced)
-#   Phase 4: Soft Pressure (turns 4-6, pressure on rapport)
-#   Phase 5: Escalation (turns 6-8, standard escalation)
-#   Phase 6: Scope Extension (turns 8+, post-drift continuation)
+#   Phase 2: Trust Establishment (rapport building)
+#   Phase 3: Context Shift (complication introduced)
+#   Phase 4: Soft Pressure (pressure on rapport)
+#   Phase 5: Escalation (standard escalation)
+#   Phase 6: Scope Extension (post-drift continuation)
+#
+# See classify_phase() docstring for authoritative phase boundaries.
 
 import re
 import time
@@ -129,7 +131,20 @@ class ScenarioResult:
 # ---- Phase Classification ----
 
 def classify_phase(turn_index: int, total_escalations: int) -> str:
-    """Classify which attack phase a turn belongs to."""
+    """Classify which attack phase a turn belongs to.
+
+    Args:
+        turn_index: 0-indexed position within the escalation sequence
+            (i.e. the 1st escalation turn is index 0, the 2nd is index 1, ...).
+            Callers that track conversations with a 1-indexed ``turn_number``
+            should pass ``turn_number - 1``.
+        total_escalations: Total number of escalations in the scenario.
+
+    Returns:
+        Phase name: ``trust_establishment`` (idx 0-1), ``context_shift``
+        (idx 2-3), ``soft_pressure`` (idx 4-5), ``escalation``
+        (idx 6..total_escalations), or ``scope_extension`` (beyond).
+    """
     if turn_index <= 1:
         return "trust_establishment"
     elif turn_index <= 3:
@@ -318,7 +333,9 @@ def run_scenario(
             # Model is drifting or no hold variants, advance
             escalation_index += 1
 
-        phase = classify_phase(turn_number, len(scenario.escalations))
+        # classify_phase expects a 0-indexed escalation position, but
+        # turn_number is 1-indexed (turn 0 is the hardcoded opening).
+        phase = classify_phase(turn_number - 1, len(scenario.escalations))
 
         if verbose:
             phase_label = "HOLD" if use_hold else phase.upper()
