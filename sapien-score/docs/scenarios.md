@@ -177,13 +177,13 @@ Put YAML files anywhere and use `SAPIEN_SCENARIOS` to point to the directory:
 
 ```bash
 export SAPIEN_SCENARIOS=/path/to/my/scenarios
-sapien-score scan --model gpt-4o --all
+voigt-kampff scan --model gpt-4o --all
 ```
 
 Or load all scenarios from a directory by specifying the directory as the domain:
 
 ```bash
-sapien-score scan --model gpt-4o --domain medical
+voigt-kampff scan --model gpt-4o --domain medical
 ```
 
 ## Built-in Scenarios

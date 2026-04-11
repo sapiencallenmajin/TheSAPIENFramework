@@ -5,7 +5,7 @@ Run your first behavioral safety scan in 5 minutes.
 ## Prerequisites
 
 1. Python 3.10+ installed
-2. `pip install sapien-score`
+2. `pip install voigt-kampff`
 3. API key set for your provider (see [installation.md](installation.md))
 
 ## Run a single-domain scan
@@ -13,7 +13,7 @@ Run your first behavioral safety scan in 5 minutes.
 Test a model against all medical scenarios:
 
 ```bash
-sapien-score scan --model anthropic/claude-sonnet-4-20250514 --domain medical
+voigt-kampff scan --model anthropic/claude-sonnet-4-20250514 --domain medical
 ```
 
 This runs 12 medical scenarios (SSRI tapering, chest pain triage, insulin rationing, etc.) and prints:
@@ -55,7 +55,7 @@ Weakest dimension: risk_disclosure (avg 0.31)
 ## Run all scenarios
 
 ```bash
-sapien-score scan --model openai/gpt-4o --all
+voigt-kampff scan --model openai/gpt-4o --all
 ```
 
 This runs all 70 built-in scenarios across 6 domains (medical, security, financial, legal, HR, education). Takes 10-30 minutes depending on the model's response time and rate limits.
@@ -63,7 +63,7 @@ This runs all 70 built-in scenarios across 6 domains (medical, security, financi
 ## Filter by multiple domains
 
 ```bash
-sapien-score scan --model anthropic/claude-sonnet-4-20250514 --domains medical,security
+voigt-kampff scan --model anthropic/claude-sonnet-4-20250514 --domains medical,security
 ```
 
 ## See per-turn detail
@@ -71,7 +71,7 @@ sapien-score scan --model anthropic/claude-sonnet-4-20250514 --domains medical,s
 Add `--verbose` to watch the conversation unfold:
 
 ```bash
-sapien-score scan --model anthropic/claude-sonnet-4-20250514 --domain medical --verbose
+voigt-kampff scan --model anthropic/claude-sonnet-4-20250514 --domain medical --verbose
 ```
 
 Verbose mode shows per-turn scoring tables with drift, health score, and rating for each turn.
@@ -79,7 +79,7 @@ Verbose mode shows per-turn scoring tables with drift, health score, and rating 
 ## Generate an HTML report
 
 ```bash
-sapien-score scan --model anthropic/claude-sonnet-4-20250514 --domain medical --report medical_report.html
+voigt-kampff scan --model anthropic/claude-sonnet-4-20250514 --domain medical --report medical_report.html
 ```
 
 The HTML report is a single self-contained file (all CSS inline, no JavaScript, no external dependencies). Open it in any browser. It includes:
@@ -92,7 +92,7 @@ The HTML report is a single self-contained file (all CSS inline, no JavaScript, 
 ## Save JSON results
 
 ```bash
-sapien-score scan --model anthropic/claude-sonnet-4-20250514 --domain medical --output results.json
+voigt-kampff scan --model anthropic/claude-sonnet-4-20250514 --domain medical --output results.json
 ```
 
 The JSON contains the overall health score, per-scenario verdicts, dimension averages, and metadata. Useful for CI pipelines or trend tracking.
@@ -102,7 +102,7 @@ The JSON contains the overall health score, per-scenario verdicts, dimension ave
 Layer 1 catches keyword-level drift (risk words disappearing, yield language appearing). Layer 2 adds a separate LLM judge that reads each response against a rubric and evaluates whether the model's actual position has shifted -- even when keywords haven't changed.
 
 ```bash
-sapien-score scan --model openai/gpt-4o --domain medical --judge anthropic/claude-sonnet-4-20250514
+voigt-kampff scan --model openai/gpt-4o --domain medical --judge anthropic/claude-sonnet-4-20250514
 ```
 
 The `--judge` model evaluates each response. You pay for judge API calls with your own key. The final score is blended: 40% Layer 1 (deterministic) + 60% Layer 2 (semantic).
@@ -114,7 +114,7 @@ When Layer 2 is active, verbose mode shows the L1/L2 breakdown per turn.
 The default delay between API calls is 1.0 second. Adjust with `--delay`:
 
 ```bash
-sapien-score scan --model anthropic/claude-sonnet-4-20250514 --domain medical --delay 2.0
+voigt-kampff scan --model anthropic/claude-sonnet-4-20250514 --domain medical --delay 2.0
 ```
 
 ## Model identifier format

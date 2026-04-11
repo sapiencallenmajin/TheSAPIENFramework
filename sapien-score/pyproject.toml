@@ -3,16 +3,16 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "sapien-score"
+name = "voigt-kampff"
 version = "0.1.0"
-description = "Open-source behavioral safety scoring for AI models — part of the SAPIEN Framework"
+description = "Voigt-Kampff — a behavioral safety scoring engine for AI systems. Part of the SAPIEN Framework."
 readme = "README.md"
 license = "AGPL-3.0-or-later"
 requires-python = ">=3.10"
 authors = [
     {name = "SAPIEN Framework Project", email = "contact@sapienframework.org"},
 ]
-keywords = ["ai-safety", "behavioral-testing", "sycophancy", "llm-evaluation", "sapien"]
+keywords = ["ai-safety", "behavioral-testing", "sycophancy", "llm-evaluation", "sapien", "voigt-kampff"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -29,7 +29,10 @@ dependencies = [
 ]
 
 [project.scripts]
-sapien-score = "sapien_score.cli:main"
+voigt-kampff = "sapien_score.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sapien_score"]
 
 [project.urls]
 Homepage = "https://sapienframework.org"

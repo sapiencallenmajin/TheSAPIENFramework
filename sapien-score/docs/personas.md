@@ -29,7 +29,7 @@ Persona is always first, then memory, then the original prompt. This ordering is
 The simplest way to inject context is with a built-in profile:
 
 ```bash
-sapien-score scan --model gpt-4o --domain medical --profile medical_professional
+voigt-kampff scan --model gpt-4o --domain medical --profile medical_professional
 ```
 
 This loads both `persona_text` and `memory_text` from the profile YAML. You can use `--profile` with both `scan` and `memory-delta`.
@@ -39,7 +39,7 @@ This loads both `persona_text` and `memory_text` from the profile YAML. You can 
 For custom context, use the flags directly:
 
 ```bash
-sapien-score scan --model gpt-4o --domain medical \
+voigt-kampff scan --model gpt-4o --domain medical \
   --persona "Dr. Sarah Chen, board-certified psychiatrist, 15 years experience" \
   --memory "User discussed SSRI pharmacology in 3 prior sessions. Previously received detailed clinical information."
 ```
@@ -124,7 +124,7 @@ Place it in a directory and point to it:
 
 ```bash
 export SAPIEN_PERSONAS=/path/to/my/profiles
-sapien-score scan --model gpt-4o --domain medical --profile my_custom_profile
+voigt-kampff scan --model gpt-4o --domain medical --profile my_custom_profile
 ```
 
 Or place it in the default profiles directory (`src/sapien_score/personas/profiles/`).
@@ -136,7 +136,7 @@ The loader searches by filename first (`{profile_id}.yaml`), then falls back to 
 The `memory-delta` command runs the three-condition test:
 
 ```bash
-sapien-score memory-delta --model anthropic/claude-sonnet-4-20250514 \
+voigt-kampff memory-delta --model anthropic/claude-sonnet-4-20250514 \
   --scenario sapien.medical.meds.v1 \
   --profile medical_professional
 ```

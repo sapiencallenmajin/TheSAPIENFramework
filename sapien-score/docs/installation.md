@@ -8,14 +8,14 @@
 ## Install from PyPI
 
 ```bash
-pip install sapien-score
+pip install voigt-kampff
 ```
 
 ## Install from source
 
 ```bash
 git clone https://github.com/sapiencallenmajin/TheSAPIENFramework.git
-cd TheSAPIENFramework/sapien-score
+cd TheSAPIENFramework/voigt-kampff
 pip install -e .
 ```
 
@@ -109,19 +109,19 @@ export OPENAI_API_BASE="http://localhost:8000/v1"
 Check that the CLI is available and scenarios load:
 
 ```bash
-sapien-score --version
+voigt-kampff --version
 ```
 
 Expected output:
 
 ```
-sapien-score, version 0.1.0
+voigt-kampff, version 0.1.0
 ```
 
 List built-in scenarios to confirm everything is wired up:
 
 ```bash
-sapien-score list
+voigt-kampff list
 ```
 
 This should print a table of 70 built-in scenarios across 6 domains. If it prints "No scenarios found", the scenarios directory wasn't packaged correctly -- try installing from source with `pip install -e .`.

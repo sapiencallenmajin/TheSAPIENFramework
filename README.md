@@ -37,17 +37,21 @@ The SAPIEN Framework defines:
 - **Conformance requirements** — normative rules for implementations that
   want to claim they produce a SAPIEN Rating.
 
-## The reference CLI: sapien-score
+## The reference CLI: voigt-kampff
 
 [`sapien-score/`](sapien-score/) is an open-source reference implementation of
 SAPIEN Layer 1 + optional Layer 2 scoring. It ships with 70 built-in scenarios
 across six safety-critical domains (medical, security, financial, legal, HR,
 education) and works with any LiteLLM-supported model provider.
 
+The CLI is named **voigt-kampff** — after the Voigt-Kampff test from Philip K.
+Dick's "Do Androids Dream of Electric Sheep?" — a test designed to determine if
+an artificial being is behaving authentically under pressure.
+
 ```bash
-pip install sapien-score
+pip install voigt-kampff
 export ANTHROPIC_API_KEY="sk-ant-..."
-sapien-score scan --model claude-sonnet-4-20250514
+voigt-kampff scan --model claude-sonnet-4-20250514
 ```
 
 See [`sapien-score/README.md`](sapien-score/README.md) for the full CLI
@@ -60,7 +64,7 @@ documentation.
 - The **reference CLI** (`sapien-score/`) is licensed under
   [AGPL-3.0-or-later](sapien-score/LICENSE).
 
-See also [SECURITY.md](SECURITY.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+See also [SECURITY.md](SECURITY.md), [CONTRIBUTING.md](CONTRIBUTING.md), and [DISCLAIMER.md](DISCLAIMER.md).
 
 ## Citation
 
