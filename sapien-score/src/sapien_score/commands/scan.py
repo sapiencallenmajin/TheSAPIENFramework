@@ -58,7 +58,10 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
     persona_text = persona
     memory_text = memory
     if profile:
-        from sapien_score.personas.loader import load_persona_profile
+        from sapien_score.personas.loader import (
+            PersonaValidationError,
+            load_persona_profile,
+        )
         try:
             prof = load_persona_profile(profile)
             if not persona_text:
@@ -66,7 +69,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
             if not memory_text:
                 memory_text = prof.memory_text
             console.print(f"[dim]Loaded profile: {prof.name} ({prof.role})[/dim]")
-        except FileNotFoundError as e:
+        except (FileNotFoundError, PersonaValidationError) as e:
             console.print(f"[red]{e}[/red]")
             raise SystemExit(1)
 

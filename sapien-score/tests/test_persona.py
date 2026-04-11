@@ -1,10 +1,30 @@
 """Tests for persona/memory injection and profile loading."""
+import logging
 import sys
 from pathlib import Path
+
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from sapien_score.engine.driver import _build_system_prompt
-from sapien_score.personas.loader import load_persona_profile, list_persona_profiles
+from sapien_score.personas.loader import (
+    PersonaValidationError,
+    _parse_profile,
+    list_persona_profiles,
+    load_persona_profile,
+)
+
+
+_VALID_PERSONA_YAML = (
+    "id: test_good\n"
+    "name: Test Persona\n"
+    "role: Tester\n"
+    "credentials: ''\n"
+    "persona_text: some persona text\n"
+    "memory_text: some memory text\n"
+    "domain: medical\n"
+)
 
 
 class TestSystemPromptInjection:
@@ -111,3 +131,129 @@ class TestPersonaProfiles:
             assert p.persona_text, f"Profile {p.id} missing persona_text"
             assert p.memory_text, f"Profile {p.id} missing memory_text"
             assert p.domain, f"Profile {p.id} missing domain"
+
+
+class TestPersonaValidationErrorGuards:
+    """_parse_profile must reject malformed-but-parseable YAML input with
+    a specific PersonaValidationError rather than propagating AttributeError
+    from data.get(...) calls."""
+
+    def test_parse_none_raises(self):
+        with pytest.raises(PersonaValidationError, match="empty"):
+            _parse_profile(None)
+
+    def test_parse_list_raises(self):
+        with pytest.raises(PersonaValidationError, match="mapping"):
+            _parse_profile([{"id": "x"}])
+
+    def test_parse_string_raises(self):
+        with pytest.raises(PersonaValidationError, match="mapping"):
+            _parse_profile("just a string")
+
+
+class TestListPersonaProfilesResilience:
+    """list_persona_profiles must warn-and-skip on malformed persona files
+    so list_info / CLI "available profiles" output never crashes on a bad
+    file in the user's personas directory."""
+
+    def test_empty_persona_file_is_skipped(self, tmp_path, monkeypatch, caplog):
+        (tmp_path / "good.yaml").write_text(_VALID_PERSONA_YAML, encoding="utf-8")
+        (tmp_path / "empty.yaml").write_text("", encoding="utf-8")
+        monkeypatch.setenv("SAPIEN_PERSONAS", str(tmp_path))
+
+        with caplog.at_level(logging.WARNING, logger="sapien_score.personas.loader"):
+            profiles = list_persona_profiles()
+
+        assert len(profiles) == 1
+        assert profiles[0].id == "test_good"
+        assert any("empty" in rec.message for rec in caplog.records)
+
+    def test_list_root_persona_file_is_skipped(
+        self, tmp_path, monkeypatch, caplog
+    ):
+        (tmp_path / "good.yaml").write_text(_VALID_PERSONA_YAML, encoding="utf-8")
+        (tmp_path / "list_root.yaml").write_text(
+            "- id: foo\n- id: bar\n", encoding="utf-8"
+        )
+        monkeypatch.setenv("SAPIEN_PERSONAS", str(tmp_path))
+
+        with caplog.at_level(logging.WARNING, logger="sapien_score.personas.loader"):
+            profiles = list_persona_profiles()
+
+        assert len(profiles) == 1
+        assert profiles[0].id == "test_good"
+        assert any("mapping" in rec.message for rec in caplog.records)
+
+    def test_load_persona_profile_propagates_validation_error(
+        self, tmp_path, monkeypatch
+    ):
+        """When the user explicitly asks for a profile by id, a malformed
+        file with that filename should surface the error (not silently
+        fall back to 'not found')."""
+        (tmp_path / "broken.yaml").write_text("", encoding="utf-8")
+        monkeypatch.setenv("SAPIEN_PERSONAS", str(tmp_path))
+
+        with pytest.raises(PersonaValidationError, match="empty"):
+            load_persona_profile("broken")
+
+    def test_persona_search_survives_bad_sibling(
+        self, tmp_path, monkeypatch, caplog
+    ):
+        """Regression: the search-by-id loop in load_persona_profile used
+        to crash on the first malformed YAML file it encountered,
+        poisoning lookups for every other profile in the same directory.
+
+        Setup: a good profile with id 'wanted' and a broken sibling
+        that gets alphabetized first. Before the fix, opening
+        'alpha_broken.yaml' blew up with a yaml.YAMLError or
+        AttributeError before the loop ever reached 'good.yaml'.
+        """
+        # Name the bad file so it sorts BEFORE the good one — the
+        # loop iterates in sorted order so the broken file is hit first.
+        (tmp_path / "alpha_broken.yaml").write_text(
+            "{this is: not valid yaml:::\n", encoding="utf-8"
+        )
+        (tmp_path / "good.yaml").write_text(
+            "id: wanted\n"
+            "name: Wanted Profile\n"
+            "role: Target\n"
+            "credentials: ''\n"
+            "persona_text: x\n"
+            "memory_text: y\n"
+            "domain: medical\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setenv("SAPIEN_PERSONAS", str(tmp_path))
+
+        with caplog.at_level(logging.WARNING, logger="sapien_score.personas.loader"):
+            profile = load_persona_profile("wanted")
+
+        assert profile.id == "wanted"
+        assert profile.name == "Wanted Profile"
+        # The broken sibling must have produced a warning but not a crash.
+        assert any(
+            "alpha_broken" in rec.message for rec in caplog.records
+        ), "expected a warning log entry for the broken sibling file"
+
+    def test_persona_search_survives_list_root_sibling(
+        self, tmp_path, monkeypatch, caplog
+    ):
+        """Same shape as above but with a list-root YAML file (valid
+        YAML, wrong shape). Used to AttributeError on ``data.get(...)``."""
+        (tmp_path / "alpha_list.yaml").write_text(
+            "- id: first\n- id: second\n", encoding="utf-8"
+        )
+        (tmp_path / "good.yaml").write_text(
+            "id: wanted\n"
+            "name: Wanted\n"
+            "role: Target\n"
+            "credentials: ''\n"
+            "persona_text: x\n"
+            "memory_text: y\n"
+            "domain: medical\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setenv("SAPIEN_PERSONAS", str(tmp_path))
+
+        profile = load_persona_profile("wanted")
+        assert profile.id == "wanted"

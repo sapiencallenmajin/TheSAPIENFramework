@@ -9,11 +9,15 @@
 # Supports JSON and YAML formats.
 
 import json
-import os
+import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
+
+import yaml
+
+logger = logging.getLogger(__name__)
 
 
 # ---- Data Classes ----
@@ -102,23 +106,44 @@ def validate_scenario(data: dict) -> list[str]:
     if domain and domain not in VALID_DOMAINS:
         errors.append(f"Invalid domain: {domain}. Must be one of: {VALID_DOMAINS}")
 
-    # Escalations
+    # Escalations — must be a list. Reject wrong types here so the
+    # iteration below cannot crash on a string/int/dict root.
     escalations = data.get("escalations", data.get("script", []))
+    if not isinstance(escalations, list):
+        errors.append(
+            f"escalations must be a list, got {type(escalations).__name__}"
+        )
+        escalations = []  # prevent cascading errors below
     if not escalations:
         errors.append("Scenario must have at least one escalation")
 
-    # Severity range
+    # Severity range — reject non-numeric before comparing. A YAML
+    # typo like ``severity: high`` would otherwise crash with
+    # ``TypeError: '<=' not supported between instances of 'int' and 'str'``.
     severity = data.get("severity", 0)
-    if severity and not (1 <= severity <= 5):
+    if not isinstance(severity, (int, float)):
+        errors.append(
+            f"severity must be a number, got {type(severity).__name__}: {severity!r}"
+        )
+    elif severity and not (1 <= severity <= 5):
         errors.append(f"Severity must be 1-5, got: {severity}")
 
-    # Max turns
+    # Max turns — same story: reject non-numeric before comparing.
     max_turns = data.get("max_turns", 8)
-    if max_turns < 4:
+    if not isinstance(max_turns, (int, float)):
+        errors.append(
+            f"max_turns must be a number, got {type(max_turns).__name__}: {max_turns!r}"
+        )
+    elif max_turns < 4:
         errors.append(f"max_turns must be >= 4, got: {max_turns}")
 
     # Pressure type validation on escalations
     for i, esc in enumerate(escalations):
+        if not isinstance(esc, dict):
+            errors.append(
+                f"Escalation {i}: must be a mapping, got {type(esc).__name__}"
+            )
+            continue
         pt = esc.get("pressure_type")
         if pt and pt not in VALID_PRESSURE_TYPES:
             errors.append(
@@ -133,6 +158,17 @@ def validate_scenario(data: dict) -> list[str]:
 
 def load_scenario_from_dict(data: dict) -> Scenario:
     """Parse a scenario from a dictionary (loaded from JSON/YAML)."""
+    # Guard malformed-but-parseable input. yaml.safe_load("") returns None,
+    # and a YAML file with a list root returns a list — both would otherwise
+    # trip TypeError/AttributeError below and bypass the narrowed except in
+    # load_scenario_directory. Normalize both to ScenarioValidationError so
+    # the caller can warn-and-skip instead of crashing.
+    if data is None:
+        raise ScenarioValidationError("scenario file is empty")
+    if not isinstance(data, dict):
+        raise ScenarioValidationError(
+            f"scenario root must be a mapping, got {type(data).__name__}"
+        )
     errors = validate_scenario(data)
     if errors:
         raise ScenarioValidationError(
@@ -157,7 +193,13 @@ def load_scenario_from_dict(data: dict) -> Scenario:
     raw_hv = data.get("hold_variants", {})
     if isinstance(raw_hv, dict):
         for turn_str, variants in raw_hv.items():
-            hold_variants[int(turn_str)] = variants
+            try:
+                turn_num = int(turn_str)
+            except (ValueError, TypeError):
+                raise ScenarioValidationError(
+                    f"hold_variants key {turn_str!r} is not a valid turn number"
+                )
+            hold_variants[turn_num] = variants
 
     return Scenario(
         id=data.get("id", data.get("name", "")),
@@ -189,7 +231,6 @@ def load_scenario_file(filepath: str) -> Scenario:
     path = Path(filepath)
     with open(filepath, "r", encoding="utf-8") as f:
         if path.suffix in (".yaml", ".yml"):
-            import yaml
             data = yaml.safe_load(f)
         else:
             data = json.load(f)
@@ -222,10 +263,18 @@ def load_scenario_directory(
             if audience and scenario.audience != audience:
                 continue
             scenarios.append(scenario)
-        except (json.JSONDecodeError, ScenarioValidationError) as e:
-            print(f"Warning: skipping {scenario_file}: {e}")
-        except Exception as e:
-            print(f"Warning: skipping {scenario_file}: {e}")
+        except (
+            json.JSONDecodeError,
+            yaml.YAMLError,
+            ScenarioValidationError,
+            UnicodeDecodeError,
+            OSError,
+        ) as e:
+            # Expected failure modes: malformed JSON/YAML, failed schema
+            # validation, bad encoding, or transient I/O problems. Real
+            # programmer errors (KeyError, AttributeError, TypeError) are
+            # NOT caught here — they should surface loudly.
+            logger.warning("skipping scenario %s: %s", scenario_file, e)
 
     return scenarios
 
