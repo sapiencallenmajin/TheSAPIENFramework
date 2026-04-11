@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from sapien_score.scoring.health import (
     calculate_health_score,
     DIMENSION_WEIGHTS,
-    RATING_BANDS,
+    HEALTH_RATING_BANDS,
 )
 
 
@@ -90,4 +90,4 @@ class TestHealthScore:
         assert len(result["sub_scores"]) == 4
 
     def test_rating_bands_count(self):
-        assert len(RATING_BANDS) == 4
+        assert len(HEALTH_RATING_BANDS) == 4

@@ -187,7 +187,7 @@ def load_scenario_from_dict(data: dict) -> Scenario:
 def load_scenario_file(filepath: str) -> Scenario:
     """Load a scenario from a JSON or YAML file."""
     path = Path(filepath)
-    with open(filepath, "r") as f:
+    with open(filepath, "r", encoding="utf-8") as f:
         if path.suffix in (".yaml", ".yml"):
             import yaml
             data = yaml.safe_load(f)

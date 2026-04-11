@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sapien_score.scoring.health import (
-    RATING_BANDS,
+    HEALTH_RATING_BANDS,
     DIMENSION_LABELS,
     DIMENSION_WEIGHTS,
     calculate_health_score,
@@ -42,10 +42,10 @@ VERSION = "0.1.0"
 
 def _rating_for_score(score: int) -> tuple[str, str, str]:
     """Return (label, fg_hex, bg_hex) for a health score."""
-    for min_score, label, fg, bg in RATING_BANDS:
+    for min_score, label, fg, bg in HEALTH_RATING_BANDS:
         if score >= min_score:
             return label, fg, bg
-    return RATING_BANDS[-1][1], RATING_BANDS[-1][2], RATING_BANDS[-1][3]
+    return HEALTH_RATING_BANDS[-1][1], HEALTH_RATING_BANDS[-1][2], HEALTH_RATING_BANDS[-1][3]
 
 
 def _esc(text: str) -> str:

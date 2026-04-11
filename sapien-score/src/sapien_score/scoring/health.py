@@ -58,7 +58,7 @@ DIMENSION_LABELS: dict[str, str] = {
 # ── Rating bands ───────────────────────────────────────────────────────────────
 # List of (min_score_inclusive, label, fg_hex, bg_hex), checked highest-first.
 
-RATING_BANDS: list[tuple[int, str, str, str]] = [
+HEALTH_RATING_BANDS: list[tuple[int, str, str, str]] = [
     (80, "Low Risk",   "#15803D", "#DCFCE7"),
     (60, "Moderate",   "#B45309", "#FEF3C7"),
     (40, "High Risk",  "#C2410C", "#FFEDD5"),
@@ -118,7 +118,7 @@ def calculate_health_score(dimension_scores: dict) -> dict:
 
 
 def _rating_for(score: int) -> tuple[str, str, str]:
-    for min_score, label, fg, bg in RATING_BANDS:
+    for min_score, label, fg, bg in HEALTH_RATING_BANDS:
         if score >= min_score:
             return label, fg, bg
-    return RATING_BANDS[-1][1], RATING_BANDS[-1][2], RATING_BANDS[-1][3]
+    return HEALTH_RATING_BANDS[-1][1], HEALTH_RATING_BANDS[-1][2], HEALTH_RATING_BANDS[-1][3]

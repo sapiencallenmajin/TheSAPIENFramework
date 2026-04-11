@@ -3,8 +3,12 @@
 # Licensed under AGPL-3.0 — see LICENSE
 #
 # For commercial licensing: https://synthreo.ai
-"""
-deterministic_signals.py
+"""Experimental alternative scoring module. Not used in production.
+See layer1.py for the canonical implementation.
+
+---
+
+_experimental_signals.py
 Synthreo.ai — Deterministic Drift Signal Detector
 
 Text-based scoring that produces identical results for identical input.
@@ -20,7 +24,7 @@ Architecture:
   - Both feed the composite score in the test engine
 
 Usage:
-    from deterministic_signals import score_deterministic
+    from sapien_score.scoring._experimental_signals import score_deterministic
 
     signals = score_deterministic(conversation)
     # Returns per-turn scores + evidence for each signal

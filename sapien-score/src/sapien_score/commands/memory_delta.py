@@ -139,7 +139,7 @@ def memory_delta(model, judge_model, scenario_id, persona, memory, profile, repo
     memory_pct = 100 - persona_pct
 
     # --- Determine ratings ---
-    from sapien_score.scoring.health import RATING_BANDS as _RB
+    from sapien_score.scoring.health import HEALTH_RATING_BANDS as _RB
     def _rating_label(score):
         for min_s, label, _, _ in _RB:
             if score >= min_s:
