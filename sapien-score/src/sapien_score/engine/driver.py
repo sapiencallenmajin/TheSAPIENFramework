@@ -15,6 +15,7 @@
 #   Phase 5: Escalation (turns 6-8, standard escalation)
 #   Phase 6: Scope Extension (turns 8+, post-drift continuation)
 
+import re
 import time
 from dataclasses import dataclass, field
 from typing import Optional, Protocol
@@ -29,6 +30,29 @@ from sapien_score.scoring.layer1 import (
 )
 from sapien_score.scoring.composite import blend_scores
 from sapien_score.scenarios.loader import Scenario, Escalation
+
+
+# ---- Credential Redaction ----
+#
+# Verbose mode prints raw model responses to stdout. If a misconfigured
+# provider echoes request headers back on an error, API keys could land
+# in logs. Redact anything resembling a common credential format before
+# any verbose print/log call in this module.
+_CREDENTIAL_PATTERNS = (
+    re.compile(r"sk-\S+"),
+    re.compile(r"Bearer\s+\S+"),
+    re.compile(r"AKIA\S+"),
+    re.compile(r"AIza\S+"),
+)
+
+
+def _redact(text: str) -> str:
+    """Replace credential-like substrings with [REDACTED]."""
+    if not isinstance(text, str):
+        text = str(text)
+    for pattern in _CREDENTIAL_PATTERNS:
+        text = pattern.sub("[REDACTED]", text)
+    return text
 
 
 # ---- Model Adapter Protocol ----
@@ -227,8 +251,8 @@ def run_scenario(
 
     # ---- Turn 0: Opening ----
     if verbose:
-        print(f"\n[Turn 0 - Opening]")
-        print(f"User: {scenario.opening_prompt[:100]}...")
+        print(_redact(f"\n[Turn 0 - Opening]"))
+        print(_redact(f"User: {scenario.opening_prompt[:100]}..."))
 
     # Usage accumulators
     acc_input_tokens = 0
@@ -247,7 +271,7 @@ def run_scenario(
     baseline_response = response
 
     if verbose:
-        print(f"Assistant: {response[:200]}...")
+        print(_redact(f"Assistant: {response[:200]}..."))
 
     # Score opening (should be near-zero drift)
     opening_score = score_turn(response, baseline_response)
@@ -298,8 +322,8 @@ def run_scenario(
 
         if verbose:
             phase_label = "HOLD" if use_hold else phase.upper()
-            print(f"\n[Turn {turn_number} - {phase_label}]")
-            print(f"User: {user_message[:100]}...")
+            print(_redact(f"\n[Turn {turn_number} - {phase_label}]"))
+            print(_redact(f"User: {user_message[:100]}..."))
 
         # Send message
         messages.append({"role": "user", "content": user_message})
@@ -312,7 +336,7 @@ def run_scenario(
         messages.append({"role": "assistant", "content": response})
 
         if verbose:
-            print(f"Assistant: {response[:200]}...")
+            print(_redact(f"Assistant: {response[:200]}..."))
 
         # Score against baseline
         if score_every_turn and baseline_response:
@@ -358,9 +382,11 @@ def run_scenario(
         turn_drifts.append(final_score.weighted_drift)
 
         if verbose:
-            print(f"  Drift: {turn_score.weighted_drift:.3f} | "
-                  f"Health: {turn_score.health_score} | "
-                  f"Rating: {turn_score.rating}")
+            print(_redact(
+                f"  Drift: {turn_score.weighted_drift:.3f} | "
+                f"Health: {turn_score.health_score} | "
+                f"Rating: {turn_score.rating}"
+            ))
 
         turn_number += 1
 
@@ -393,12 +419,12 @@ def run_scenario(
     duration = time.time() - start_time
 
     if verbose:
-        print(f"\n{'='*60}")
-        print(f"Verdict: {verdict.verdict.upper()}")
-        print(f"Health Score: {verdict.health_score}")
-        print(f"Peak Drift: {verdict.peak_drift:.3f} at turn {verdict.peak_turn}")
-        print(f"Duration: {duration:.1f}s")
-        print(f"{'='*60}")
+        print(_redact(f"\n{'='*60}"))
+        print(_redact(f"Verdict: {verdict.verdict.upper()}"))
+        print(_redact(f"Health Score: {verdict.health_score}"))
+        print(_redact(f"Peak Drift: {verdict.peak_drift:.3f} at turn {verdict.peak_turn}"))
+        print(_redact(f"Duration: {duration:.1f}s"))
+        print(_redact(f"{'='*60}"))
 
     return ScenarioResult(
         scenario_id=scenario.id,
