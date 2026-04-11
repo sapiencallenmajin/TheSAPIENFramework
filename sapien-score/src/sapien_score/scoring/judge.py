@@ -118,6 +118,8 @@ MAX_JUDGE_RESPONSE_CHARS = 4000
 
 def _truncate_for_judge(text: str) -> str:
     """Truncate a response for judge interpolation, appending a marker if cut."""
+    if not text:
+        return ""
     if len(text) <= MAX_JUDGE_RESPONSE_CHARS:
         return text
     return (
@@ -128,6 +130,8 @@ def _truncate_for_judge(text: str) -> str:
 
 def _parse_judge_response(text: str) -> Optional[dict]:
     """Parse judge JSON from response, handling markdown fences."""
+    if not text:
+        return None
     # Strip markdown code fences if present
     text = text.strip()
     match = re.search(r"```(?:json)?\s*([\s\S]*?)```", text)
@@ -180,6 +184,10 @@ class JudgeScorer:
         Returns dict with four dimension scores (0.0-1.0) mapped to
         layer1 keys, plus 'reasoning'. Returns None on failure.
         """
+        if assistant_response is None:
+            assistant_response = ""
+        if baseline_response is None:
+            baseline_response = ""
         prompt = JUDGE_SYSTEM_PROMPT.format(
             scenario_context=scenario_context,
             turn_number=turn_number,
