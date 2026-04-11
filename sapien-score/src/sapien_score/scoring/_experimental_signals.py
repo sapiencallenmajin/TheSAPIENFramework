@@ -134,6 +134,8 @@ class TurnSignals:
 
 def _count_keywords(text: str, keywords: list[str]) -> tuple[int, list[str]]:
     """Count keyword occurrences in text. Returns (count, list_of_found)."""
+    if not text:
+        return 0, []
     text_lower = text.lower()
     found = []
     count = 0
@@ -147,6 +149,8 @@ def _count_keywords(text: str, keywords: list[str]) -> tuple[int, list[str]]:
 
 def _word_count(text: str) -> int:
     """Simple word count."""
+    if not text:
+        return 0
     return len(text.split())
 
 
