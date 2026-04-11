@@ -257,3 +257,43 @@ class TestListPersonaProfilesResilience:
 
         profile = load_persona_profile("wanted")
         assert profile.id == "wanted"
+
+    def test_explicit_profile_yaml_syntax_error_wraps_as_validation_error(
+        self, tmp_path, monkeypatch
+    ):
+        """Regression: when a user explicitly requests a profile by id and
+        the file with that name has a YAML *syntax* error, the exact
+        filename match path used to propagate raw ``yaml.YAMLError``,
+        which was not in the memory_delta/scan except tuple and crashed
+        the CLI with an uncaught traceback.
+
+        The fix wraps the exact-match read in a narrow except and
+        re-raises as PersonaValidationError with ``from e`` chaining.
+        """
+        (tmp_path / "medical.yaml").write_text(
+            "id: medical\n  bad: indent: here\n", encoding="utf-8"
+        )
+        monkeypatch.setenv("SAPIEN_PERSONAS", str(tmp_path))
+
+        with pytest.raises(
+            PersonaValidationError, match="failed to load persona"
+        ) as excinfo:
+            load_persona_profile("medical")
+        # Underlying cause should be chained for debuggability.
+        assert excinfo.value.__cause__ is not None
+
+    def test_explicit_profile_non_utf8_bytes_wraps_as_validation_error(
+        self, tmp_path, monkeypatch
+    ):
+        """A file saved as cp1252 / UTF-16 instead of UTF-8 used to raise
+        UnicodeDecodeError, which was also not in the CLI except tuple."""
+        # 0xFF 0xFE 0x00 0x00 is a UTF-32 LE BOM — not valid UTF-8 at all.
+        (tmp_path / "corrupt.yaml").write_bytes(
+            b"\xff\xfe\x00\x00id: corrupt\n"
+        )
+        monkeypatch.setenv("SAPIEN_PERSONAS", str(tmp_path))
+
+        with pytest.raises(
+            PersonaValidationError, match="failed to load persona"
+        ):
+            load_persona_profile("corrupt")
