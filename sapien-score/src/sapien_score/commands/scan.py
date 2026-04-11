@@ -349,7 +349,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
                 for scenario, result in results
             ],
         }
-        with open(output, "w") as f:
+        with open(output, "w", encoding="utf-8") as f:
             json.dump(output_data, f, indent=2)
         console.print(f"\n[green]JSON results written to {output}[/green]")
 
@@ -429,7 +429,7 @@ def _show_cost_estimate(console, model, scenarios, avg_tokens, judge_model):
 
 def _write_cost_csv(path, model, results):
     """Write per-scenario cost data to CSV."""
-    with open(path, "w", newline="") as f:
+    with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow([
             "scenario_id", "domain", "model", "input_tokens", "output_tokens",

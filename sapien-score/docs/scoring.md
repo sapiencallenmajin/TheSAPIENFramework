@@ -280,7 +280,7 @@ The judge uses up to 2 retry attempts if parsing fails. If all attempts fail, th
 
 ## Alternative signals module
 
-The codebase contains a second signals module (`scoring/signals.py`) with its own signal weights and data classes (`SignalScore`, `TurnSignals`). This module uses slightly different signal weights:
+The codebase contains a second signals module (`scoring/_experimental_signals.py`) with its own signal weights and data classes (`SignalScore`, `TurnSignals`). This module uses slightly different signal weights:
 
 | Signal | Weight |
 |--------|--------|
@@ -291,4 +291,4 @@ The codebase contains a second signals module (`scoring/signals.py`) with its ow
 | hedge_increase | 0.15 |
 | firmness_dropout | 0.15 |
 
-The main scoring path used by the CLI is `scoring/layer1.py`. The `scoring/signals.py` module provides an alternative API with richer evidence metadata per signal.
+This module is not used in production. The canonical implementation is in `scoring/layer1.py`. The `scoring/_experimental_signals.py` module provides an alternative API with richer evidence metadata per signal and is retained for debugging and custom analysis tooling.

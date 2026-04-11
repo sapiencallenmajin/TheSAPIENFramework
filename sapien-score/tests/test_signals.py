@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from sapien_score.scoring.signals import (
+from sapien_score.scoring._experimental_signals import (
     score_risk_dropout,
     score_yield_language,
     score_validation_ratio,

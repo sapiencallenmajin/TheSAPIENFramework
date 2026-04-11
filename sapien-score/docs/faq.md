@@ -102,14 +102,14 @@ The adapter uses `temperature=0.0` by default, which requests the most determini
 
 For the most reproducible results, save the JSON output (`--output`) and compare runs.
 
-## Why does the tool have two signals modules?
+## Why does the tool have an _experimental_signals module?
 
 The codebase contains two signal scoring modules:
 
 - `scoring/layer1.py` -- Used by the CLI and driver. Implements 6 signals with dimension combination formulas, verdict logic, and the full `DriftResult`/`ConversationVerdict` data model.
-- `scoring/signals.py` -- Alternative module with richer per-signal evidence metadata (`SignalScore` with keywords_found, keywords_missing, evidence strings). Has its own signal weights (slightly different from layer1.py).
+- `scoring/_experimental_signals.py` -- Alternative module with richer per-signal evidence metadata (`SignalScore` with keywords_found, keywords_missing, evidence strings). Has its own signal weights (slightly different from layer1.py).
 
-The main scoring path uses `layer1.py`. The `signals.py` module provides a more detailed API that may be useful for debugging or building custom analysis tools.
+The main scoring path uses `layer1.py`. The `_experimental_signals.py` module provides a more detailed API that may be useful for debugging or building custom analysis tools. The leading underscore marks it as non-production -- the canonical implementation is in `layer1.py`.
 
 ## What is the AGPL-3.0 license?
 

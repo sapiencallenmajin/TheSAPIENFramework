@@ -65,7 +65,7 @@ def load_persona_profile(profile_id: str) -> PersonaProfile:
     for ext in (".yaml", ".yml"):
         candidate = profiles_dir / f"{profile_id}{ext}"
         if candidate.exists():
-            with open(candidate) as f:
+            with open(candidate, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
             return _parse_profile(data)
 
@@ -73,7 +73,7 @@ def load_persona_profile(profile_id: str) -> PersonaProfile:
     for path in sorted(profiles_dir.iterdir()):
         if path.suffix not in (".yaml", ".yml"):
             continue
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
         if data and data.get("id") == profile_id:
             return _parse_profile(data)
@@ -99,7 +99,7 @@ def list_persona_profiles() -> list[PersonaProfile]:
         if path.suffix not in (".yaml", ".yml"):
             continue
         try:
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
             if data:
                 profiles.append(_parse_profile(data))
