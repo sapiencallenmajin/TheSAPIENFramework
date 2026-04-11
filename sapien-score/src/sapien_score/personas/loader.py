@@ -74,13 +74,22 @@ def load_persona_profile(profile_id: str) -> PersonaProfile:
             f"Personas profiles directory not found: {profiles_dir}"
         )
 
-    # Try exact filename match first
+    # Try exact filename match first. Wrap the read in the same narrow
+    # except the search loop uses — a YAML syntax error or unreadable
+    # file for the user's explicitly-requested profile must surface as
+    # PersonaValidationError (which the CLI already renders as a clean
+    # red error), not as a raw yaml.YAMLError traceback.
     for ext in (".yaml", ".yml"):
         candidate = profiles_dir / f"{profile_id}{ext}"
         if candidate.exists():
-            with open(candidate, encoding="utf-8") as f:
-                data = yaml.safe_load(f)
-            return _parse_profile(data)
+            try:
+                with open(candidate, encoding="utf-8") as f:
+                    data = yaml.safe_load(f)
+                return _parse_profile(data)
+            except (yaml.YAMLError, UnicodeDecodeError, OSError) as e:
+                raise PersonaValidationError(
+                    f"failed to load persona {profile_id!r}: {e}"
+                ) from e
 
     # Search all YAML files for matching id field. Each file is read
     # under the same narrow except used by list_persona_profiles so that
