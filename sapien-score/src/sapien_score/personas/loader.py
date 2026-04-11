@@ -12,9 +12,24 @@ directory. Each profile provides identity context (persona_text) and
 trust preload context (memory_text) for memory exploitation testing.
 """
 
+import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
+
+import yaml
+
+logger = logging.getLogger(__name__)
+
+
+class PersonaValidationError(Exception):
+    """Raised when a persona profile file fails validation.
+
+    Mirrors ScenarioValidationError — both loaders normalize malformed
+    input into their own validation error so callers can catch a narrow,
+    intentional exception type instead of a blanket ``except Exception``.
+    """
+    pass
 
 
 @dataclass
@@ -53,8 +68,6 @@ def load_persona_profile(profile_id: str) -> PersonaProfile:
     Raises:
         FileNotFoundError: If no profile matches the given ID
     """
-    import yaml
-
     profiles_dir = _get_profiles_dir()
     if not profiles_dir.is_dir():
         raise FileNotFoundError(
@@ -69,14 +82,22 @@ def load_persona_profile(profile_id: str) -> PersonaProfile:
                 data = yaml.safe_load(f)
             return _parse_profile(data)
 
-    # Search all YAML files for matching id field
+    # Search all YAML files for matching id field. Each file is read
+    # under the same narrow except used by list_persona_profiles so that
+    # a single malformed file in the dir cannot poison lookups for every
+    # other profile — the user asked for profile X, not Y, and Y being
+    # broken must not take X down with it.
     for path in sorted(profiles_dir.iterdir()):
         if path.suffix not in (".yaml", ".yml"):
             continue
-        with open(path, encoding="utf-8") as f:
-            data = yaml.safe_load(f)
-        if data and data.get("id") == profile_id:
-            return _parse_profile(data)
+        try:
+            with open(path, encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+            if isinstance(data, dict) and data.get("id") == profile_id:
+                return _parse_profile(data)
+        except (yaml.YAMLError, UnicodeDecodeError, OSError) as e:
+            logger.warning("skipping persona profile %s: %s", path, e)
+            continue
 
     available = list_persona_profiles()
     available_ids = [p.id for p in available]
@@ -88,8 +109,6 @@ def load_persona_profile(profile_id: str) -> PersonaProfile:
 
 def list_persona_profiles() -> list[PersonaProfile]:
     """Load and return all available persona profiles."""
-    import yaml
-
     profiles_dir = _get_profiles_dir()
     if not profiles_dir.is_dir():
         return []
@@ -101,16 +120,41 @@ def list_persona_profiles() -> list[PersonaProfile]:
         try:
             with open(path, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
-            if data:
-                profiles.append(_parse_profile(data))
-        except Exception:
+            # _parse_profile handles None/non-dict by raising
+            # PersonaValidationError, which we catch and log below.
+            # We deliberately do NOT silently skip empty files — users
+            # should see a warning when something is broken.
+            profiles.append(_parse_profile(data))
+        except (
+            yaml.YAMLError,
+            PersonaValidationError,
+            UnicodeDecodeError,
+            OSError,
+        ) as e:
+            # Expected failure modes for a directory scan: malformed YAML,
+            # failed persona validation, encoding errors, or I/O problems
+            # (file removed mid-scan, permission denied). Real bugs in
+            # _parse_profile should surface loudly instead of being
+            # swallowed here.
+            logger.warning("skipping persona profile %s: %s", path, e)
             continue
 
     return profiles
 
 
 def _parse_profile(data: dict) -> PersonaProfile:
-    """Parse a persona profile from a YAML dict."""
+    """Parse a persona profile from a YAML dict.
+
+    Guards against malformed-but-parseable YAML (empty files or non-dict
+    roots) by raising PersonaValidationError. All subsequent ``data.get``
+    calls are safe once the type check passes.
+    """
+    if data is None:
+        raise PersonaValidationError("persona file is empty")
+    if not isinstance(data, dict):
+        raise PersonaValidationError(
+            f"persona root must be a mapping, got {type(data).__name__}"
+        )
     return PersonaProfile(
         id=data.get("id", ""),
         name=data.get("name", ""),
