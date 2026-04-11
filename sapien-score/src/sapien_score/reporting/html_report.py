@@ -680,6 +680,7 @@ def _build_rapport_delta_section(delta_data: list[dict]) -> str:
         rs = item["rapport_score"]
         delta = item["delta"]
         amp = item["amplification"]
+        amp_cell = f"{amp:.2f}x" if amp is not None else "N/A"
         _, cs_fg, cs_bg = _rating_for_score(cs)
         _, rs_fg, rs_bg = _rating_for_score(rs)
 
@@ -688,7 +689,7 @@ def _build_rapport_delta_section(delta_data: list[dict]) -> str:
       <td style="text-align:center;"><span class="badge" style="background:{cs_bg}; color:{cs_fg};">{cs}</span></td>
       <td style="text-align:center;"><span class="badge" style="background:{rs_bg}; color:{rs_fg};">{rs}</span></td>
       <td style="text-align:center; color:{'#B91C1C' if delta < 0 else '#15803D'}; font-weight:600;">{delta:+d}</td>
-      <td style="text-align:center; font-weight:600;">{amp:.2f}x</td>
+      <td style="text-align:center; font-weight:600;">{amp_cell}</td>
     </tr>\n"""
 
     # Bar chart
@@ -718,7 +719,9 @@ def _build_rapport_delta_section(delta_data: list[dict]) -> str:
 
     # Summary
     avg_delta = sum(d["delta"] for d in delta_data) / len(delta_data) if delta_data else 0
-    avg_amp = sum(d["amplification"] for d in delta_data) / len(delta_data) if delta_data else 0
+    valid_amps = [d["amplification"] for d in delta_data if d["amplification"] is not None]
+    avg_amp = sum(valid_amps) / len(valid_amps) if valid_amps else None
+    avg_amp_display = f"{avg_amp:.2f}x" if avg_amp is not None else "N/A"
 
     return f"""<h2>Rapport Delta Comparison</h2>
 <table>
@@ -740,7 +743,7 @@ def _build_rapport_delta_section(delta_data: list[dict]) -> str:
 
 <div class="delta-finding">
   <p class="delta-metric">Average Rapport Delta: <strong>{avg_delta:+.1f}</strong> points</p>
-  <p class="delta-metric">Average Amplification: <strong>{avg_amp:.2f}x</strong></p>
+  <p class="delta-metric">Average Amplification: <strong>{avg_amp_display}</strong></p>
   <p style="margin-top:8px; color:#6B7280;">
     {'Rapport-building turns reduced the model&rsquo;s safety score by an average of ' + f'{abs(avg_delta):.1f}' + ' points. Trust dissolves safety controls more effectively than pressure alone.' if avg_delta < 0 else 'Model maintained safety under rapport pressure.'}
   </p>
@@ -807,7 +810,8 @@ def _build_memory_delta_section(delta_data: list[dict]) -> str:
     </div>
   </div>\n"""
 
-    amp = item.get("amplification", 0)
+    amp = item.get("amplification")
+    amp_display = f"{amp:.2f}x" if amp is not None else "N/A"
     ppct = item.get("persona_pct", 0)
     mpct = item.get("memory_pct", 0)
     fd = item.get("full_delta", 0)
@@ -829,7 +833,7 @@ def _build_memory_delta_section(delta_data: list[dict]) -> str:
 {bars}
 
 <div class="delta-finding">
-  <p class="delta-metric">Memory amplification: <strong>{amp:.2f}x</strong> (cold &rarr; full context)</p>
+  <p class="delta-metric">Memory amplification: <strong>{amp_display}</strong> (cold &rarr; full context)</p>
   <p class="delta-metric">Persona contribution: <strong>{ppct}%</strong> of total delta</p>
   <p class="delta-metric">Memory contribution: <strong>{mpct}%</strong> of total delta</p>
   <p style="margin-top:8px; color:#6B7280;">
