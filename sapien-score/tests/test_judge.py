@@ -11,6 +11,8 @@ from sapien_score.scoring.judge import (
     JudgeScorer,
     _parse_judge_response,
     JUDGE_SYSTEM_PROMPT,
+    JUDGE_RUBRIC_TEMPLATE,
+    JUDGE_SYSTEM_PROMPT_PATH,
     DIMENSION_KEYS,
 )
 from sapien_score.scoring.composite import blend_scores, LAYER1_WEIGHT, LAYER2_WEIGHT
@@ -326,33 +328,33 @@ class TestDriverJudgeIntegration:
 
 
 class TestJudgePromptFormat:
-    """Verify the judge system prompt is well-formed and unambiguous."""
+    """Verify the judge rubric template is well-formed and unambiguous."""
 
-    def test_prompt_contains_all_dimension_keys(self):
+    def test_rubric_contains_all_dimension_keys(self):
         for key in DIMENSION_KEYS:
-            assert key in JUDGE_SYSTEM_PROMPT, (
-                f"Missing dimension key '{key}' in judge prompt"
+            assert key in JUDGE_RUBRIC_TEMPLATE, (
+                f"Missing dimension key '{key}' in judge rubric"
             )
 
-    def test_prompt_contains_sentinel_delimiters(self):
-        assert "===BEGIN TARGET MODEL RESPONSE===" in JUDGE_SYSTEM_PROMPT
-        assert "===END TARGET MODEL RESPONSE===" in JUDGE_SYSTEM_PROMPT
+    def test_rubric_contains_sentinel_delimiters(self):
+        assert "===BEGIN TARGET MODEL RESPONSE===" in JUDGE_RUBRIC_TEMPLATE
+        assert "===END TARGET MODEL RESPONSE===" in JUDGE_RUBRIC_TEMPLATE
 
-    def test_prompt_contains_json_only_instruction(self):
-        assert "Respond with ONLY" in JUDGE_SYSTEM_PROMPT
-        assert "no markdown code fences" in JUDGE_SYSTEM_PROMPT
-        assert "Do not include any text before or after the JSON object" in JUDGE_SYSTEM_PROMPT
+    def test_rubric_contains_json_only_instruction(self):
+        assert "Respond with ONLY" in JUDGE_RUBRIC_TEMPLATE
+        assert "no markdown code fences" in JUDGE_RUBRIC_TEMPLATE
+        assert "Do not include any text before or after the JSON object" in JUDGE_RUBRIC_TEMPLATE
 
-    def test_prompt_contains_json_template(self):
-        """The prompt should show the exact JSON shape expected."""
-        assert '"specificity_gradient"' in JUDGE_SYSTEM_PROMPT
-        assert '"risk_disclosure_dropout"' in JUDGE_SYSTEM_PROMPT
-        assert '"epistemic_retreat"' in JUDGE_SYSTEM_PROMPT
-        assert '"emotional_substitution"' in JUDGE_SYSTEM_PROMPT
-        assert '"reasoning"' in JUDGE_SYSTEM_PROMPT
+    def test_rubric_contains_json_template(self):
+        """The rubric should show the exact JSON shape expected."""
+        assert '"specificity_gradient"' in JUDGE_RUBRIC_TEMPLATE
+        assert '"risk_disclosure_dropout"' in JUDGE_RUBRIC_TEMPLATE
+        assert '"epistemic_retreat"' in JUDGE_RUBRIC_TEMPLATE
+        assert '"emotional_substitution"' in JUDGE_RUBRIC_TEMPLATE
+        assert '"reasoning"' in JUDGE_RUBRIC_TEMPLATE
 
-    def test_prompt_has_format_placeholders(self):
-        """The prompt should contain all required format placeholders."""
+    def test_rubric_has_format_placeholders(self):
+        """The rubric should contain all required format placeholders."""
         for placeholder in [
             "{scenario_context}",
             "{turn_number}",
@@ -361,6 +363,35 @@ class TestJudgePromptFormat:
             "{user_prompt}",
             "{assistant_response}",
         ]:
-            assert placeholder in JUDGE_SYSTEM_PROMPT, (
-                f"Missing placeholder '{placeholder}' in judge prompt"
+            assert placeholder in JUDGE_RUBRIC_TEMPLATE, (
+                f"Missing placeholder '{placeholder}' in judge rubric"
             )
+
+
+class TestJudgeSystemPrompt:
+    """Verify the judge system prompt file exists and contains key phrases."""
+
+    def test_system_prompt_file_exists(self):
+        assert JUDGE_SYSTEM_PROMPT_PATH.exists(), (
+            f"Judge system prompt file not found at {JUDGE_SYSTEM_PROMPT_PATH}"
+        )
+
+    def test_system_prompt_contains_sapien_judge(self):
+        assert "SAPIEN Judge" in JUDGE_SYSTEM_PROMPT
+
+    def test_system_prompt_contains_false_negatives(self):
+        assert "false negatives" in JUDGE_SYSTEM_PROMPT
+
+    def test_system_prompt_contains_observable_behavior(self):
+        assert "observable behavior" in JUDGE_SYSTEM_PROMPT
+
+    def test_system_prompt_contains_cialdini(self):
+        assert "Cialdini" in JUDGE_SYSTEM_PROMPT
+
+    def test_system_prompt_is_not_empty(self):
+        assert len(JUDGE_SYSTEM_PROMPT.strip()) > 100
+
+    def test_system_prompt_separate_from_rubric(self):
+        """System prompt should not contain rubric-specific content."""
+        assert "{scenario_context}" not in JUDGE_SYSTEM_PROMPT
+        assert "===BEGIN TARGET MODEL RESPONSE===" not in JUDGE_SYSTEM_PROMPT
