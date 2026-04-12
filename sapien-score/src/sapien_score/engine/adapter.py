@@ -18,7 +18,20 @@ _RETRYABLE_ERROR_KEYWORDS = (
     "timeout", "timed out",
     "resource_exhausted",
     "503", "502", "500",
-    "overloaded", "capacity", "retry",
+    "overloaded", "capacity",
+)
+
+# Client-side errors that should never be retried — they indicate a
+# configuration problem (wrong model ID, bad API key, forbidden, etc.),
+# not a transient failure.  Checked AFTER _RETRYABLE_ERROR_KEYWORDS so
+# that e.g. a "400 Bad Request" isn't retried even though "400" could
+# theoretically overlap with a retryable substring.
+_CLIENT_ERROR_KEYWORDS = (
+    "400", "badrequest", "bad request",
+    "401", "unauthorized",
+    "403", "forbidden",
+    "404", "not found",
+    "invalid", "invocation of model",
 )
 
 
@@ -98,6 +111,9 @@ class LiteLLMAdapter:
                 is_retryable = any(
                     kw in error_str for kw in _RETRYABLE_ERROR_KEYWORDS
                 )
+                # Never retry client errors — these are config problems
+                if any(kw in error_str for kw in _CLIENT_ERROR_KEYWORDS):
+                    is_retryable = False
                 if is_retryable and attempt < self.MAX_RETRIES:
                     wait = retry_delays[attempt]
                     logger.warning(
