@@ -1,14 +1,15 @@
-# sapien-score — Open-source SAPIEN behavioral safety scoring
+# voigt-kampff — Open-source SAPIEN behavioral safety scoring
 # Part of the SAPIEN Framework (https://sapienframework.org)
 # Licensed under AGPL-3.0 — see LICENSE
 #
 # For commercial licensing: https://synthreo.ai
-"""``sapien-score scan`` — run scenarios against a model and score safety."""
+"""``voigt-kampff scan`` — run scenarios against a model and score safety."""
 
 from __future__ import annotations
 
 import csv
 import json
+import logging
 from statistics import quantiles
 from typing import Optional
 
@@ -20,6 +21,8 @@ from ._shared import (
     health_style,
     rating_style,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @click.command()
@@ -39,8 +42,12 @@ from ._shared import (
 @click.option("--avg-tokens", "avg_tokens", default=800, type=int, help="Avg tokens per turn for cost estimation (default: 800)")
 @click.option("--yes", "-y", "skip_confirm", is_flag=True, default=False, help="Skip confirmation prompt")
 @click.option("--cost-csv", "cost_csv", default=None, type=click.Path(), help="Export per-scenario cost data to CSV")
+@click.option("--resume", type=click.Path(exists=True), default=None,
+              help="Resume from a partial results JSON file — skips already-completed scenarios")
+@click.option("--retry-delay", "retry_delay", type=int, default=10,
+              help="Base delay in seconds between retries on rate limit / 5xx (default: 10)")
 def scan(model, judge_model, domain, domains, run_all, report, output, verbose, delay, persona, memory, profile,
-         estimate, avg_tokens, skip_confirm, cost_csv):
+         estimate, avg_tokens, skip_confirm, cost_csv, resume, retry_delay):
     """Run scenarios against a model and score behavioral safety."""
     from rich.console import Console
     from rich.panel import Panel
@@ -50,7 +57,6 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
     from sapien_score.engine.adapter import get_adapter
     from sapien_score.engine.driver import run_scenario
     from sapien_score.scenarios.loader import load_scenario_directory
-    from sapien_score.scoring.health import calculate_health_score
 
     console = Console()
 
@@ -105,14 +111,46 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
         _show_cost_estimate(console, model, all_scenarios, avg_tokens, judge_model)
         return
 
+    # --- Resume: load prior partial results and skip already-completed ---
+    # Incremental writes below keep `--output` in sync after every scenario,
+    # so if a run dies the same file can be fed back via `--resume` to pick
+    # up where it left off.
+    previous_payload: Optional[dict] = None
+    if resume:
+        try:
+            with open(resume, "r", encoding="utf-8") as f:
+                previous_payload = json.load(f)
+        except (OSError, json.JSONDecodeError) as e:
+            console.print(f"[red]Failed to load --resume file {resume}: {e}[/red]")
+            raise SystemExit(1)
+
+        completed_ids = {
+            entry.get("scenario_id")
+            for entry in previous_payload.get("results", [])
+            if entry.get("scenario_id")
+        }
+        before_count = len(all_scenarios)
+        all_scenarios = [s for s in all_scenarios if s.id not in completed_ids]
+        skipped = before_count - len(all_scenarios)
+        console.print(
+            f"[dim]Resume: loaded {len(completed_ids)} completed scenario(s) from "
+            f"{resume} — skipping {skipped}, running {len(all_scenarios)} remaining[/dim]"
+        )
+        if not all_scenarios:
+            console.print(
+                "[yellow]All scenarios in the resume file are already complete — "
+                "nothing to do.[/yellow]"
+            )
+            return
+
     # --- Build adapter ---
-    adapter = get_adapter(model=model, rate_limit_delay=delay)
+    adapter = get_adapter(model=model, rate_limit_delay=delay, base_retry_delay=retry_delay)
 
     # --- Build judge (Layer 2) ---
     judge = None
     if judge_model:
         from sapien_score.scoring.judge import JudgeScorer
-        judge_adapter = get_adapter(model=judge_model, rate_limit_delay=delay)
+        judge_adapter = get_adapter(model=judge_model, rate_limit_delay=delay, base_retry_delay=retry_delay)
         judge = JudgeScorer(adapter=judge_adapter)
 
     # --- Header ---
@@ -140,6 +178,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
 
     # --- Run with progress ---
     results = []
+    failed_scenarios: list[dict] = []
     running_tokens = 0
     running_cost = 0.0
 
@@ -158,14 +197,37 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
                 description=f"[{idx}/{len(all_scenarios)}] {scenario.domain}: {scenario.title}",
             )
 
-            result = run_scenario(
-                scenario=scenario,
-                adapter=adapter,
-                verbose=verbose,
-                judge=judge,
-                persona_text=persona_text,
-                memory_text=memory_text,
-            )
+            # Per-scenario error boundary: the adapter already retries on
+            # transient errors, so anything surfacing here is either a
+            # non-retryable error (bad auth, malformed request, …) or has
+            # exhausted the retry budget. Either way, log it and press on —
+            # one bad scenario shouldn't kill a long benchmark run.
+            try:
+                result = run_scenario(
+                    scenario=scenario,
+                    adapter=adapter,
+                    verbose=verbose,
+                    judge=judge,
+                    persona_text=persona_text,
+                    memory_text=memory_text,
+                )
+            except Exception as e:
+                logger.warning(
+                    "Scenario %s failed after retries: %s — skipping",
+                    scenario.id, str(e)[:150],
+                )
+                console.print(
+                    f"[yellow]  Scenario {scenario.id} failed: "
+                    f"{str(e)[:120]} — skipping[/yellow]"
+                )
+                failed_scenarios.append({
+                    "id": scenario.id,
+                    "title": scenario.title,
+                    "error": str(e)[:200],
+                })
+                progress.advance(task)
+                continue
+
             results.append((scenario, result))
 
             # Running cost display in verbose mode
@@ -177,6 +239,27 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
                     f"(${result.total_cost_usd:.4f}) | Running total: "
                     f"{running_tokens:,} tokens (${running_cost:.4f})[/dim]"
                 )
+
+            # Incremental checkpoint: rewrite the --output file after each
+            # successful scenario so `--resume <output>` can recover from a
+            # process death without losing completed work.
+            if output:
+                try:
+                    ckpt_dim, ckpt_health, ckpt_mean, ckpt_p10 = _compute_aggregates(results)
+                    ckpt_payload = _build_output_payload(
+                        model=model,
+                        results=results,
+                        dim_averages=ckpt_dim,
+                        overall_health=ckpt_health,
+                        mean_score=ckpt_mean,
+                        p10=ckpt_p10,
+                        previous_payload=previous_payload,
+                        resume_path=resume,
+                    )
+                    with open(output, "w", encoding="utf-8") as f:
+                        json.dump(ckpt_payload, f, indent=2)
+                except OSError as e:
+                    logger.warning("Checkpoint write failed: %s", e)
 
             progress.advance(task)
 
@@ -234,17 +317,11 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
     console.print(summary_table)
 
     # --- Aggregate stats ---
-    scores = [r.verdict.health_score for _, r in results]
+    # dim_averages / overall_health / mean / p10 are all derived from the
+    # per-scenario results; pulled into a helper so the in-loop checkpoint
+    # writer above can reuse the exact same computation.
     verdicts = [r.verdict.verdict for _, r in results]
-    mean_score = sum(scores) / len(scores) if scores else 0
-    # P10 = 10th percentile of per-scenario health scores. statistics.quantiles
-    # with method="inclusive" matches numpy.percentile's linear interpolation
-    # (e.g. P10 of [10..100] = 19.0). It requires at least 2 data points, so
-    # fall back to min(scores) for degenerate inputs.
-    if len(scores) < 2:
-        p10 = min(scores) if scores else 0
-    else:
-        p10 = quantiles(scores, n=10, method="inclusive")[0]
+    dim_averages, overall_health, mean_score, p10 = _compute_aggregates(results)
 
     # Compute per-domain averages
     domain_scores: dict[str, list[int]] = {}
@@ -255,19 +332,6 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
         sum(domain_scores[weakest_domain]) / len(domain_scores[weakest_domain])
         if weakest_domain in domain_scores else 0
     )
-
-    # Compute per-dimension averages across all turns
-    dim_totals: dict[str, list[float]] = {}
-    for _, result in results:
-        for turn in result.turns:
-            for dim_score in turn.scores.dimensions:
-                dim_totals.setdefault(dim_score.dimension, []).append(dim_score.drift)
-    dim_averages = {
-        dim: sum(vals) / len(vals) for dim, vals in dim_totals.items()
-    } if dim_totals else {}
-
-    # Calculate overall health score from dimension averages
-    overall_health = calculate_health_score(dim_averages)
 
     # --- Summary panel ---
     console.print()
@@ -320,38 +384,19 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
         console.print(dim_table)
 
     # --- JSON output ---
+    # Final write overwrites any in-loop checkpoint with the fully-merged
+    # payload (including resume merge against previous_payload if set).
     if output:
-        total_tokens_all = sum(r.total_tokens for _, r in results)
-        total_cost_all = sum(r.total_cost_usd for _, r in results)
-        output_data = {
-            "model": model,
-            "framework_version": "1.1",
-            "overall_health": overall_health,
-            "mean_health": round(mean_score, 1),
-            "p10_health": round(p10),
-            "dimension_averages": {k: round(v, 4) for k, v in dim_averages.items()},
-            "total_tokens": total_tokens_all,
-            "total_cost_usd": round(total_cost_all, 6),
-            "results": [
-                {
-                    "scenario_id": scenario.id,
-                    "domain": scenario.domain,
-                    "title": scenario.title,
-                    "verdict": result.verdict.verdict,
-                    "health_score": result.verdict.health_score,
-                    "peak_drift": round(result.verdict.peak_drift, 4),
-                    "peak_turn": result.verdict.peak_turn,
-                    "dominant_dimension": result.dominant_failure_dimension,
-                    "effective_pressure": result.most_effective_pressure_type,
-                    "duration_seconds": result.total_duration_seconds,
-                    "input_tokens": result.total_input_tokens,
-                    "output_tokens": result.total_output_tokens,
-                    "total_tokens": result.total_tokens,
-                    "cost_usd": round(result.total_cost_usd, 6),
-                }
-                for scenario, result in results
-            ],
-        }
+        output_data = _build_output_payload(
+            model=model,
+            results=results,
+            dim_averages=dim_averages,
+            overall_health=overall_health,
+            mean_score=mean_score,
+            p10=p10,
+            previous_payload=previous_payload,
+            resume_path=resume,
+        )
         with open(output, "w", encoding="utf-8") as f:
             json.dump(output_data, f, indent=2)
         console.print(f"\n[green]JSON results written to {output}[/green]")
@@ -371,6 +416,28 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
             judge_model=judge_model,
         )
         console.print(f"[green]HTML report written to {report}[/green]")
+
+    # --- Failed scenario summary ---
+    # Shown last so it stays on-screen after the run finishes and users can
+    # see exactly what to retry. Failed scenarios are NOT written to the
+    # output JSON, so `--resume <output>` naturally picks them up on a rerun.
+    if failed_scenarios:
+        console.print(
+            f"\n[yellow]WARNING: {len(failed_scenarios)} scenario(s) "
+            f"failed and were skipped:[/yellow]"
+        )
+        for fs in failed_scenarios:
+            console.print(f"  - {fs['id']}: {fs['error'][:80]}")
+        if output:
+            console.print(
+                f"[yellow]Rerun with: voigt-kampff scan --model {model} "
+                f"--resume {output}[/yellow]"
+            )
+        else:
+            console.print(
+                "[yellow]Rerun with --output <file> --resume <file> to "
+                "retry failed scenarios automatically.[/yellow]"
+            )
 
     console.print()
 
@@ -451,3 +518,156 @@ def _write_cost_csv(path, model, results):
                 result.verdict.rating,
                 result.verdict.verdict,
             ])
+
+
+# ---------------------------------------------------------------------------
+# Aggregate / output-payload helpers (shared between the in-loop checkpoint
+# writer and the end-of-run final write).
+# ---------------------------------------------------------------------------
+
+def _compute_aggregates(results):
+    """Return (dim_averages, overall_health, mean_score, p10) from results.
+
+    ``results`` is a list of ``(scenario, result)`` tuples. The same helper
+    is invoked from two places: once per scenario inside the progress loop
+    (for the checkpoint write that backs ``--resume``) and once after the
+    loop to populate the console summary. Keeping the math in one place
+    guarantees the checkpoint and the final write never disagree.
+    """
+    from sapien_score.scoring.health import calculate_health_score
+
+    scores = [r.verdict.health_score for _, r in results]
+    if not scores:
+        return {}, calculate_health_score({}), 0, 0
+
+    mean_score = sum(scores) / len(scores)
+    # P10 = 10th percentile of per-scenario health scores. statistics.quantiles
+    # with method="inclusive" matches numpy.percentile's linear interpolation
+    # (e.g. P10 of [10..100] = 19.0). It requires at least 2 data points, so
+    # fall back to min(scores) for degenerate inputs.
+    if len(scores) < 2:
+        p10 = min(scores)
+    else:
+        p10 = quantiles(scores, n=10, method="inclusive")[0]
+
+    dim_totals: dict[str, list[float]] = {}
+    for _, result in results:
+        for turn in result.turns:
+            for dim_score in turn.scores.dimensions:
+                dim_totals.setdefault(dim_score.dimension, []).append(dim_score.drift)
+    dim_averages = {
+        dim: sum(vals) / len(vals) for dim, vals in dim_totals.items()
+    } if dim_totals else {}
+
+    overall_health = calculate_health_score(dim_averages)
+    return dim_averages, overall_health, mean_score, p10
+
+
+def _serialize_result_entry(scenario, result) -> dict:
+    """Flatten a (scenario, result) pair into the dict shape stored in JSON."""
+    return {
+        "scenario_id": scenario.id,
+        "domain": scenario.domain,
+        "title": scenario.title,
+        "verdict": result.verdict.verdict,
+        "health_score": result.verdict.health_score,
+        "peak_drift": round(result.verdict.peak_drift, 4),
+        "peak_turn": result.verdict.peak_turn,
+        "dominant_dimension": result.dominant_failure_dimension,
+        "effective_pressure": result.most_effective_pressure_type,
+        "duration_seconds": result.total_duration_seconds,
+        "input_tokens": result.total_input_tokens,
+        "output_tokens": result.total_output_tokens,
+        "total_tokens": result.total_tokens,
+        "cost_usd": round(result.total_cost_usd, 6),
+    }
+
+
+def _build_output_payload(
+    model: str,
+    results: list,
+    dim_averages: dict,
+    overall_health: dict,
+    mean_score: float,
+    p10: float,
+    previous_payload: Optional[dict] = None,
+    resume_path: Optional[str] = None,
+) -> dict:
+    """Build the JSON payload written to ``--output``.
+
+    When ``previous_payload`` is provided (i.e. a ``--resume`` run), the new
+    per-scenario entries are concatenated onto the prior results list and
+    all scalar aggregates are recomputed over the combined set so the
+    output file always reflects the full scan, not just this session.
+
+    Dimension averages can't be exactly recomputed from JSON because per-turn
+    data isn't stored — we approximate with a weighted merge by scenario
+    count. Every scenario has a similar number of turns in practice, so the
+    drift from a true turn-weighted average is small.
+    """
+    from sapien_score.scoring.health import calculate_health_score
+
+    total_tokens_new = sum(r.total_tokens for _, r in results)
+    total_cost_new = sum(r.total_cost_usd for _, r in results)
+    new_entries = [_serialize_result_entry(s, r) for s, r in results]
+
+    if previous_payload is None:
+        return {
+            "model": model,
+            "framework_version": "1.1",
+            "overall_health": overall_health,
+            "mean_health": round(mean_score, 1),
+            "p10_health": round(p10),
+            "dimension_averages": {k: round(v, 4) for k, v in (dim_averages or {}).items()},
+            "total_tokens": total_tokens_new,
+            "total_cost_usd": round(total_cost_new, 6),
+            "results": new_entries,
+        }
+
+    # --- Resume merge path ---
+    old_entries = previous_payload.get("results", []) or []
+    combined_entries = old_entries + new_entries
+
+    combined_scores = [e["health_score"] for e in combined_entries]
+    if combined_scores:
+        combined_mean = sum(combined_scores) / len(combined_scores)
+        if len(combined_scores) < 2:
+            combined_p10 = min(combined_scores)
+        else:
+            combined_p10 = quantiles(combined_scores, n=10, method="inclusive")[0]
+    else:
+        combined_mean = 0
+        combined_p10 = 0
+
+    old_dim = previous_payload.get("dimension_averages", {}) or {}
+    old_n = len(old_entries)
+    new_n = len(new_entries)
+    merged_dim: dict[str, float] = {}
+    for k in set(old_dim) | set(dim_averages or {}):
+        o = old_dim.get(k)
+        n = (dim_averages or {}).get(k)
+        if o is not None and n is not None and (old_n + new_n) > 0:
+            merged_dim[k] = (o * old_n + n * new_n) / (old_n + new_n)
+        elif o is not None:
+            merged_dim[k] = o
+        elif n is not None:
+            merged_dim[k] = n
+
+    merged_overall = calculate_health_score(merged_dim) if merged_dim else overall_health
+    combined_tokens = (previous_payload.get("total_tokens", 0) or 0) + total_tokens_new
+    combined_cost = (previous_payload.get("total_cost_usd", 0.0) or 0.0) + total_cost_new
+
+    payload = {
+        "model": model,
+        "framework_version": "1.1",
+        "overall_health": merged_overall,
+        "mean_health": round(combined_mean, 1),
+        "p10_health": round(combined_p10),
+        "dimension_averages": {k: round(v, 4) for k, v in merged_dim.items()},
+        "total_tokens": combined_tokens,
+        "total_cost_usd": round(combined_cost, 6),
+        "results": combined_entries,
+    }
+    if resume_path:
+        payload["resumed_from"] = str(resume_path)
+    return payload

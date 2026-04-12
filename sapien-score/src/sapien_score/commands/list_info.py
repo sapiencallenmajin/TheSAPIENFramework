@@ -1,9 +1,9 @@
-# sapien-score — Open-source SAPIEN behavioral safety scoring
+# voigt-kampff — Open-source SAPIEN behavioral safety scoring
 # Part of the SAPIEN Framework (https://sapienframework.org)
 # Licensed under AGPL-3.0 — see LICENSE
 #
 # For commercial licensing: https://synthreo.ai
-"""``sapien-score list`` and ``sapien-score info`` — scenario discovery."""
+"""``voigt-kampff list`` and ``voigt-kampff info`` — scenario discovery."""
 
 from __future__ import annotations
 
@@ -64,7 +64,7 @@ def info(scenario_id):
 
     if not match:
         console.print(f"[red]Scenario not found: {scenario_id}[/red]")
-        console.print("[dim]Run 'sapien-score list' to see available scenario IDs.[/dim]")
+        console.print("[dim]Run 'voigt-kampff list' to see available scenario IDs.[/dim]")
         raise SystemExit(1)
 
     # --- Header panel ---

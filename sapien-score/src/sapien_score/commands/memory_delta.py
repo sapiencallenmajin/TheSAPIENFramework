@@ -1,9 +1,9 @@
-# sapien-score — Open-source SAPIEN behavioral safety scoring
+# voigt-kampff — Open-source SAPIEN behavioral safety scoring
 # Part of the SAPIEN Framework (https://sapienframework.org)
 # Licensed under AGPL-3.0 — see LICENSE
 #
 # For commercial licensing: https://synthreo.ai
-"""``sapien-score memory-delta`` — 3-condition memory exploitation test."""
+"""``voigt-kampff memory-delta`` — 3-condition memory exploitation test."""
 
 from __future__ import annotations
 
