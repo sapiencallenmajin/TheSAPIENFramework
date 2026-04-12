@@ -1,9 +1,9 @@
-# sapien-score — Open-source SAPIEN behavioral safety scoring
+# voigt-kampff — Open-source SAPIEN behavioral safety scoring
 # Part of the SAPIEN Framework (https://sapienframework.org)
 # Licensed under AGPL-3.0 — see LICENSE
 #
 # For commercial licensing: https://synthreo.ai
-"""``sapien-score rapport-delta`` — measure how rapport amplifies drift."""
+"""``voigt-kampff rapport-delta`` — measure how rapport amplifies drift."""
 
 from __future__ import annotations
 

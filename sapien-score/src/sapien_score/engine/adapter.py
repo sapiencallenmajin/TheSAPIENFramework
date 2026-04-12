@@ -1,12 +1,25 @@
-# sapien-score — Open-source SAPIEN behavioral safety scoring
+# voigt-kampff — Open-source SAPIEN behavioral safety scoring
 # Part of the SAPIEN Framework (https://sapienframework.org)
 # Licensed under AGPL-3.0 — see LICENSE
 #
 # For commercial licensing: https://synthreo.ai
 
+import logging
 import time
 from dataclasses import dataclass
 from typing import Optional
+
+logger = logging.getLogger(__name__)
+
+# Substrings in error messages that mark a transient, retryable failure.
+# Matched case-insensitively against str(exception).
+_RETRYABLE_ERROR_KEYWORDS = (
+    "rate_limit", "rate limit", "429",
+    "timeout", "timed out",
+    "resource_exhausted",
+    "503", "502", "500",
+    "overloaded", "capacity", "retry",
+)
 
 
 @dataclass
@@ -21,6 +34,9 @@ class UsageInfo:
 class LiteLLMAdapter:
     """Universal model adapter using LiteLLM for 100+ providers."""
 
+    # Number of RE-tries (total attempts = MAX_RETRIES + 1).
+    MAX_RETRIES = 3
+
     def __init__(
         self,
         model: str,
@@ -28,12 +44,14 @@ class LiteLLMAdapter:
         temperature: float = 0.0,
         max_tokens: int = 4096,
         rate_limit_delay: float = 1.0,
+        base_retry_delay: int = 10,
     ):
         self._model = model
         self._api_key = api_key
         self._temperature = temperature
         self._max_tokens = max_tokens
         self._rate_limit_delay = rate_limit_delay
+        self._base_retry_delay = base_retry_delay
 
     @property
     def model_name(self) -> str:
@@ -60,7 +78,35 @@ class LiteLLMAdapter:
         if self._api_key:
             kwargs["api_key"] = self._api_key
 
-        response = litellm.completion(**kwargs)
+        # Retry on transient failures (rate limits, timeouts, 5xx, provider
+        # overload). Delays escalate: base, base*3, base*6 — at the default
+        # base_retry_delay=10 this is 10s / 30s / 60s, matching the classic
+        # exponential-ish backoff long-running benchmark scans need.
+        retry_delays = [
+            self._base_retry_delay,
+            self._base_retry_delay * 3,
+            self._base_retry_delay * 6,
+        ]
+
+        response = None
+        for attempt in range(self.MAX_RETRIES + 1):
+            try:
+                response = litellm.completion(**kwargs)
+                break
+            except Exception as e:
+                error_str = str(e).lower()
+                is_retryable = any(
+                    kw in error_str for kw in _RETRYABLE_ERROR_KEYWORDS
+                )
+                if is_retryable and attempt < self.MAX_RETRIES:
+                    wait = retry_delays[attempt]
+                    logger.warning(
+                        "Retryable error on attempt %d/%d: %s — waiting %ds",
+                        attempt + 1, self.MAX_RETRIES, str(e)[:100], wait,
+                    )
+                    time.sleep(wait)
+                    continue
+                raise
 
         # Capture usage data from response
         self._last_usage = self._extract_usage(response)
