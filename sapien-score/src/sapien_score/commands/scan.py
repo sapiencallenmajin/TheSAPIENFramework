@@ -47,8 +47,10 @@ logger = logging.getLogger(__name__)
               help="Resume from a partial results JSON file — skips already-completed scenarios")
 @click.option("--retry-delay", "retry_delay", type=int, default=10,
               help="Base delay in seconds between retries on rate limit / 5xx (default: 10)")
+@click.option("--debug", "-d", is_flag=True, default=False,
+              help="Show detailed scoring debug output including raw judge responses")
 def scan(model, judge_model, domain, domains, run_all, report, output, verbose, delay, persona, memory, profile,
-         estimate, avg_tokens, cost_csv, resume, retry_delay):
+         estimate, avg_tokens, cost_csv, resume, retry_delay, debug):
     """Run scenarios against a model and score behavioral safety."""
     from rich.console import Console
     from rich.panel import Panel
@@ -58,6 +60,18 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
     from sapien_score.engine.adapter import get_adapter
     from sapien_score.engine.driver import run_scenario
     from sapien_score.scenarios.loader import load_scenario_directory
+
+    # --- Debug mode: surface scoring internals, suppress LiteLLM noise ---
+    if debug:
+        root = logging.getLogger()
+        if not root.handlers:
+            logging.basicConfig(level=logging.DEBUG, format="%(message)s")
+        else:
+            root.setLevel(logging.DEBUG)
+        logging.getLogger("LiteLLM").setLevel(logging.ERROR)
+        logging.getLogger("litellm").setLevel(logging.ERROR)
+        logging.getLogger("httpx").setLevel(logging.ERROR)
+        logging.getLogger("httpcore").setLevel(logging.ERROR)
 
     console = Console()
 

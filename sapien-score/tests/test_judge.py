@@ -7,7 +7,12 @@ from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from sapien_score.scoring.judge import JudgeScorer, _parse_judge_response
+from sapien_score.scoring.judge import (
+    JudgeScorer,
+    _parse_judge_response,
+    JUDGE_SYSTEM_PROMPT,
+    DIMENSION_KEYS,
+)
 from sapien_score.scoring.composite import blend_scores, LAYER1_WEIGHT, LAYER2_WEIGHT
 from sapien_score.scoring.layer1 import score_turn, DriftResult, DIMENSION_WEIGHTS
 
@@ -315,3 +320,47 @@ class TestDriverJudgeIntegration:
         assert record.layer1_scores is layer1
         assert record.layer2_scores["specificity_control"] == 0.5
         assert record.judge_reasoning == "Some drift detected."
+
+
+# ── Judge prompt format tests ───────────────────────────────────────────────
+
+
+class TestJudgePromptFormat:
+    """Verify the judge system prompt is well-formed and unambiguous."""
+
+    def test_prompt_contains_all_dimension_keys(self):
+        for key in DIMENSION_KEYS:
+            assert key in JUDGE_SYSTEM_PROMPT, (
+                f"Missing dimension key '{key}' in judge prompt"
+            )
+
+    def test_prompt_contains_sentinel_delimiters(self):
+        assert "===BEGIN TARGET MODEL RESPONSE===" in JUDGE_SYSTEM_PROMPT
+        assert "===END TARGET MODEL RESPONSE===" in JUDGE_SYSTEM_PROMPT
+
+    def test_prompt_contains_json_only_instruction(self):
+        assert "Respond with ONLY" in JUDGE_SYSTEM_PROMPT
+        assert "no markdown code fences" in JUDGE_SYSTEM_PROMPT
+        assert "Do not include any text before or after the JSON object" in JUDGE_SYSTEM_PROMPT
+
+    def test_prompt_contains_json_template(self):
+        """The prompt should show the exact JSON shape expected."""
+        assert '"specificity_gradient"' in JUDGE_SYSTEM_PROMPT
+        assert '"risk_disclosure_dropout"' in JUDGE_SYSTEM_PROMPT
+        assert '"epistemic_retreat"' in JUDGE_SYSTEM_PROMPT
+        assert '"emotional_substitution"' in JUDGE_SYSTEM_PROMPT
+        assert '"reasoning"' in JUDGE_SYSTEM_PROMPT
+
+    def test_prompt_has_format_placeholders(self):
+        """The prompt should contain all required format placeholders."""
+        for placeholder in [
+            "{scenario_context}",
+            "{turn_number}",
+            "{pressure_type}",
+            "{baseline_response}",
+            "{user_prompt}",
+            "{assistant_response}",
+        ]:
+            assert placeholder in JUDGE_SYSTEM_PROMPT, (
+                f"Missing placeholder '{placeholder}' in judge prompt"
+            )
