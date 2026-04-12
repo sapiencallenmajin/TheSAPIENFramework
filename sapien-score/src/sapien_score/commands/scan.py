@@ -10,6 +10,8 @@ from __future__ import annotations
 import csv
 import json
 import logging
+from datetime import datetime
+from pathlib import Path
 from statistics import quantiles
 from typing import Optional
 
@@ -40,14 +42,13 @@ logger = logging.getLogger(__name__)
 @click.option("--profile", default=None, help="Load persona+memory from a built-in profile (e.g. medical_professional)")
 @click.option("--estimate", is_flag=True, default=False, help="Estimate cost without running API calls")
 @click.option("--avg-tokens", "avg_tokens", default=800, type=int, help="Avg tokens per turn for cost estimation (default: 800)")
-@click.option("--yes", "-y", "skip_confirm", is_flag=True, default=False, help="Skip confirmation prompt")
 @click.option("--cost-csv", "cost_csv", default=None, type=click.Path(), help="Export per-scenario cost data to CSV")
 @click.option("--resume", type=click.Path(exists=True), default=None,
               help="Resume from a partial results JSON file — skips already-completed scenarios")
 @click.option("--retry-delay", "retry_delay", type=int, default=10,
               help="Base delay in seconds between retries on rate limit / 5xx (default: 10)")
 def scan(model, judge_model, domain, domains, run_all, report, output, verbose, delay, persona, memory, profile,
-         estimate, avg_tokens, skip_confirm, cost_csv, resume, retry_delay):
+         estimate, avg_tokens, cost_csv, resume, retry_delay):
     """Run scenarios against a model and score behavioral safety."""
     from rich.console import Console
     from rich.panel import Panel
@@ -176,92 +177,125 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
         )
     console.print()
 
+    # --- Partial results path ---
+    # Always computed so auto-save works even without --output.  When
+    # --output is set the partial sits alongside it; otherwise it falls
+    # back to a well-known location the user can find.
+    if output:
+        p = Path(output)
+        partial_path = (
+            str(p.with_suffix(".partial.json"))
+            if p.suffix == ".json"
+            else output + ".partial.json"
+        )
+    else:
+        partial_path = str(
+            Path.home() / ".sapien_score" / "last_scan.partial.json"
+        )
+
     # --- Run with progress ---
     results = []
     failed_scenarios: list[dict] = []
     running_tokens = 0
     running_cost = 0.0
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TaskProgressColumn(),
-        console=console,
-    ) as progress:
-        task = progress.add_task("Scanning...", total=len(all_scenarios))
+    try:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            console=console,
+        ) as progress:
+            task = progress.add_task("Scanning...", total=len(all_scenarios))
 
-        for idx, scenario in enumerate(all_scenarios, 1):
-            progress.update(
-                task,
-                description=f"[{idx}/{len(all_scenarios)}] {scenario.domain}: {scenario.title}",
-            )
-
-            # Per-scenario error boundary: the adapter already retries on
-            # transient errors, so anything surfacing here is either a
-            # non-retryable error (bad auth, malformed request, …) or has
-            # exhausted the retry budget. Either way, log it and press on —
-            # one bad scenario shouldn't kill a long benchmark run.
-            try:
-                result = run_scenario(
-                    scenario=scenario,
-                    adapter=adapter,
-                    verbose=verbose,
-                    judge=judge,
-                    persona_text=persona_text,
-                    memory_text=memory_text,
-                )
-            except Exception as e:
-                logger.warning(
-                    "Scenario %s failed after retries: %s — skipping",
-                    scenario.id, str(e)[:150],
-                )
-                console.print(
-                    f"[yellow]  Scenario {scenario.id} failed: "
-                    f"{str(e)[:120]} — skipping[/yellow]"
-                )
-                failed_scenarios.append({
-                    "id": scenario.id,
-                    "title": scenario.title,
-                    "error": str(e)[:200],
-                })
-                progress.advance(task)
-                continue
-
-            results.append((scenario, result))
-
-            # Running cost display in verbose mode
-            running_tokens += result.total_tokens
-            running_cost += result.total_cost_usd
-            if verbose and result.total_tokens > 0:
-                console.print(
-                    f"  [dim]Scenario complete: {result.total_tokens:,} tokens "
-                    f"(${result.total_cost_usd:.4f}) | Running total: "
-                    f"{running_tokens:,} tokens (${running_cost:.4f})[/dim]"
+            for idx, scenario in enumerate(all_scenarios, 1):
+                progress.update(
+                    task,
+                    description=f"[{idx}/{len(all_scenarios)}] {scenario.domain}: {scenario.title}",
                 )
 
-            # Incremental checkpoint: rewrite the --output file after each
-            # successful scenario so `--resume <output>` can recover from a
-            # process death without losing completed work.
-            if output:
+                # Per-scenario error boundary: the adapter already retries
+                # on transient errors, so anything surfacing here is either
+                # a non-retryable error (bad auth, malformed request, …) or
+                # has exhausted the retry budget. Either way, log it and
+                # press on — one bad scenario shouldn't kill a long run.
                 try:
-                    ckpt_dim, ckpt_health, ckpt_mean, ckpt_p10 = _compute_aggregates(results)
-                    ckpt_payload = _build_output_payload(
-                        model=model,
-                        results=results,
-                        dim_averages=ckpt_dim,
-                        overall_health=ckpt_health,
-                        mean_score=ckpt_mean,
-                        p10=ckpt_p10,
-                        previous_payload=previous_payload,
-                        resume_path=resume,
+                    result = run_scenario(
+                        scenario=scenario,
+                        adapter=adapter,
+                        verbose=verbose,
+                        judge=judge,
+                        persona_text=persona_text,
+                        memory_text=memory_text,
                     )
-                    with open(output, "w", encoding="utf-8") as f:
-                        json.dump(ckpt_payload, f, indent=2)
-                except OSError as e:
-                    logger.warning("Checkpoint write failed: %s", e)
+                except Exception as e:
+                    logger.warning(
+                        "Scenario %s failed after retries: %s — skipping",
+                        scenario.id, str(e)[:150],
+                    )
+                    console.print(
+                        f"[yellow]  Scenario {scenario.id} failed: "
+                        f"{str(e)[:120]} — skipping[/yellow]"
+                    )
+                    failed_scenarios.append({
+                        "id": scenario.id,
+                        "title": scenario.title,
+                        "error": str(e)[:200],
+                    })
+                    _save_partial(results, failed_scenarios, partial_path, model)
+                    progress.advance(task)
+                    continue
 
-            progress.advance(task)
+                results.append((scenario, result))
+
+                # Running cost display in verbose mode
+                running_tokens += result.total_tokens
+                running_cost += result.total_cost_usd
+                if verbose and result.total_tokens > 0:
+                    console.print(
+                        f"  [dim]Scenario complete: {result.total_tokens:,} tokens "
+                        f"(${result.total_cost_usd:.4f}) | Running total: "
+                        f"{running_tokens:,} tokens (${running_cost:.4f})[/dim]"
+                    )
+
+                # Incremental checkpoint: rewrite --output after each
+                # successful scenario so `--resume <output>` can recover
+                # from a process death without losing completed work.
+                if output:
+                    try:
+                        ckpt_dim, ckpt_health, ckpt_mean, ckpt_p10 = _compute_aggregates(results)
+                        ckpt_payload = _build_output_payload(
+                            model=model,
+                            results=results,
+                            dim_averages=ckpt_dim,
+                            overall_health=ckpt_health,
+                            mean_score=ckpt_mean,
+                            p10=ckpt_p10,
+                            previous_payload=previous_payload,
+                            resume_path=resume,
+                        )
+                        with open(output, "w", encoding="utf-8") as f:
+                            json.dump(ckpt_payload, f, indent=2)
+                    except OSError as e:
+                        logger.warning("Checkpoint write failed: %s", e)
+
+                # Auto-save partial (always, regardless of --output)
+                _save_partial(results, failed_scenarios, partial_path, model)
+
+                progress.advance(task)
+
+    except KeyboardInterrupt:
+        console.print(
+            "\n[yellow]Scan interrupted. Saving partial results...[/yellow]"
+        )
+        _save_partial(results, failed_scenarios, partial_path, model)
+        console.print(f"[green]Partial results saved: {partial_path}[/green]")
+        console.print(
+            f"Resume with: voigt-kampff scan --model {model} "
+            f"--resume {partial_path}"
+        )
+        raise SystemExit(0)
 
     # --- Per-turn detail (verbose) ---
     if verbose:
@@ -399,7 +433,13 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
         )
         with open(output, "w", encoding="utf-8") as f:
             json.dump(output_data, f, indent=2)
-        console.print(f"\n[green]JSON results written to {output}[/green]")
+        if failed_scenarios:
+            console.print(
+                f"\n[green]Results saved to {output} "
+                f"({len(results)} completed, {len(failed_scenarios)} failed)[/green]"
+            )
+        else:
+            console.print(f"\n[green]Results saved to {output}[/green]")
 
     # --- CSV cost export ---
     if cost_csv:
@@ -417,10 +457,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
         )
         console.print(f"[green]HTML report written to {report}[/green]")
 
-    # --- Failed scenario summary ---
-    # Shown last so it stays on-screen after the run finishes and users can
-    # see exactly what to retry. Failed scenarios are NOT written to the
-    # output JSON, so `--resume <output>` naturally picks them up on a rerun.
+    # --- Failed scenario summary / partial file cleanup ---
     if failed_scenarios:
         console.print(
             f"\n[yellow]WARNING: {len(failed_scenarios)} scenario(s) "
@@ -428,16 +465,19 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
         )
         for fs in failed_scenarios:
             console.print(f"  - {fs['id']}: {fs['error'][:80]}")
-        if output:
-            console.print(
-                f"[yellow]Rerun with: voigt-kampff scan --model {model} "
-                f"--resume {output}[/yellow]"
-            )
-        else:
-            console.print(
-                "[yellow]Rerun with --output <file> --resume <file> to "
-                "retry failed scenarios automatically.[/yellow]"
-            )
+        console.print(
+            f"[dim]Partial results also saved to {partial_path}[/dim]"
+        )
+        console.print(
+            f"[yellow]Resume with: voigt-kampff scan --model {model} "
+            f"--resume {partial_path}[/yellow]"
+        )
+    else:
+        # Full success — clean up the partial checkpoint file.
+        try:
+            Path(partial_path).unlink(missing_ok=True)
+        except OSError:
+            pass
 
     console.print()
 
@@ -671,3 +711,29 @@ def _build_output_payload(
     if resume_path:
         payload["resumed_from"] = str(resume_path)
     return payload
+
+
+def _save_partial(results, failed_scenarios, path, model):
+    """Save current progress so ``--resume`` can recover after a crash.
+
+    Called after every scenario (success or failure) and on KeyboardInterrupt.
+    Uses the same per-scenario dict format as the final output so the resume
+    loader doesn't need special-casing.
+    """
+    try:
+        data = {
+            "partial": True,
+            "model": model,
+            "completed": len(results),
+            "failed": len(failed_scenarios),
+            "timestamp": datetime.now().isoformat(),
+            "results": [
+                _serialize_result_entry(s, r) for s, r in results
+            ],
+            "failed_scenarios": failed_scenarios,
+        }
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, default=str)
+    except Exception as e:
+        logger.warning("Could not save partial results: %s", e)
