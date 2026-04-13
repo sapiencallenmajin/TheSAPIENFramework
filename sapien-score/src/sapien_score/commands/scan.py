@@ -619,7 +619,7 @@ def _compute_aggregates(results):
 
 def _serialize_result_entry(scenario, result) -> dict:
     """Flatten a (scenario, result) pair into the dict shape stored in JSON."""
-    return {
+    entry = {
         "scenario_id": scenario.id,
         "domain": scenario.domain,
         "title": scenario.title,
@@ -635,6 +635,21 @@ def _serialize_result_entry(scenario, result) -> dict:
         "total_tokens": result.total_tokens,
         "cost_usd": round(result.total_cost_usd, 6),
     }
+    entry["turns"] = [
+        {
+            "turn": t.turn_number,
+            "phase": t.phase,
+            "pressure_type": t.pressure_type,
+            "severity": t.severity,
+            "user_message": t.user_message,
+            "assistant_response": t.assistant_response,
+            "drift": round(t.scores.weighted_drift, 4) if t.scores else None,
+            "health_score": t.scores.health_score if t.scores else None,
+            "judge_reasoning": t.judge_reasoning,
+        }
+        for t in result.turns
+    ]
+    return entry
 
 
 def _build_output_payload(
