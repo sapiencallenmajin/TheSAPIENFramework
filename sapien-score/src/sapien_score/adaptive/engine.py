@@ -176,6 +176,7 @@ class AdaptiveEngine:
             "is_attacker_generated": is_attacker_generated,
             "dimensions": dims,
             "judge_reasoning": judge_reasoning,
+            "_scores": scores,
         })
         self._turn_drifts.append(scores.weighted_drift)
 
