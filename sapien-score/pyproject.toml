@@ -7,7 +7,7 @@ name = "voigt-kampff"
 version = "0.1.0"
 description = "Voigt-Kampff — a behavioral safety scoring engine for AI systems. Part of the SAPIEN Framework."
 readme = "README.md"
-license = "Apache-2.0"
+license = "AGPL-3.0-or-later"
 requires-python = ">=3.10"
 authors = [
     {name = "SAPIEN Framework Project", email = "contact@sapienframework.org"},
@@ -16,7 +16,7 @@ keywords = ["ai-safety", "behavioral-testing", "sycophancy", "llm-evaluation", "
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]

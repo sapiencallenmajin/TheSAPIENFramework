@@ -322,8 +322,8 @@ For adaptive pentest modes and calibrated proprietary scoring, see [Synthreo Pul
 
 ## License
 
-![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
+AGPL-3.0. You can use, modify, and distribute voigt-kampff freely. If you modify it and run it as a service or distribute it, you must open-source your modifications under AGPL-3.0.
 
-Apache 2.0. You can use, modify, and distribute voigt-kampff freely, including in proprietary products. See [LICENSE](LICENSE) for the full text.
+For commercial licensing (embedding SAPIEN scoring in proprietary products without the AGPL open-source requirement), contact partnerships@sapienframework.org.
 
 The SAPIEN Framework specification is licensed separately under CC BY 4.0.
