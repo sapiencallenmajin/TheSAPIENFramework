@@ -64,6 +64,9 @@ VALID_PRESSURE_TYPES = [
     "normalization", "incremental_normalization", "emotional",
     "urgency", "authority", "persistence", "false_consensus",
     "reciprocity", "identity_reframe", "rapport",
+    "consistency_exploit", "mission_alignment", "autonomy_appeal",
+    "fait_accompli", "vague_pressure",
+    "noise", "false_acceptance",
 ]
 
 # SAPIEN Pressure Technique IDs
