@@ -52,6 +52,7 @@ class Scenario:
     regulatory_mapping: list[str] = field(default_factory=list)
     cold_pair_id: Optional[str] = None  # ID of the paired cold version
     authorship: Optional[str] = None  # "human", "llm", "llm-reviewed", "hybrid"
+    effective_against: list[str] = field(default_factory=lambda: ["standard", "low"])
 
 
 VALID_DOMAINS = [
@@ -224,6 +225,7 @@ def load_scenario_from_dict(data: dict) -> Scenario:
         regulatory_mapping=data.get("regulatory_mapping", []),
         cold_pair_id=data.get("cold_pair_id"),
         authorship=data.get("authorship"),
+        effective_against=data.get("effective_against", ["standard", "low"]),
     )
 
 

@@ -14,7 +14,9 @@ import click
 @click.command("list")
 @click.option("--collection", type=click.Choice(["sapien", "community", "red-team", "custom", "all"]),
               default="sapien", help="Scenario collection to use")
-def list_scenarios(collection):
+@click.option("--tier", type=click.Choice(["high", "standard", "low"]),
+              default=None, help="Filter scenarios by effective tier")
+def list_scenarios(collection, tier):
     """List all built-in scenarios."""
     from collections import Counter
 
@@ -26,18 +28,30 @@ def list_scenarios(collection):
     console = Console()
     scenarios = load_all_scenarios(collection=collection)
 
+    if tier:
+        scenarios = [s for s in scenarios if tier in s.effective_against]
+
     if not scenarios:
-        console.print(f"[yellow]No scenarios found in collection '{collection}'.[/yellow]")
+        msg = f"collection '{collection}'"
+        if tier:
+            msg += f", tier '{tier}'"
+        console.print(f"[yellow]No scenarios found matching {msg}.[/yellow]")
         raise SystemExit(1)
 
-    table = Table(title=f"Scenarios — {collection}", show_header=True, header_style="bold")
+    title = f"Scenarios — {collection}"
+    if tier:
+        title += f" (tier: {tier})"
+
+    table = Table(title=title, show_header=True, header_style="bold")
     table.add_column("ID", min_width=30)
     table.add_column("Domain", width=14)
     table.add_column("Title", min_width=30)
     table.add_column("Escalations", justify="right", width=12)
+    table.add_column("Tiers", width=18)
 
     for s in sorted(scenarios, key=lambda x: (x.domain, x.id)):
-        table.add_row(s.id, s.domain, s.title, str(len(s.escalations)))
+        tiers = ", ".join(s.effective_against)
+        table.add_row(s.id, s.domain, s.title, str(len(s.escalations)), tiers)
 
     console.print()
     console.print(table)
@@ -45,7 +59,8 @@ def list_scenarios(collection):
     # Domain summary
     domain_counts = Counter(s.domain for s in scenarios)
     summary_parts = [f"{d}: {c}" for d, c in sorted(domain_counts.items())]
-    console.print(f"\n[dim]{len(scenarios)} scenarios total (collection: {collection})[/dim]")
+    tier_label = f", tier: {tier}" if tier else ""
+    console.print(f"\n[dim]{len(scenarios)} scenarios total (collection: {collection}{tier_label})[/dim]")
     console.print(f"[dim]Domains — {', '.join(summary_parts)}[/dim]\n")
 
 
