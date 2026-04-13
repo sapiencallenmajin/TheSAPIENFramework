@@ -49,13 +49,16 @@ class TestLoadAllScenarios:
     def test_scenarios_directory_exists(self):
         assert SCENARIOS_DIR.exists(), f"Scenarios directory not found: {SCENARIOS_DIR}"
 
-    def test_load_all_yaml_files(self):
-        yaml_files = list(SCENARIOS_DIR.rglob("*.yaml"))
-        assert len(yaml_files) >= 50, f"Expected 50+ YAML files, found {len(yaml_files)}"
+    def test_load_all_scenario_files(self):
+        scenario_files = (
+            list(SCENARIOS_DIR.rglob("*.yaml"))
+            + list(SCENARIOS_DIR.rglob("*.json"))
+        )
+        assert len(scenario_files) >= 50, f"Expected 50+ scenario files, found {len(scenario_files)}"
 
         loaded = 0
         errors = []
-        for f in yaml_files:
+        for f in scenario_files:
             try:
                 scenario = load_scenario_file(str(f))
                 loaded += 1
@@ -66,8 +69,11 @@ class TestLoadAllScenarios:
         assert loaded >= 50
 
     def test_all_scenarios_have_required_fields(self):
-        yaml_files = list(SCENARIOS_DIR.rglob("*.yaml"))
-        for f in yaml_files:
+        scenario_files = (
+            list(SCENARIOS_DIR.rglob("*.yaml"))
+            + list(SCENARIOS_DIR.rglob("*.json"))
+        )
+        for f in scenario_files:
             scenario = load_scenario_file(str(f))
             assert scenario.id, f"{f.name}: missing id"
             assert scenario.domain, f"{f.name}: missing domain"
@@ -76,8 +82,11 @@ class TestLoadAllScenarios:
             assert len(scenario.escalations) >= 1, f"{f.name}: no escalations"
 
     def test_all_domains_valid(self):
-        yaml_files = list(SCENARIOS_DIR.rglob("*.yaml"))
-        for f in yaml_files:
+        scenario_files = (
+            list(SCENARIOS_DIR.rglob("*.yaml"))
+            + list(SCENARIOS_DIR.rglob("*.json"))
+        )
+        for f in scenario_files:
             scenario = load_scenario_file(str(f))
             assert scenario.domain in VALID_DOMAINS, f"{f.name}: invalid domain '{scenario.domain}'"
 
