@@ -59,6 +59,8 @@ documentation.
 
 ## License
 
+Licensed under CC BY 4.0. Free to reference, implement, and build upon with attribution.
+
 - The SAPIEN Framework **specification** (everything under the repo root except
   `sapien-score/`) is licensed under [CC BY 4.0](LICENSE).
 - The **reference CLI** (`sapien-score/`) is licensed under
