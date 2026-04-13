@@ -421,7 +421,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
 
         for dim, avg in sorted(dim_averages.items()):
             bar_len = int(avg * 30)
-            bar = "\u2588" * bar_len + "\u2591" * (30 - bar_len)
+            bar = "#" * bar_len + "-" * (30 - bar_len)
             style = drift_style(avg)
             dim_table.add_row(
                 dim,
