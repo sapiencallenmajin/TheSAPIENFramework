@@ -19,7 +19,11 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 def get_scenarios_dir() -> Path:
-    """Resolve the built-in scenarios/ directory shipped with the package."""
+    """Resolve the built-in scenarios/ directory shipped with the package.
+
+    Returns the top-level ``scenarios/`` directory (which now contains
+    collection subdirectories like ``sapien/``, ``community/``, etc.).
+    """
     env_dir = os.environ.get("SAPIEN_SCENARIOS")
     if env_dir:
         return Path(env_dir)
@@ -69,6 +73,28 @@ def rating_style(rating: str) -> str:
         "Critical": "bold red",
     }
     return mapping.get(rating, "white")
+
+
+# ---------------------------------------------------------------------------
+# Cross-family judge check
+# ---------------------------------------------------------------------------
+
+def check_cross_family_judge(model: str, judge_model: str | None) -> str | None:
+    """Return a warning string if model and judge share a provider prefix.
+
+    Returns None when the check passes or is not applicable.
+    """
+    if not judge_model:
+        return None
+    model_prefix = model.split("/")[0] if "/" in model else None
+    judge_prefix = judge_model.split("/")[0] if "/" in judge_model else None
+    if model_prefix and judge_prefix and model_prefix == judge_prefix:
+        return (
+            f"WARNING: Target and judge are both {model_prefix} models.\n"
+            "Same-family judging may produce inflated scores.\n"
+            "For published benchmarks, use a cross-family judge."
+        )
+    return None
 
 
 # ---------------------------------------------------------------------------

@@ -9,6 +9,7 @@
 
 import json
 import logging
+import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -50,6 +51,7 @@ class Scenario:
     tags: list[str] = field(default_factory=list)
     regulatory_mapping: list[str] = field(default_factory=list)
     cold_pair_id: Optional[str] = None  # ID of the paired cold version
+    authorship: Optional[str] = None  # "human", "llm", "llm-reviewed", "hybrid"
 
 
 VALID_DOMAINS = [
@@ -218,6 +220,7 @@ def load_scenario_from_dict(data: dict) -> Scenario:
         tags=data.get("tags", []),
         regulatory_mapping=data.get("regulatory_mapping", []),
         cold_pair_id=data.get("cold_pair_id"),
+        authorship=data.get("authorship"),
     )
 
 
@@ -261,6 +264,105 @@ def load_scenario_directory(
             # programmer errors (KeyError, AttributeError, TypeError) are
             # NOT caught here — they should surface loudly.
             logger.warning("skipping scenario %s: %s", scenario_file, e)
+
+    return scenarios
+
+
+# ---- Collection-aware loading ----
+
+VALID_COLLECTIONS = ["sapien", "community", "red-team", "custom", "all"]
+
+# Default collections included when no explicit filter is set.
+_DEFAULT_COLLECTIONS = ["sapien", "community", "red-team"]
+
+# Cache: maps frozenset of directory paths -> list[Scenario]
+_scenario_cache: dict[frozenset, list[Scenario]] = {}
+
+
+def _resolve_scenarios_root() -> Path:
+    """Return the top-level ``scenarios/`` directory.
+
+    Checks the ``SAPIEN_SCENARIOS`` env var first, then falls back to the
+    standard package-relative path.
+    """
+    env_dir = os.environ.get("SAPIEN_SCENARIOS")
+    if env_dir:
+        return Path(env_dir)
+    # scenarios/ lives alongside the sapien_score package in the source tree
+    pkg_dir = Path(__file__).resolve().parent.parent  # sapien_score/
+    candidates = [
+        pkg_dir.parent.parent / "scenarios",   # src/../scenarios
+        pkg_dir.parent / "scenarios",           # editable install
+        pkg_dir / "scenarios",                  # bundled inside pkg
+    ]
+    for candidate in candidates:
+        if candidate.is_dir():
+            return candidate
+    return pkg_dir.parent.parent / "scenarios"
+
+
+def load_all_scenarios(
+    domain: Optional[str] = None,
+    collection: Optional[str] = None,
+    authorship: Optional[str] = None,
+    audience: Optional[str] = None,
+    scenarios_dir: Optional[str] = None,
+) -> list[Scenario]:
+    """Load scenarios with collection and metadata filters.
+
+    Parameters
+    ----------
+    domain : str, optional
+        Filter to a single domain (e.g. ``"medical"``).
+    collection : str, optional
+        ``"sapien"`` (default), ``"community"``, ``"red-team"``, ``"custom"``,
+        or ``"all"``.  When *None*, returns the sapien collection only.
+    authorship : str, optional
+        ``"human"``, ``"llm"``, ``"llm-reviewed"``, or ``"hybrid"``.
+    audience : str, optional
+        ``"general"`` or ``"benchmark"``.
+    scenarios_dir : str, optional
+        Override: load scenarios from this single directory instead of the
+        standard collection layout.
+    """
+    global _scenario_cache
+
+    effective_collection = collection or "sapien"
+
+    # --- Resolve directories to scan ---
+    if scenarios_dir:
+        dirs_to_scan = [Path(scenarios_dir)]
+    else:
+        root = _resolve_scenarios_root()
+        if effective_collection == "all":
+            dirs_to_scan = [
+                root / c for c in ["sapien", "community", "red-team", "custom"]
+                if (root / c).is_dir()
+            ]
+        else:
+            target = root / effective_collection
+            dirs_to_scan = [target] if target.is_dir() else []
+
+    if not dirs_to_scan:
+        return []
+
+    # --- Cache lookup (keyed on the set of directories) ---
+    cache_key = frozenset(str(d) for d in dirs_to_scan)
+    if cache_key not in _scenario_cache:
+        all_loaded: list[Scenario] = []
+        for d in dirs_to_scan:
+            all_loaded.extend(load_scenario_directory(str(d)))
+        _scenario_cache[cache_key] = all_loaded
+
+    scenarios = list(_scenario_cache[cache_key])
+
+    # --- Apply filters ---
+    if domain:
+        scenarios = [s for s in scenarios if s.domain == domain]
+    if authorship:
+        scenarios = [s for s in scenarios if getattr(s, "authorship", None) == authorship]
+    if audience:
+        scenarios = [s for s in scenarios if s.audience == audience]
 
     return scenarios
 

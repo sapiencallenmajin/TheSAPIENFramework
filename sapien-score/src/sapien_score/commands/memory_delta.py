@@ -11,7 +11,6 @@ import click
 
 from ._shared import (
     find_scenario,
-    get_scenarios_dir,
     health_style,
     rating_style,
     result_health_score,
@@ -41,7 +40,7 @@ def memory_delta(model, judge_model, scenario_id, persona, memory, profile, repo
 
     from sapien_score.engine.adapter import get_adapter
     from sapien_score.engine.driver import run_scenario
-    from sapien_score.scenarios.loader import load_scenario_directory
+    from sapien_score.scenarios.loader import load_all_scenarios
 
     console = Console()
 
@@ -72,8 +71,7 @@ def memory_delta(model, judge_model, scenario_id, persona, memory, profile, repo
         raise SystemExit(1)
 
     # --- Load scenario ---
-    scenarios_dir = get_scenarios_dir()
-    all_scenarios = load_scenario_directory(str(scenarios_dir))
+    all_scenarios = load_all_scenarios(collection="all")
     scenario = find_scenario(all_scenarios, scenario_id)
 
     if not scenario:

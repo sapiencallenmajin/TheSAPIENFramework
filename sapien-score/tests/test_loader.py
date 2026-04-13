@@ -1,6 +1,7 @@
 """Tests for scenario loader."""
 import json
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -10,13 +11,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from sapien_score.scenarios.loader import (
     ScenarioValidationError,
+    load_all_scenarios,
     load_scenario_directory,
     load_scenario_file,
     load_scenario_from_dict,
     validate_scenario,
+    _scenario_cache,
+    VALID_COLLECTIONS,
     VALID_DOMAINS,
     VALID_PRESSURE_TYPES,
 )
+from sapien_score.commands._shared import check_cross_family_judge
 
 
 # A minimal valid scenario dict, used as a fixture for the malformed-input
@@ -34,15 +39,17 @@ _VALID_SCENARIO = {
 _VALID_JSON = json.dumps(_VALID_SCENARIO)
 
 
-SCENARIOS_DIR = Path(__file__).parent.parent / "scenarios"
+# After restructure: scenarios live under scenarios/sapien/{domain}/
+SCENARIOS_ROOT = Path(__file__).parent.parent / "scenarios"
+SAPIEN_DIR = SCENARIOS_ROOT / "sapien"
 
 
 class TestLoadAllScenarios:
     def test_scenarios_directory_exists(self):
-        assert SCENARIOS_DIR.exists(), f"Scenarios directory not found: {SCENARIOS_DIR}"
+        assert SAPIEN_DIR.exists(), f"Sapien directory not found: {SAPIEN_DIR}"
 
     def test_load_all_scenario_files(self):
-        scenario_files = list(SCENARIOS_DIR.rglob("*.json"))
+        scenario_files = list(SAPIEN_DIR.rglob("*.json"))
         assert len(scenario_files) >= 50, f"Expected 50+ JSON files, found {len(scenario_files)}"
 
         loaded = 0
@@ -58,7 +65,7 @@ class TestLoadAllScenarios:
         assert loaded >= 50
 
     def test_all_scenarios_have_required_fields(self):
-        scenario_files = list(SCENARIOS_DIR.rglob("*.json"))
+        scenario_files = list(SAPIEN_DIR.rglob("*.json"))
         for f in scenario_files:
             scenario = load_scenario_file(str(f))
             assert scenario.id, f"{f.name}: missing id"
@@ -68,22 +75,22 @@ class TestLoadAllScenarios:
             assert len(scenario.escalations) >= 1, f"{f.name}: no escalations"
 
     def test_all_domains_valid(self):
-        scenario_files = list(SCENARIOS_DIR.rglob("*.json"))
+        scenario_files = list(SAPIEN_DIR.rglob("*.json"))
         for f in scenario_files:
             scenario = load_scenario_file(str(f))
             assert scenario.domain in VALID_DOMAINS, f"{f.name}: invalid domain '{scenario.domain}'"
 
     def test_domain_directories_present(self):
         expected = {"medical", "financial", "security", "legal", "hr", "education"}
-        actual = {d.name for d in SCENARIOS_DIR.iterdir() if d.is_dir()}
+        actual = {d.name for d in SAPIEN_DIR.iterdir() if d.is_dir()}
         assert expected.issubset(actual), f"Missing domains: {expected - actual}"
 
     def test_load_directory(self):
-        scenarios = load_scenario_directory(str(SCENARIOS_DIR))
+        scenarios = load_scenario_directory(str(SAPIEN_DIR))
         assert len(scenarios) >= 50, f"Expected 50+ scenarios, got {len(scenarios)}"
 
     def test_load_directory_by_domain(self):
-        scenarios = load_scenario_directory(str(SCENARIOS_DIR), domain="medical")
+        scenarios = load_scenario_directory(str(SAPIEN_DIR), domain="medical")
         assert all(s.domain == "medical" for s in scenarios)
         assert len(scenarios) >= 5
 
@@ -218,3 +225,105 @@ class TestLoadDirectoryResilience:
         assert len(scenarios) == 1
         assert scenarios[0].id == "test_good"
         assert any("broken.json" in rec.message for rec in caplog.records)
+
+
+class TestLoadAllScenariosFn:
+    """Tests for the collection-aware load_all_scenarios()."""
+
+    def setup_method(self):
+        _scenario_cache.clear()
+
+    def test_loader_finds_sapien_scenarios(self):
+        """Default load_all_scenarios returns scenarios from sapien/."""
+        scenarios = load_all_scenarios()
+        assert len(scenarios) >= 50, f"Expected 50+ sapien scenarios, got {len(scenarios)}"
+
+    def test_collection_filter_sapien(self):
+        scenarios = load_all_scenarios(collection="sapien")
+        assert len(scenarios) >= 50
+
+    def test_collection_filter_community_empty(self):
+        """Community collection is empty by default."""
+        scenarios = load_all_scenarios(collection="community")
+        assert len(scenarios) == 0
+
+    def test_collection_filter_redteam_empty(self):
+        """Red-team collection is empty by default."""
+        scenarios = load_all_scenarios(collection="red-team")
+        assert len(scenarios) == 0
+
+    def test_default_excludes_custom(self):
+        """Default collection is sapien only, not custom."""
+        scenarios = load_all_scenarios()
+        # Verify we get sapien scenarios, not an accidental all-collection load
+        assert len(scenarios) >= 50
+
+    def test_collection_all_includes_sapien(self):
+        scenarios = load_all_scenarios(collection="all")
+        assert len(scenarios) >= 50
+
+    def test_domain_filter(self):
+        scenarios = load_all_scenarios(domain="medical")
+        assert all(s.domain == "medical" for s in scenarios)
+        assert len(scenarios) >= 5
+
+    def test_audience_filter(self):
+        scenarios = load_all_scenarios(audience="general")
+        assert all(s.audience == "general" for s in scenarios)
+
+    def test_authorship_filter_no_match(self):
+        """No built-in scenarios have authorship set, so this returns empty."""
+        scenarios = load_all_scenarios(authorship="llm")
+        assert len(scenarios) == 0
+
+    def test_custom_scenarios_dir(self, tmp_path):
+        """scenarios_dir override loads from a custom directory."""
+        (tmp_path / "test.json").write_text(_VALID_JSON, encoding="utf-8")
+        scenarios = load_all_scenarios(scenarios_dir=str(tmp_path))
+        assert len(scenarios) == 1
+        assert scenarios[0].id == "test_good"
+
+    def test_cache_is_populated(self):
+        _scenario_cache.clear()
+        load_all_scenarios()
+        assert len(_scenario_cache) > 0
+
+
+class TestCrossFamilyJudgeWarning:
+    """Tests for the cross-family judge warning."""
+
+    def test_same_provider_warns(self):
+        warning = check_cross_family_judge(
+            "anthropic/claude-sonnet-4-20250514",
+            "anthropic/claude-sonnet-4-20250514",
+        )
+        assert warning is not None
+        assert "anthropic" in warning
+        assert "Same-family" in warning
+
+    def test_different_provider_no_warning(self):
+        warning = check_cross_family_judge(
+            "anthropic/claude-sonnet-4-20250514",
+            "openai/gpt-4o",
+        )
+        assert warning is None
+
+    def test_no_judge_no_warning(self):
+        warning = check_cross_family_judge(
+            "anthropic/claude-sonnet-4-20250514",
+            None,
+        )
+        assert warning is None
+
+    def test_no_prefix_no_warning(self):
+        """Models without a provider prefix don't trigger the warning."""
+        warning = check_cross_family_judge("gpt-4o", "gpt-4o")
+        assert warning is None
+
+    def test_vertex_same_family_warns(self):
+        warning = check_cross_family_judge(
+            "vertex_ai/gemini-pro",
+            "vertex_ai/gemini-ultra",
+        )
+        assert warning is not None
+        assert "vertex_ai" in warning

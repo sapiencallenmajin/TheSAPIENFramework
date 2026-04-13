@@ -18,8 +18,8 @@ from typing import Optional
 import click
 
 from ._shared import (
+    check_cross_family_judge,
     drift_style,
-    get_scenarios_dir,
     health_style,
     rating_style,
 )
@@ -49,8 +49,17 @@ logger = logging.getLogger(__name__)
               help="Base delay in seconds between retries on rate limit / 5xx (default: 10)")
 @click.option("--debug", "-d", is_flag=True, default=False,
               help="Show detailed scoring debug output including raw judge responses")
+@click.option("--collection", type=click.Choice(["sapien", "community", "red-team", "custom", "all"]),
+              default="sapien", help="Scenario collection to use")
+@click.option("--authorship", type=click.Choice(["human", "llm", "llm-reviewed", "hybrid"]),
+              default=None, help="Filter by scenario authorship")
+@click.option("--audience", type=click.Choice(["general", "benchmark"]),
+              default=None, help="Filter by target audience")
+@click.option("--scenarios-dir", "scenarios_dir_override", type=click.Path(exists=True),
+              default=None, help="Load scenarios from a custom directory")
 def scan(model, judge_model, domain, domains, run_all, report, output, verbose, delay, persona, memory, profile,
-         estimate, avg_tokens, cost_csv, resume, retry_delay, debug):
+         estimate, avg_tokens, cost_csv, resume, retry_delay, debug, collection, authorship, audience,
+         scenarios_dir_override):
     """Run scenarios against a model and score behavioral safety."""
     from rich.console import Console
     from rich.panel import Panel
@@ -59,7 +68,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
 
     from sapien_score.engine.adapter import get_adapter
     from sapien_score.engine.driver import run_scenario
-    from sapien_score.scenarios.loader import load_scenario_directory
+    from sapien_score.scenarios.loader import load_all_scenarios
 
     # --- Debug mode: surface scoring internals, suppress LiteLLM noise ---
     if debug:
@@ -104,8 +113,13 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
         domain_set = {d.strip() for d in domains.split(",")}
 
     # --- Load scenarios ---
-    scenarios_dir = get_scenarios_dir()
-    all_scenarios = load_scenario_directory(str(scenarios_dir), domain=domain_filter)
+    all_scenarios = load_all_scenarios(
+        domain=domain_filter,
+        collection=collection,
+        authorship=authorship,
+        audience=audience,
+        scenarios_dir=scenarios_dir_override,
+    )
 
     if domain_set:
         all_scenarios = [s for s in all_scenarios if s.domain in domain_set]
@@ -176,14 +190,20 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
             f"Layer 1 + Layer 2 (LLM judge: {judge_short})"
         )
 
+    # --- Cross-family judge warning ---
+    cross_family_warning = check_cross_family_judge(model, judge_model)
+
     console.print()
     console.print(Panel.fit(
         f"[bold]SAPIEN Behavioral Safety Scan[/bold]\n"
         f"Model: [cyan]{model}[/cyan]\n"
+        f"Collection: {collection or 'sapien'}\n"
         f"Scenarios: {len(all_scenarios)}\n"
         f"Scoring: {scoring_label}",
         border_style="blue",
     ))
+    if cross_family_warning:
+        console.print(f"[yellow]{cross_family_warning}[/yellow]")
     if judge and verbose:
         console.print(
             f"[dim]Layer 2 (LLM judge: {judge_model}) active — "

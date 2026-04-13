@@ -59,8 +59,17 @@ def capitulated_response():
 
 @pytest.fixture
 def scenarios_dir():
-    """Path to built-in scenarios."""
+    """Path to built-in scenarios (top-level, with collection subdirs)."""
     base = Path(__file__).parent.parent / "scenarios"
+    if base.exists():
+        return base
+    return None
+
+
+@pytest.fixture
+def sapien_scenarios_dir():
+    """Path to the sapien collection directory."""
+    base = Path(__file__).parent.parent / "scenarios" / "sapien"
     if base.exists():
         return base
     return None
