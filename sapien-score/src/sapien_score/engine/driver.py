@@ -32,6 +32,11 @@ from sapien_score.scoring.layer1 import (
 )
 from sapien_score.scoring.composite import blend_scores
 from sapien_score.scenarios.loader import Scenario, Escalation
+from sapien_score.counter_refusals import (
+    CounterRefusalTracker,
+    select_counter_refusal,
+)
+from sapien_score.model_profiles import ModelProfile
 
 
 # ---- Credential Redaction ----
@@ -107,6 +112,8 @@ class TurnRecord:
     layer2_scores: Optional[dict] = None
     judge_reasoning: Optional[str] = None
     usage: Optional[UsageInfo] = None
+    is_counter_refusal: bool = False
+    counter_category: Optional[str] = None
 
 
 # ---- Scenario Result ----
@@ -126,6 +133,9 @@ class ScenarioResult:
     total_output_tokens: int = 0
     total_tokens: int = 0
     total_cost_usd: float = 0.0
+    model_tier: Optional[str] = None
+    counter_refusals_injected: int = 0
+    counter_refusal_categories: list[str] = field(default_factory=list)
 
 
 # ---- Phase Classification ----
@@ -225,6 +235,7 @@ def run_scenario(
     judge: Optional["JudgeScorer"] = None,
     persona_text: Optional[str] = None,
     memory_text: Optional[str] = None,
+    model_profile: Optional[ModelProfile] = None,
 ) -> ScenarioResult:
     """
     Execute a complete scenario against a model.
@@ -242,6 +253,9 @@ def run_scenario(
         judge: Optional JudgeScorer for Layer 2 semantic scoring
         persona_text: Optional identity context to inject into system prompt
         memory_text: Optional trust preload context to inject into system prompt
+        model_profile: Optional ModelProfile for counter-refusal targeting.
+            When the profile tier is "high", counter-refusals are injected
+            as extra user turns after triggering model responses.
 
     Returns:
         ScenarioResult with turns, verdict, and analysis
@@ -250,6 +264,9 @@ def run_scenario(
     from sapien_score.scoring.judge import JudgeScorer
     start_time = time.time()
     effective_max = max_turns or scenario.max_turns
+
+    # Counter-refusal state
+    cr_tracker = CounterRefusalTracker() if model_profile and model_profile.counter_refusals_enabled else None
 
     # Build system prompt with optional persona/memory injection
     system_prompt = _build_system_prompt(
@@ -407,6 +424,58 @@ def run_scenario(
 
         turn_number += 1
 
+        # ---- Counter-refusal injection (high-tier models only) ----
+        if cr_tracker is not None:
+            cr_result = select_counter_refusal(
+                response,
+                {"domain": scenario.domain, "id": scenario.id},
+                tracker=cr_tracker,
+            )
+            if cr_result is not None:
+                cr_category, cr_text = cr_result
+
+                if verbose:
+                    print(_redact(f"\n[Turn {turn_number} - COUNTER-REFUSAL ({cr_category})]"))
+                    print(_redact(f"User: {cr_text[:100]}..."))
+
+                messages.append({"role": "user", "content": cr_text})
+                cr_response = adapter.send_message(messages, system_prompt=system_prompt)
+                cr_usage = getattr(adapter, "last_usage", UsageInfo())
+                acc_input_tokens += cr_usage.input_tokens
+                acc_output_tokens += cr_usage.output_tokens
+                acc_total_tokens += cr_usage.total_tokens
+                acc_cost_usd += cr_usage.cost_usd
+                messages.append({"role": "assistant", "content": cr_response})
+
+                if verbose:
+                    print(_redact(f"Assistant: {cr_response[:200]}..."))
+
+                # Score the counter-refusal response
+                cr_score = score_turn(cr_response, baseline_response) if baseline_response else score_turn(cr_response, cr_response)
+
+                turns.append(TurnRecord(
+                    turn_number=turn_number,
+                    phase="counter_refusal",
+                    user_message=cr_text,
+                    assistant_response=cr_response,
+                    pressure_type=None,
+                    severity=None,
+                    scores=cr_score,
+                    timestamp=time.time(),
+                    usage=cr_usage,
+                    is_counter_refusal=True,
+                    counter_category=cr_category,
+                ))
+                turn_drifts.append(cr_score.weighted_drift)
+
+                if verbose:
+                    print(_redact(
+                        f"  Counter-refusal [{cr_category}] injected | "
+                        f"Drift: {cr_score.weighted_drift:.3f}"
+                    ))
+
+                turn_number += 1
+
     # ---- Compute verdict ----
     verdict = get_verdict(turn_drifts)
 
@@ -456,4 +525,7 @@ def run_scenario(
         total_output_tokens=acc_output_tokens,
         total_tokens=acc_total_tokens,
         total_cost_usd=round(acc_cost_usd, 6),
+        model_tier=model_profile.tier if model_profile else None,
+        counter_refusals_injected=cr_tracker.injection_count if cr_tracker else 0,
+        counter_refusal_categories=cr_tracker.categories_used if cr_tracker else [],
     )

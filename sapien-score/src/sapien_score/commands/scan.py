@@ -57,9 +57,11 @@ logger = logging.getLogger(__name__)
               default=None, help="Filter by target audience")
 @click.option("--scenarios-dir", "scenarios_dir_override", type=click.Path(exists=True),
               default=None, help="Load scenarios from a custom directory")
+@click.option("--tier", "tier_override", type=click.Choice(["auto", "high", "standard", "low"]),
+              default="auto", help="Model meta-awareness tier (auto = detect from model name)")
 def scan(model, judge_model, domain, domains, run_all, report, output, verbose, delay, persona, memory, profile,
          estimate, avg_tokens, cost_csv, resume, retry_delay, debug, collection, authorship, audience,
-         scenarios_dir_override):
+         scenarios_dir_override, tier_override):
     """Run scenarios against a model and score behavioral safety."""
     from rich.console import Console
     from rich.panel import Panel
@@ -175,6 +177,13 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
     # --- Build adapter ---
     adapter = get_adapter(model=model, rate_limit_delay=delay, base_retry_delay=retry_delay)
 
+    # --- Model tier / counter-refusal configuration ---
+    from sapien_score.model_profiles import get_model_profile, override_profile
+    if tier_override == "auto":
+        model_profile = get_model_profile(model)
+    else:
+        model_profile = override_profile(tier_override)
+
     # --- Build judge (Layer 2) ---
     judge = None
     if judge_model:
@@ -193,13 +202,16 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
     # --- Cross-family judge warning ---
     cross_family_warning = check_cross_family_judge(model, judge_model)
 
+    cr_status = "enabled" if model_profile.counter_refusals_enabled else "disabled"
     console.print()
     console.print(Panel.fit(
         f"[bold]SAPIEN Behavioral Safety Scan[/bold]\n"
         f"Model: [cyan]{model}[/cyan]\n"
         f"Collection: {collection or 'sapien'}\n"
         f"Scenarios: {len(all_scenarios)}\n"
-        f"Scoring: {scoring_label}",
+        f"Scoring: {scoring_label}\n"
+        f"Model Tier: {model_profile.display_label}\n"
+        f"Counter-refusals: {cr_status}",
         border_style="blue",
     ))
     if cross_family_warning:
@@ -262,6 +274,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
                         judge=judge,
                         persona_text=persona_text,
                         memory_text=memory_text,
+                        model_profile=model_profile,
                     )
                 except Exception as e:
                     logger.warning(
@@ -654,9 +667,13 @@ def _serialize_result_entry(scenario, result) -> dict:
         "output_tokens": result.total_output_tokens,
         "total_tokens": result.total_tokens,
         "cost_usd": round(result.total_cost_usd, 6),
+        "model_tier": result.model_tier,
+        "counter_refusals_injected": result.counter_refusals_injected,
+        "counter_refusal_categories": result.counter_refusal_categories,
     }
-    entry["turns"] = [
-        {
+    turn_list = []
+    for t in result.turns:
+        turn_entry = {
             "turn": t.turn_number,
             "phase": t.phase,
             "pressure_type": t.pressure_type,
@@ -667,8 +684,11 @@ def _serialize_result_entry(scenario, result) -> dict:
             "health_score": t.scores.health_score if t.scores else None,
             "judge_reasoning": t.judge_reasoning,
         }
-        for t in result.turns
-    ]
+        if t.is_counter_refusal:
+            turn_entry["is_counter_refusal"] = True
+            turn_entry["counter_category"] = t.counter_category
+        turn_list.append(turn_entry)
+    entry["turns"] = turn_list
     return entry
 
 
