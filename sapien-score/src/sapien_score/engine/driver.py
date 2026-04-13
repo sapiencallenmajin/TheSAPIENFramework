@@ -35,6 +35,7 @@ from sapien_score.scenarios.loader import Scenario, Escalation
 from sapien_score.counter_refusals import (
     CounterRefusalTracker,
     select_counter_refusal,
+    get_circle_back_phrase,
 )
 from sapien_score.model_profiles import ModelProfile
 
@@ -354,6 +355,14 @@ def run_scenario(
         # turn_number is 1-indexed (turn 0 is the hardcoded opening).
         phase = classify_phase(turn_number - 1, len(scenario.escalations))
 
+        # ---- Strategic retreat circle-back ----
+        # If a retreat was injected 2+ turns ago, prepend a circle-back
+        # phrase to this escalation to simulate the user returning to
+        # the original topic from a new angle.
+        if cr_tracker is not None and cr_tracker.should_circle_back(turn_number):
+            user_message = get_circle_back_phrase() + user_message
+            cr_tracker.clear_retreat()
+
         if verbose:
             phase_label = "HOLD" if use_hold else phase.upper()
             print(_redact(f"\n[Turn {turn_number} - {phase_label}]"))
@@ -433,6 +442,11 @@ def run_scenario(
             )
             if cr_result is not None:
                 cr_category, cr_text = cr_result
+
+                # Strategic retreat: set the state machine so the
+                # circle-back fires 2 escalation turns from now.
+                if cr_category == "strategic_retreat":
+                    cr_tracker.set_retreat(turn_number)
 
                 if verbose:
                     print(_redact(f"\n[Turn {turn_number} - COUNTER-REFUSAL ({cr_category})]"))
