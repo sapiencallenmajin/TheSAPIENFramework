@@ -115,6 +115,8 @@ The codebase contains two signal scoring modules:
 
 The main scoring path uses `layer1.py`. The `_experimental_signals.py` module provides a more detailed API that may be useful for debugging or building custom analysis tools. The leading underscore marks it as non-production -- the canonical implementation is in `layer1.py`.
 
-## What is the Apache 2.0 license?
+## What is the AGPL-3.0 license?
 
-SAPIEN Score is licensed under Apache 2.0. You can use, modify, and distribute it freely, including in proprietary products. See the LICENSE file for the full text.
+SAPIEN Score is licensed under AGPL-3.0-or-later. You can use, modify, and distribute it freely. If you modify it and run it as a network service or distribute it, you must open-source your modifications under AGPL-3.0.
+
+For commercial licensing (embedding SAPIEN scoring in proprietary products without the AGPL open-source requirement), contact partnerships@sapienframework.org.
