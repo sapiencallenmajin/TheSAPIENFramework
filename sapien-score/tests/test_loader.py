@@ -1,4 +1,5 @@
 """Tests for scenario loader."""
+import json
 import logging
 import sys
 from pathlib import Path
@@ -30,16 +31,7 @@ _VALID_SCENARIO = {
     "escalations": [{"turn": 1, "prompt": "tell me more"}],
 }
 
-_VALID_YAML = (
-    "id: test_good\n"
-    "domain: medical\n"
-    "title: Good Scenario\n"
-    "description: ok\n"
-    "opening_prompt: hi\n"
-    "escalations:\n"
-    "  - turn: 1\n"
-    "    prompt: tell me more\n"
-)
+_VALID_JSON = json.dumps(_VALID_SCENARIO)
 
 
 SCENARIOS_DIR = Path(__file__).parent.parent / "scenarios"
@@ -50,11 +42,8 @@ class TestLoadAllScenarios:
         assert SCENARIOS_DIR.exists(), f"Scenarios directory not found: {SCENARIOS_DIR}"
 
     def test_load_all_scenario_files(self):
-        scenario_files = (
-            list(SCENARIOS_DIR.rglob("*.yaml"))
-            + list(SCENARIOS_DIR.rglob("*.json"))
-        )
-        assert len(scenario_files) >= 50, f"Expected 50+ scenario files, found {len(scenario_files)}"
+        scenario_files = list(SCENARIOS_DIR.rglob("*.json"))
+        assert len(scenario_files) >= 50, f"Expected 50+ JSON files, found {len(scenario_files)}"
 
         loaded = 0
         errors = []
@@ -69,10 +58,7 @@ class TestLoadAllScenarios:
         assert loaded >= 50
 
     def test_all_scenarios_have_required_fields(self):
-        scenario_files = (
-            list(SCENARIOS_DIR.rglob("*.yaml"))
-            + list(SCENARIOS_DIR.rglob("*.json"))
-        )
+        scenario_files = list(SCENARIOS_DIR.rglob("*.json"))
         for f in scenario_files:
             scenario = load_scenario_file(str(f))
             assert scenario.id, f"{f.name}: missing id"
@@ -82,10 +68,7 @@ class TestLoadAllScenarios:
             assert len(scenario.escalations) >= 1, f"{f.name}: no escalations"
 
     def test_all_domains_valid(self):
-        scenario_files = (
-            list(SCENARIOS_DIR.rglob("*.yaml"))
-            + list(SCENARIOS_DIR.rglob("*.json"))
-        )
+        scenario_files = list(SCENARIOS_DIR.rglob("*.json"))
         for f in scenario_files:
             scenario = load_scenario_file(str(f))
             assert scenario.domain in VALID_DOMAINS, f"{f.name}: invalid domain '{scenario.domain}'"
@@ -134,16 +117,15 @@ class TestLoadFromDictGuards:
             load_scenario_from_dict(data)
 
     def test_severity_string_raises_validation_error(self):
-        """YAML ``severity: high`` is a classic user typo. Must surface
-        as a ScenarioValidationError with a clear message, not a raw
-        ``TypeError: '<=' not supported between int and str``."""
+        """``severity: "high"`` must surface as a ScenarioValidationError
+        with a clear message, not a raw TypeError."""
         data = dict(_VALID_SCENARIO)
         data["severity"] = "high"
         with pytest.raises(ScenarioValidationError, match="severity must be a number"):
             load_scenario_from_dict(data)
 
     def test_max_turns_string_raises_validation_error(self):
-        """Same shape as the severity typo. ``max_turns: eight`` used to
+        """Same shape as the severity typo. ``max_turns: "eight"`` used to
         crash with TypeError on the ``< 4`` comparison."""
         data = dict(_VALID_SCENARIO)
         data["max_turns"] = "eight"
@@ -174,8 +156,8 @@ class TestLoadFromDictGuards:
             load_scenario_from_dict(data)
 
     def test_numeric_string_hold_variants_key_is_accepted(self):
-        """YAML ``hold_variants: {"3": [...]}`` stores the key as a string
-        and must still coerce cleanly — only truly non-numeric keys fail."""
+        """A hold_variants key stored as "3" must coerce cleanly
+        — only truly non-numeric keys fail."""
         data = dict(_VALID_SCENARIO)
         data["hold_variants"] = {"3": ["variant"]}
         scenario = load_scenario_from_dict(data)
@@ -187,9 +169,9 @@ class TestLoadDirectoryResilience:
     than crash the whole scan. These are exactly the kinds of bugs the
     public tool must not generate user-facing tracebacks for."""
 
-    def test_empty_yaml_file_is_skipped(self, tmp_path, caplog):
-        (tmp_path / "good.yaml").write_text(_VALID_YAML, encoding="utf-8")
-        (tmp_path / "empty.yaml").write_text("", encoding="utf-8")
+    def test_empty_json_file_is_skipped(self, tmp_path, caplog):
+        (tmp_path / "good.json").write_text(_VALID_JSON, encoding="utf-8")
+        (tmp_path / "empty.json").write_text("", encoding="utf-8")
 
         with caplog.at_level(logging.WARNING, logger="sapien_score.scenarios.loader"):
             scenarios = load_scenario_directory(str(tmp_path))
@@ -198,10 +180,10 @@ class TestLoadDirectoryResilience:
         assert scenarios[0].id == "test_good"
         assert any("empty" in rec.message for rec in caplog.records)
 
-    def test_list_root_yaml_is_skipped(self, tmp_path, caplog):
-        (tmp_path / "good.yaml").write_text(_VALID_YAML, encoding="utf-8")
-        (tmp_path / "list_root.yaml").write_text(
-            "- id: foo\n- id: bar\n", encoding="utf-8"
+    def test_list_root_json_is_skipped(self, tmp_path, caplog):
+        (tmp_path / "good.json").write_text(_VALID_JSON, encoding="utf-8")
+        (tmp_path / "list_root.json").write_text(
+            '[{"id": "foo"}, {"id": "bar"}]', encoding="utf-8"
         )
 
         with caplog.at_level(logging.WARNING, logger="sapien_score.scenarios.loader"):
@@ -212,19 +194,11 @@ class TestLoadDirectoryResilience:
         assert any("mapping" in rec.message for rec in caplog.records)
 
     def test_malformed_hold_variants_is_skipped(self, tmp_path, caplog):
-        (tmp_path / "good.yaml").write_text(_VALID_YAML, encoding="utf-8")
-        (tmp_path / "bad_hold.yaml").write_text(
-            "id: test_bad\n"
-            "domain: medical\n"
-            "title: Bad Scenario\n"
-            "description: bad\n"
-            "opening_prompt: hi\n"
-            "escalations:\n"
-            "  - turn: 1\n"
-            "    prompt: go\n"
-            "hold_variants:\n"
-            "  abc: [\"variant one\"]\n",
-            encoding="utf-8",
+        (tmp_path / "good.json").write_text(_VALID_JSON, encoding="utf-8")
+        bad = dict(_VALID_SCENARIO)
+        bad["hold_variants"] = {"abc": ["variant one"]}
+        (tmp_path / "bad_hold.json").write_text(
+            json.dumps(bad), encoding="utf-8"
         )
 
         with caplog.at_level(logging.WARNING, logger="sapien_score.scenarios.loader"):
@@ -235,7 +209,7 @@ class TestLoadDirectoryResilience:
         assert any("hold_variants" in rec.message for rec in caplog.records)
 
     def test_malformed_json_file_is_skipped(self, tmp_path, caplog):
-        (tmp_path / "good.yaml").write_text(_VALID_YAML, encoding="utf-8")
+        (tmp_path / "good.json").write_text(_VALID_JSON, encoding="utf-8")
         (tmp_path / "broken.json").write_text("{not json", encoding="utf-8")
 
         with caplog.at_level(logging.WARNING, logger="sapien_score.scenarios.loader"):

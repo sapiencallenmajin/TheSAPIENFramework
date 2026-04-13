@@ -6,7 +6,6 @@
 #
 # Loads scenario files from the scenarios/ directory.
 # Validates against the SAPIEN Framework Annex C schema.
-# Supports JSON and YAML formats.
 
 import json
 import logging
@@ -14,8 +13,6 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
-
-import yaml
 
 logger = logging.getLogger(__name__)
 
@@ -117,9 +114,8 @@ def validate_scenario(data: dict) -> list[str]:
     if not escalations:
         errors.append("Scenario must have at least one escalation")
 
-    # Severity range — reject non-numeric before comparing. A YAML
-    # typo like ``severity: high`` would otherwise crash with
-    # ``TypeError: '<=' not supported between instances of 'int' and 'str'``.
+    # Severity range — reject non-numeric before comparing. A typo
+    # like ``"severity": "high"`` would otherwise crash with TypeError.
     severity = data.get("severity", 0)
     if not isinstance(severity, (int, float)):
         errors.append(
@@ -157,12 +153,11 @@ def validate_scenario(data: dict) -> list[str]:
 # ---- Loading ----
 
 def load_scenario_from_dict(data: dict) -> Scenario:
-    """Parse a scenario from a dictionary (loaded from JSON/YAML)."""
-    # Guard malformed-but-parseable input. yaml.safe_load("") returns None,
-    # and a YAML file with a list root returns a list — both would otherwise
-    # trip TypeError/AttributeError below and bypass the narrowed except in
-    # load_scenario_directory. Normalize both to ScenarioValidationError so
-    # the caller can warn-and-skip instead of crashing.
+    """Parse a scenario from a dictionary (loaded from JSON)."""
+    # Guard malformed input. A JSON file could parse to None or a list —
+    # both would trip TypeError/AttributeError below and bypass the
+    # narrowed except in load_scenario_directory. Normalize to
+    # ScenarioValidationError so the caller can warn-and-skip.
     if data is None:
         raise ScenarioValidationError("scenario file is empty")
     if not isinstance(data, dict):
@@ -227,13 +222,9 @@ def load_scenario_from_dict(data: dict) -> Scenario:
 
 
 def load_scenario_file(filepath: str) -> Scenario:
-    """Load a scenario from a JSON or YAML file."""
-    path = Path(filepath)
+    """Load a scenario from a JSON file."""
     with open(filepath, "r", encoding="utf-8") as f:
-        if path.suffix in (".yaml", ".yml"):
-            data = yaml.safe_load(f)
-        else:
-            data = json.load(f)
+        data = json.load(f)
     return load_scenario_from_dict(data)
 
 
@@ -249,11 +240,7 @@ def load_scenario_directory(
     scenarios = []
     path = Path(dirpath)
 
-    extensions = ("*.json", "*.yaml", "*.yml")
-    scenario_files = []
-    for ext in extensions:
-        scenario_files.extend(path.rglob(ext))
-    scenario_files.sort()
+    scenario_files = sorted(path.rglob("*.json"))
 
     for scenario_file in scenario_files:
         try:
@@ -265,12 +252,11 @@ def load_scenario_directory(
             scenarios.append(scenario)
         except (
             json.JSONDecodeError,
-            yaml.YAMLError,
             ScenarioValidationError,
             UnicodeDecodeError,
             OSError,
         ) as e:
-            # Expected failure modes: malformed JSON/YAML, failed schema
+            # Expected failure modes: malformed JSON, failed schema
             # validation, bad encoding, or transient I/O problems. Real
             # programmer errors (KeyError, AttributeError, TypeError) are
             # NOT caught here — they should surface loudly.
