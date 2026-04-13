@@ -10,7 +10,6 @@ from __future__ import annotations
 import click
 
 from ._shared import (
-    get_scenarios_dir,
     health_style,
     result_health_score,
 )
@@ -39,14 +38,13 @@ def rapport_delta(model, judge_model, domain, scenario_id, report, delay, verbos
     from sapien_score.scenarios.loader import (
         candidate_cold_ids,
         get_paired_scenarios,
-        load_scenario_directory,
+        load_all_scenarios,
     )
 
     console = Console()
 
     # --- Load scenarios ---
-    scenarios_dir = get_scenarios_dir()
-    all_scenarios = load_scenario_directory(str(scenarios_dir), domain=domain)
+    all_scenarios = load_all_scenarios(domain=domain, collection="all")
 
     if scenario_id:
         cold_candidates = set(candidate_cold_ids(scenario_id))

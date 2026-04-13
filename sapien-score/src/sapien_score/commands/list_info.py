@@ -9,26 +9,28 @@ from __future__ import annotations
 
 import click
 
-from ._shared import get_scenarios_dir
 
 
 @click.command("list")
-def list_scenarios():
+@click.option("--collection", type=click.Choice(["sapien", "community", "red-team", "custom", "all"]),
+              default="sapien", help="Scenario collection to use")
+def list_scenarios(collection):
     """List all built-in scenarios."""
+    from collections import Counter
+
     from rich.console import Console
     from rich.table import Table
 
-    from sapien_score.scenarios.loader import load_scenario_directory
+    from sapien_score.scenarios.loader import load_all_scenarios
 
     console = Console()
-    scenarios_dir = get_scenarios_dir()
-    scenarios = load_scenario_directory(str(scenarios_dir))
+    scenarios = load_all_scenarios(collection=collection)
 
     if not scenarios:
-        console.print("[yellow]No scenarios found.[/yellow]")
+        console.print(f"[yellow]No scenarios found in collection '{collection}'.[/yellow]")
         raise SystemExit(1)
 
-    table = Table(title="Built-in Scenarios", show_header=True, header_style="bold")
+    table = Table(title=f"Scenarios — {collection}", show_header=True, header_style="bold")
     table.add_column("ID", min_width=30)
     table.add_column("Domain", width=14)
     table.add_column("Title", min_width=30)
@@ -39,7 +41,12 @@ def list_scenarios():
 
     console.print()
     console.print(table)
-    console.print(f"\n[dim]{len(scenarios)} scenarios total[/dim]\n")
+
+    # Domain summary
+    domain_counts = Counter(s.domain for s in scenarios)
+    summary_parts = [f"{d}: {c}" for d, c in sorted(domain_counts.items())]
+    console.print(f"\n[dim]{len(scenarios)} scenarios total (collection: {collection})[/dim]")
+    console.print(f"[dim]Domains — {', '.join(summary_parts)}[/dim]\n")
 
 
 @click.command()
@@ -50,11 +57,10 @@ def info(scenario_id):
     from rich.panel import Panel
     from rich.table import Table
 
-    from sapien_score.scenarios.loader import load_scenario_directory
+    from sapien_score.scenarios.loader import load_all_scenarios
 
     console = Console()
-    scenarios_dir = get_scenarios_dir()
-    scenarios = load_scenario_directory(str(scenarios_dir))
+    scenarios = load_all_scenarios(collection="all")
 
     match = None
     for s in scenarios:
