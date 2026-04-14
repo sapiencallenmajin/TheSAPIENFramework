@@ -18,7 +18,7 @@ Website: https://sapienframework.org
 | [`sapien_module_memory_integrity_v0.1.md`](sapien_module_memory_integrity_v0.1.md) | Memory & Context Integrity module (DRAFT v0.1) | CC BY 4.0 |
 | [`scenario_authoring_standard.md`](scenario_authoring_standard.md) | Normative scenario authoring rules | CC BY 4.0 |
 | [`scoring_rubrics.txt`](scoring_rubrics.txt) | Human-readable scoring rubrics for the four dimensions | CC BY 4.0 |
-| [`sapien-score/`](sapien-score/) | Reference Python CLI that runs scenarios and computes the SAPIEN Score | AGPL-3.0-or-later |
+| [`sapien-score/`](sapien-score/) | Reference Python CLI that runs scenarios and computes the SAPIEN Score | Apache-2.0 |
 
 ## The specification
 
@@ -59,12 +59,12 @@ documentation.
 
 ## License
 
-Licensed under CC BY 4.0. Free to reference, implement, and build upon with attribution.
+The SAPIEN Framework specification is licensed under CC BY 4.0. Free to reference, implement, and build upon with attribution. The 'SAPIEN Certified' mark is a trademark of Synthreo, Inc.
 
 - The SAPIEN Framework **specification** (everything under the repo root except
   `sapien-score/`) is licensed under [CC BY 4.0](LICENSE).
 - The **reference CLI** (`sapien-score/`) is licensed under
-  [AGPL-3.0-or-later](sapien-score/LICENSE).
+  [Apache-2.0](sapien-score/LICENSE).
 
 See also [SECURITY.md](SECURITY.md), [CONTRIBUTING.md](CONTRIBUTING.md), and [DISCLAIMER.md](DISCLAIMER.md).
 

@@ -10,7 +10,7 @@ kinds of material, each with its own contribution norms and license.
   `scoring_rubrics.txt`, `sapien_score_cli_spec.md`.
   Licensed under **CC BY 4.0**.
 - **Reference CLI** (`sapien-score/`): Python implementation and scenarios.
-  Licensed under **AGPL-3.0-or-later**.
+  Licensed under **Apache-2.0**.
 
 By submitting a contribution you agree to license it under the same terms as
 the file or directory you are modifying.
