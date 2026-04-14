@@ -322,8 +322,8 @@ For adaptive pentest modes and calibrated proprietary scoring, see [Synthreo Pul
 
 ## License
 
-![License](https://img.shields.io/badge/License-AGPL_3.0-blue.svg)
+![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
 
-The SAPIEN CLI is licensed under AGPL-3.0. You are free to use, modify, and distribute this software under the terms of the AGPL. If you modify the CLI and run it as a service, you must release your modifications under the same license. Commercial licensing is available through Synthreo (synthreo.ai) for organizations that want to embed SAPIEN scoring in proprietary products without open-sourcing their integration.
+The SAPIEN CLI is licensed under Apache 2.0. Use it, modify it, build on it. Attribution required, no other restrictions. The 'SAPIEN Certified' mark and associated certification program are trademarks of Synthreo, Inc. Use of the SAPIEN software does not grant permission to use Synthreo trademarks.
 
 The SAPIEN Framework specification is licensed separately under CC BY 4.0.
