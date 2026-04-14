@@ -80,17 +80,23 @@ def rating_style(rating: str) -> str:
 # ---------------------------------------------------------------------------
 
 def check_cross_family_judge(model: str, judge_model: str | None) -> str | None:
-    """Return a warning string if model and judge share a provider prefix.
+    """Return a warning string if model and judge are from the same family.
 
-    Returns None when the check passes or is not applicable.
+    Returns None when the check passes or a family can't be determined.
+    Family extraction looks past hosting platforms (Bedrock, Vertex AI),
+    so ``bedrock/us.anthropic.*`` and ``bedrock/us.deepseek.*`` are
+    treated as different families.
     """
     if not judge_model:
         return None
-    model_prefix = model.split("/")[0] if "/" in model else None
-    judge_prefix = judge_model.split("/")[0] if "/" in judge_model else None
-    if model_prefix and judge_prefix and model_prefix == judge_prefix:
+    if "/" not in model or "/" not in judge_model:
+        return None
+    from sapien_score.adaptive.cross_family import get_model_family
+    model_family = get_model_family(model)
+    judge_family = get_model_family(judge_model)
+    if model_family == judge_family:
         return (
-            f"WARNING: Target and judge are both {model_prefix} models.\n"
+            f"WARNING: Target and judge are both {model_family} models.\n"
             "Same-family judging may produce inflated scores.\n"
             "For published benchmarks, use a cross-family judge."
         )

@@ -6,7 +6,11 @@ from sapien_score.adaptive.attacker_prompt import (
     build_attacker_system_prompt,
     PRESSURE_TECHNIQUES,
 )
-from sapien_score.adaptive.cross_family import get_provider, validate_cross_family
+from sapien_score.adaptive.cross_family import (
+    get_model_family,
+    get_provider,
+    validate_cross_family,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -96,24 +100,31 @@ class TestAttackerPrompt:
 
 class TestCrossFamily:
     def test_different_providers_pass(self):
-        validate_cross_family(
+        is_cross, warning = validate_cross_family(
             "anthropic/claude-haiku-4-5-20251001",
             "openai/gpt-4o",
         )
+        assert is_cross is True
+        assert warning is None
 
-    def test_same_provider_raises(self):
-        with pytest.raises(ValueError, match="both anthropic models"):
-            validate_cross_family(
-                "anthropic/claude-haiku-4-5-20251001",
-                "anthropic/claude-sonnet-4-6-20250514",
-            )
+    def test_same_provider_returns_warning(self):
+        is_cross, warning = validate_cross_family(
+            "anthropic/claude-haiku-4-5-20251001",
+            "anthropic/claude-sonnet-4-6-20250514",
+        )
+        assert is_cross is False
+        assert warning is not None
+        assert "both anthropic" in warning
 
-    def test_same_provider_message(self):
-        with pytest.raises(ValueError, match="Cross-family attacker required"):
-            validate_cross_family(
-                "openai/gpt-4o",
-                "openai/gpt-4o-mini",
-            )
+    def test_same_provider_does_not_raise(self):
+        # Policy: same-family is advisory only — caller decides whether
+        # to continue. validate_cross_family must never raise.
+        is_cross, warning = validate_cross_family(
+            "openai/gpt-4o",
+            "openai/gpt-4o-mini",
+        )
+        assert is_cross is False
+        assert "openai" in warning
 
     @pytest.mark.parametrize(
         "model,expected_provider",
@@ -121,13 +132,54 @@ class TestCrossFamily:
             ("anthropic/claude-haiku-4-5-20251001", "anthropic"),
             ("vertex_ai/gemini-2.5-flash", "vertex_ai"),
             ("openai/gpt-4o", "openai"),
+            ("bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0", "bedrock"),
         ],
     )
     def test_provider_extraction(self, model, expected_provider):
+        # get_provider returns the hosting-platform prefix, not the family.
         assert get_provider(model) == expected_provider
 
+    @pytest.mark.parametrize(
+        "model,expected_family",
+        [
+            ("anthropic/claude-haiku-4-5-20251001", "anthropic"),
+            ("openai/gpt-4o", "openai"),
+            ("vertex_ai/gemini-2.5-flash", "google"),
+            ("bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0", "anthropic"),
+            ("bedrock/us.deepseek.v3.2", "deepseek"),
+            ("bedrock/us.qwen.qwen3-next-80b-a3b", "qwen"),
+            # Non-US Bedrock regions must also strip cleanly to the family.
+            ("bedrock/eu.anthropic.claude-sonnet-4-5-20250514-v1:0", "anthropic"),
+            ("bedrock/apac.anthropic.claude-haiku-4-5-20251001-v1:0", "anthropic"),
+            # Bedrock model IDs without a region prefix should still work.
+            ("bedrock/anthropic.claude-3-5-sonnet-20240620-v1:0", "anthropic"),
+        ],
+    )
+    def test_family_extraction(self, model, expected_family):
+        assert get_model_family(model) == expected_family
+
     def test_vertex_vs_anthropic_passes(self):
-        validate_cross_family(
+        is_cross, warning = validate_cross_family(
             "vertex_ai/gemini-2.5-flash",
             "anthropic/claude-haiku-4-5-20251001",
         )
+        assert is_cross is True
+        assert warning is None
+
+    def test_bedrock_anthropic_vs_bedrock_deepseek_is_cross_family(self):
+        # Same hosting platform, different families — must be cross-family.
+        is_cross, warning = validate_cross_family(
+            "bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0",
+            "bedrock/us.deepseek.v3.2",
+        )
+        assert is_cross is True
+        assert warning is None
+
+    def test_bedrock_anthropic_vs_native_anthropic_is_same_family(self):
+        # Different hosting platforms but same family — must warn.
+        is_cross, warning = validate_cross_family(
+            "bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0",
+            "anthropic/claude-sonnet-4-6-20250514",
+        )
+        assert is_cross is False
+        assert "anthropic" in warning

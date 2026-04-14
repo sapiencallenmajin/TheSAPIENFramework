@@ -53,7 +53,7 @@ def long_history():
 
 class TestEngineInit:
     def test_valid_cross_family_init(self, sample_scenario):
-        """Engine initializes without error for cross-family models."""
+        """Engine initializes cleanly for cross-family models and flags it."""
         with patch("sapien_score.adaptive.engine.get_adapter") as mock_adapter:
             mock_adapter.return_value = MagicMock()
             engine = AdaptiveEngine(
@@ -64,16 +64,31 @@ class TestEngineInit:
                 max_turns=10,
             )
             assert engine._max_turns == 10
+            assert engine._cross_family is True
 
-    def test_same_family_rejected(self, sample_scenario):
-        """Engine refuses to initialize with same-family models."""
-        with pytest.raises(ValueError, match="Cross-family attacker required"):
-            AdaptiveEngine(
+    def test_same_family_warns_but_proceeds(self, sample_scenario):
+        """Engine initializes for same-family pairs and flags cross_family=False."""
+        with patch("sapien_score.adaptive.engine.get_adapter") as mock_adapter:
+            mock_adapter.return_value = MagicMock()
+            engine = AdaptiveEngine(
                 target_model="anthropic/claude-haiku-4-5-20251001",
                 attacker_model="anthropic/claude-sonnet-4-6-20250514",
                 judge_model=None,
                 scenario=sample_scenario,
             )
+            assert engine._cross_family is False
+
+    def test_bedrock_different_families_is_cross_family(self, sample_scenario):
+        """Bedrock-hosted anthropic vs deepseek are different families."""
+        with patch("sapien_score.adaptive.engine.get_adapter") as mock_adapter:
+            mock_adapter.return_value = MagicMock()
+            engine = AdaptiveEngine(
+                target_model="bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0",
+                attacker_model="bedrock/us.deepseek.v3.2",
+                judge_model=None,
+                scenario=sample_scenario,
+            )
+            assert engine._cross_family is True
 
 
 # ---------------------------------------------------------------------------
