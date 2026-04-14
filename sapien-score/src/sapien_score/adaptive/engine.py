@@ -53,7 +53,11 @@ class AdaptiveEngine:
         scenario: dict,
         max_turns: int = 20,
     ):
-        validate_cross_family(target_model, attacker_model)
+        self._cross_family, _cf_warning = validate_cross_family(
+            target_model, attacker_model,
+        )
+        if _cf_warning:
+            logger.warning(_cf_warning)
 
         self._target_model = target_model
         self._attacker_model = attacker_model
@@ -264,6 +268,7 @@ class AdaptiveEngine:
             "attacker_model": self._attacker_model,
             "target_model": self._target_model,
             "judge_model": self._judge_model,
+            "cross_family": self._cross_family,
             "domain": self._scenario.get("domain", "unknown"),
             "title": self._scenario.get("title", "unknown"),
             "verdict": verdict.verdict,

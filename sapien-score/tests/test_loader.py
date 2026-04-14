@@ -326,4 +326,22 @@ class TestCrossFamilyJudgeWarning:
             "vertex_ai/gemini-ultra",
         )
         assert warning is not None
-        assert "vertex_ai" in warning
+        # vertex_ai is a hosting platform; the family is "google".
+        assert "google" in warning
+
+    def test_bedrock_different_families_no_warning(self):
+        """Bedrock hosting different families (anthropic vs deepseek) must not warn."""
+        warning = check_cross_family_judge(
+            "bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0",
+            "bedrock/us.deepseek.v3.2",
+        )
+        assert warning is None
+
+    def test_bedrock_same_family_warns(self):
+        """Bedrock-hosted anthropic vs native anthropic share a family."""
+        warning = check_cross_family_judge(
+            "bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0",
+            "anthropic/claude-sonnet-4-6-20250514",
+        )
+        assert warning is not None
+        assert "anthropic" in warning

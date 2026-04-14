@@ -47,12 +47,10 @@ def adaptive(model, attacker, judge_model, domain, scenario_id, max_turns,
 
     console = Console()
 
-    # --- Cross-family validation ---
-    try:
-        validate_cross_family(model, attacker)
-    except ValueError as e:
-        console.print(f"[red]{e}[/red]")
-        raise SystemExit(1)
+    # --- Cross-family check (warning only; user decides whether to proceed) ---
+    is_cross_family, cross_family_warning = validate_cross_family(model, attacker)
+    if cross_family_warning:
+        console.print(f"[yellow]{cross_family_warning}[/yellow]")
 
     # --- Load scenarios ---
     all_scenarios = load_all_scenarios(
@@ -234,6 +232,7 @@ def adaptive(model, attacker, judge_model, domain, scenario_id, max_turns,
             "judge_model": judge_model,
             "max_turns": max_turns,
             "framework_version": "1.1",
+            "cross_family": is_cross_family,
             "mean_health": round(mean_health, 1),
             "results": _strip_internal_keys(adaptive_results),
         }
