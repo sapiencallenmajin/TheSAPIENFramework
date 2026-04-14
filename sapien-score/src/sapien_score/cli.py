@@ -15,6 +15,7 @@ import click
 from rich.logging import RichHandler
 
 from .commands.adaptive import adaptive
+from .commands.calibrate import calibrate
 from .commands.list_info import info, list_scenarios
 from .commands.memory_delta import memory_delta
 from .commands.rapport_delta import rapport_delta
@@ -50,5 +51,6 @@ main.add_command(adaptive)
 main.add_command(scan)
 main.add_command(rapport_delta)
 main.add_command(memory_delta)
+main.add_command(calibrate)
 main.add_command(list_scenarios)
 main.add_command(info)
