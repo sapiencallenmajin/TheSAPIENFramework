@@ -27,3 +27,8 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# Baseline scans (kept locally for invariant checks, not committed)
+baseline_*.json
+# Partial scan outputs
+*.partial.json
