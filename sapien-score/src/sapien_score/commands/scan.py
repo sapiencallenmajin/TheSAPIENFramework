@@ -10,6 +10,7 @@ from __future__ import annotations
 import csv
 import json
 import logging
+import time
 from datetime import datetime
 from pathlib import Path
 from statistics import quantiles
@@ -240,6 +241,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
         )
 
     # --- Run with progress ---
+    scan_start_time = time.monotonic()
     results = []
     failed_scenarios: list[dict] = []
     running_tokens = 0
@@ -464,6 +466,26 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
 
         console.print(dim_table)
 
+    # --- Timing summary ---
+    scan_elapsed = time.monotonic() - scan_start_time
+    timing_summary = _compute_timing_summary(results, scan_elapsed)
+    if timing_summary:
+        console.print()
+        timing_table = Table(title="Timing Summary", show_header=False)
+        timing_table.add_column("Metric", min_width=30)
+        timing_table.add_column("Value", justify="right", min_width=20)
+        for label, value in [
+            ("Average target API call", f"{timing_summary['avg_target_api_seconds']:.2f}s"),
+            ("Average judge API call", f"{timing_summary['avg_judge_api_seconds']:.2f}s" if timing_summary['avg_judge_api_seconds'] > 0 else "—"),
+            ("Average turn total", f"{timing_summary['avg_turn_seconds']:.2f}s"),
+            ("Average scenario total", f"{timing_summary['avg_scenario_seconds']:.2f}s"),
+            ("Longest single API call", f"{timing_summary['longest_api_call']['duration']:.2f}s ({timing_summary['longest_api_call']['scenario']}, turn {timing_summary['longest_api_call']['turn']}, {timing_summary['longest_api_call']['type']})"),
+            ("Total scan time", f"{timing_summary['total_scan_seconds']:.1f}s"),
+            ("Time spent waiting on API", f"{timing_summary['api_wait_percent']:.0f}% of total"),
+        ]:
+            timing_table.add_row(label, value)
+        console.print(timing_table)
+
     # --- JSON output ---
     # Final write overwrites any in-loop checkpoint with the fully-merged
     # payload (including resume merge against previous_payload if set).
@@ -478,6 +500,8 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
             previous_payload=previous_payload,
             resume_path=resume,
         )
+        if timing_summary:
+            output_data["_timing"] = timing_summary
         with open(output, "w", encoding="utf-8") as f:
             json.dump(output_data, f, indent=2)
         if failed_scenarios:
@@ -780,6 +804,53 @@ def _build_output_payload(
     if resume_path:
         payload["resumed_from"] = str(resume_path)
     return payload
+
+
+def _compute_timing_summary(results, scan_elapsed: float) -> Optional[dict]:
+    """Aggregate per-call timing data from all scenario results.
+
+    Returns a dict suitable for console display and JSON ``_timing`` output,
+    or None when there are no results to summarize.
+    """
+    if not results:
+        return None
+
+    all_target = []
+    all_judge = []
+    all_turn_durations = []
+    scenario_durations = []
+    longest = {"duration": 0.0, "scenario": "", "turn": 0, "type": "target"}
+
+    for scenario, result in results:
+        scenario_durations.append(result.total_duration_seconds)
+        all_turn_durations.extend(result.per_turn_durations)
+
+        for t in result.api_timings:
+            if t.call_type == "target":
+                all_target.append(t.duration_seconds)
+            elif t.call_type == "judge":
+                all_judge.append(t.duration_seconds)
+
+            if t.duration_seconds > longest["duration"]:
+                longest = {
+                    "duration": round(t.duration_seconds, 4),
+                    "scenario": scenario.id,
+                    "turn": t.turn_number,
+                    "type": t.call_type,
+                }
+
+    total_api_time = sum(all_target) + sum(all_judge)
+
+    return {
+        "avg_target_api_seconds": round(sum(all_target) / len(all_target), 4) if all_target else 0,
+        "avg_judge_api_seconds": round(sum(all_judge) / len(all_judge), 4) if all_judge else 0,
+        "avg_turn_seconds": round(sum(all_turn_durations) / len(all_turn_durations), 4) if all_turn_durations else 0,
+        "avg_scenario_seconds": round(sum(scenario_durations) / len(scenario_durations), 4) if scenario_durations else 0,
+        "longest_api_call": longest,
+        "total_scan_seconds": round(scan_elapsed, 2),
+        "total_api_wait_seconds": round(total_api_time, 2),
+        "api_wait_percent": round((total_api_time / scan_elapsed) * 100, 1) if scan_elapsed > 0 else 0,
+    }
 
 
 def _save_partial(results, failed_scenarios, path, model):
