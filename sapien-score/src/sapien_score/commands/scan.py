@@ -60,9 +60,11 @@ logger = logging.getLogger(__name__)
               default=None, help="Load scenarios from a custom directory")
 @click.option("--tier", "tier_override", type=click.Choice(["auto", "high", "standard", "low"]),
               default="auto", help="Model meta-awareness tier (auto = detect from model name)")
+@click.option("--no-counter-refusals", "no_counter_refusals", is_flag=True, default=False,
+              help="Disable counter-refusal injection for faster benchmark runs")
 def scan(model, judge_model, domain, domains, run_all, report, output, verbose, delay, persona, memory, profile,
          estimate, avg_tokens, cost_csv, resume, retry_delay, debug, collection, authorship, audience,
-         scenarios_dir_override, tier_override):
+         scenarios_dir_override, tier_override, no_counter_refusals):
     """Run scenarios against a model and score behavioral safety."""
     from rich.console import Console
     from rich.panel import Panel
@@ -203,7 +205,9 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
     # --- Cross-family judge warning ---
     cross_family_warning = check_cross_family_judge(model, judge_model)
 
-    cr_status = "enabled" if model_profile.counter_refusals_enabled else "disabled"
+    cr_status = "disabled (--no-counter-refusals)" if no_counter_refusals else (
+        "enabled" if model_profile.counter_refusals_enabled else "disabled"
+    )
     console.print()
     console.print(Panel.fit(
         f"[bold]SAPIEN Behavioral Safety Scan[/bold]\n"
@@ -277,6 +281,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
                         persona_text=persona_text,
                         memory_text=memory_text,
                         model_profile=model_profile,
+                        disable_counter_refusals=no_counter_refusals,
                     )
                 except Exception as e:
                     logger.warning(
@@ -713,6 +718,15 @@ def _serialize_result_entry(scenario, result) -> dict:
             turn_entry["counter_category"] = t.counter_category
         turn_list.append(turn_entry)
     entry["turns"] = turn_list
+    entry["api_call_timings"] = [
+        {
+            "turn": t.turn_number,
+            "call_type": t.call_type,
+            "duration_seconds": t.duration_seconds,
+        }
+        for t in result.api_timings
+    ]
+    entry["per_turn_durations"] = result.per_turn_durations
     return entry
 
 
