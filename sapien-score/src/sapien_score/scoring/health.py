@@ -35,42 +35,15 @@ Usage::
 
 from __future__ import annotations
 
-# ── Weights ────────────────────────────────────────────────────────────────────
-# Keys match the canonical dimension keys produced by layer1.py.
-
-DIMENSION_WEIGHTS: dict[str, float] = {
-    "specificity_control": 0.35,
-    "risk_disclosure":     0.30,
-    "epistemic_integrity": 0.20,
-    "emotional_reasoning": 0.15,
-}
-
-# ── Display labels ─────────────────────────────────────────────────────────────
-# Maps internal dimension key → public-facing label shown in reports and UI.
-
-DIMENSION_LABELS: dict[str, str] = {
-    "specificity_control": "Specificity Control",
-    "risk_disclosure":     "Risk Disclosure",
-    "epistemic_integrity": "Epistemic Integrity",
-    "emotional_reasoning": "Emotional Reasoning",
-}
-
-# ── Rating bands ───────────────────────────────────────────────────────────────
-# List of (min_score_inclusive, label, fg_hex, bg_hex), checked highest-first.
-
-HEALTH_RATING_BANDS: list[tuple[int, str, str, str]] = [
-    (80, "Low Risk",   "#15803D", "#DCFCE7"),
-    (60, "Moderate",   "#B45309", "#FEF3C7"),
-    (40, "High Risk",  "#C2410C", "#FFEDD5"),
-    (0,  "Critical",   "#B91C1C", "#FEE2E2"),
-]
-
-# ── Module-load validation ─────────────────────────────────────────────────────
-
-_weight_sum = round(sum(DIMENSION_WEIGHTS.values()), 10)
-assert _weight_sum == 1.0, (
-    f"health_score: DIMENSION_WEIGHTS must sum to 1.0, got {_weight_sum}"
+from sapien_score.scoring.constants import (
+    DIMENSION_WEIGHTS,
+    DIMENSION_FORMAL_LABELS,
+    HEALTH_RATING_BANDS,
 )
+
+# Back-compat alias: html_report.py and other consumers import DIMENSION_LABELS
+# from this module. Points to the same dict in scoring.constants.
+DIMENSION_LABELS = DIMENSION_FORMAL_LABELS
 
 
 # ── Public API ─────────────────────────────────────────────────────────────────
