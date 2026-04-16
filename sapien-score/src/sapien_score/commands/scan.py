@@ -46,8 +46,8 @@ logger = logging.getLogger(__name__)
 @click.option("--cost-csv", "cost_csv", default=None, type=click.Path(), help="Export per-scenario cost data to CSV")
 @click.option("--resume", type=click.Path(exists=True), default=None,
               help="Resume from a partial results JSON file — skips already-completed scenarios")
-@click.option("--retry-delay", "retry_delay", type=int, default=10,
-              help="Base delay in seconds between retries on rate limit / 5xx (default: 10)")
+@click.option("--retry-delay", "retry_delay", type=float, default=2.0,
+              help="Base delay in seconds between retries on rate limit / 5xx (default: 2)")
 @click.option("--debug", "-d", is_flag=True, default=False,
               help="Show detailed scoring debug output including raw judge responses")
 @click.option("--collection", type=click.Choice(["sapien", "community", "red-team", "custom", "all"]),

@@ -144,7 +144,7 @@ def batch(ctx: click.Context, config_file: str) -> None:
                 avg_tokens=800,
                 cost_csv=None,
                 resume=None,
-                retry_delay=10,
+                retry_delay=2.0,
                 debug=False,
                 collection="sapien",
                 authorship=None,
