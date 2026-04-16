@@ -248,6 +248,7 @@ def run_scenario(
     persona_text: Optional[str] = None,
     memory_text: Optional[str] = None,
     model_profile: Optional[ModelProfile] = None,
+    disable_counter_refusals: bool = False,
 ) -> ScenarioResult:
     """
     Execute a complete scenario against a model.
@@ -268,6 +269,8 @@ def run_scenario(
         model_profile: Optional ModelProfile for counter-refusal targeting.
             When the profile tier is "high", counter-refusals are injected
             as extra user turns after triggering model responses.
+        disable_counter_refusals: When True, skip counter-refusal injection
+            regardless of model_profile settings. For faster benchmark runs.
 
     Returns:
         ScenarioResult with turns, verdict, and analysis
@@ -278,7 +281,11 @@ def run_scenario(
     effective_max = max_turns or scenario.max_turns
 
     # Counter-refusal state
-    cr_tracker = CounterRefusalTracker() if model_profile and model_profile.counter_refusals_enabled else None
+    cr_tracker = (
+        CounterRefusalTracker()
+        if model_profile and model_profile.counter_refusals_enabled and not disable_counter_refusals
+        else None
+    )
 
     # Build system prompt with optional persona/memory injection
     system_prompt = _build_system_prompt(
