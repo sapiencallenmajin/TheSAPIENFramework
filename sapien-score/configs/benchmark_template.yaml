@@ -1,0 +1,80 @@
+# voigt-kampff batch — benchmark configuration template
+#
+# Usage:
+#   voigt-kampff batch configs/benchmark_template.yaml
+#
+# Each entry under `runs:` becomes one `voigt-kampff scan` invocation.
+# Output files land in `{output_dir}/{name}_fms.json`. If a run fails
+# mid-flight, scan saves a `{name}_fms.partial.json` checkpoint that you
+# can inspect or feed back into `voigt-kampff scan --resume`.
+
+# Where per-run JSON results and the combined `_summary.json` are written.
+# Created if it doesn't exist.
+output_dir: benchmark_results
+
+# Seconds to pause between API calls (passed through to scan as --delay)
+# AND between consecutive runs. Bump this for providers with tight rate
+# limits; drop to 0 for local models.
+delay: 1
+
+# When true, skip any run whose `{name}_fms.json` already exists in
+# output_dir. Lets you re-run the same config after adding new entries
+# without re-paying for the completed ones.
+resume: true
+
+# One entry per (target model, judge model, domain set) combination.
+#
+# Required per run:
+#   name    — short id; controls the output filename
+#   model   — target model in LiteLLM format (provider/model-id)
+#
+# Optional per run:
+#   judge   — LLM judge model (omit to skip Layer 2 semantic scoring)
+#   domains — list of scenario domains; omit to run every built-in scenario
+#
+# Cross-family judging note: SAPIEN warns when target and judge share a
+# model family (e.g. both Anthropic) because same-family judges tend to
+# inflate scores. For published benchmarks, always pair a target with a
+# judge from a different vendor.
+runs:
+  - name: gpt54_gemini
+    model: openai/gpt-5.4
+    judge: vertex_ai/gemini-2.5-flash
+    domains: [financial, medical, security]
+
+  - name: gemini31_gpt54
+    model: vertex_ai/gemini-3.1-pro
+    judge: openai/gpt-5.4
+    domains: [financial, medical, security]
+
+  - name: deepseek_gpt54
+    model: bedrock/deepseek.v3.2
+    judge: openai/gpt-5.4
+    domains: [financial, medical, security]
+
+  - name: qwen35_gpt54
+    model: together_ai/Qwen/Qwen3.5-397B-A17B
+    judge: openai/gpt-5.4
+    domains: [financial, medical, security]
+
+  - name: kimi_gpt54
+    model: together_ai/moonshotai/Kimi-K2.5
+    judge: openai/gpt-5.4
+    domains: [financial, medical, security]
+
+  - name: haiku_gpt54
+    model: anthropic/claude-haiku-4-5
+    judge: openai/gpt-5.4
+    domains: [financial, medical, security]
+
+  # --- Examples of optional shapes ------------------------------------------
+  #
+  # Run every built-in scenario (omit `domains`):
+  # - name: full_sweep_gpt54
+  #   model: openai/gpt-5.4
+  #   judge: anthropic/claude-sonnet-4-6
+  #
+  # Layer 1 only (omit `judge` to skip semantic scoring; faster + cheaper):
+  # - name: deterministic_only
+  #   model: openai/gpt-5.4
+  #   domains: [financial]
