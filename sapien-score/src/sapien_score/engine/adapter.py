@@ -57,7 +57,7 @@ class LiteLLMAdapter:
         temperature: float = 0.0,
         max_tokens: int = 4096,
         rate_limit_delay: float = 1.0,
-        base_retry_delay: int = 10,
+        base_retry_delay: float = 2.0,
     ):
         self._model = model
         self._api_key = api_key
@@ -92,13 +92,13 @@ class LiteLLMAdapter:
             kwargs["api_key"] = self._api_key
 
         # Retry on transient failures (rate limits, timeouts, 5xx, provider
-        # overload). Delays escalate: base, base*3, base*6 — at the default
-        # base_retry_delay=10 this is 10s / 30s / 60s, matching the classic
-        # exponential-ish backoff long-running benchmark scans need.
+        # overload). Delays escalate: base, base*2.5, base*7.5 — at the
+        # default base_retry_delay=2 this is 2s / 5s / 15s. Paid-tier rate
+        # limits typically clear in 5-10s; the old 10/30/60s wasted time.
         retry_delays = [
             self._base_retry_delay,
-            self._base_retry_delay * 3,
-            self._base_retry_delay * 6,
+            self._base_retry_delay * 2.5,
+            self._base_retry_delay * 7.5,
         ]
 
         response = None
