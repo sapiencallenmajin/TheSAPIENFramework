@@ -120,6 +120,15 @@ class TurnRecord:
 # ---- Scenario Result ----
 
 @dataclass
+class APICallTiming:
+    """Timing record for a single API call."""
+    scenario_id: str
+    turn_number: int
+    call_type: str          # "target" or "judge"
+    duration_seconds: float
+
+
+@dataclass
 class ScenarioResult:
     """Complete result of running a scenario."""
     scenario_id: str
@@ -137,6 +146,8 @@ class ScenarioResult:
     model_tier: Optional[str] = None
     counter_refusals_injected: int = 0
     counter_refusal_categories: list[str] = field(default_factory=list)
+    api_timings: list[APICallTiming] = field(default_factory=list)
+    per_turn_durations: list[float] = field(default_factory=list)
 
 
 # ---- Phase Classification ----
@@ -293,14 +304,23 @@ def run_scenario(
     acc_total_tokens = 0
     acc_cost_usd = 0.0
 
+    # Timing accumulators
+    api_timings: list[APICallTiming] = []
+    per_turn_durations: list[float] = []
+
+    turn_wall_start = time.time()
     messages.append({"role": "user", "content": scenario.opening_prompt})
+    t0 = time.time()
     response = adapter.send_message(messages, system_prompt=system_prompt)
+    target_elapsed = time.time() - t0
+    api_timings.append(APICallTiming(scenario.id, 0, "target", round(target_elapsed, 4)))
     turn_usage = getattr(adapter, "last_usage", UsageInfo())
     acc_input_tokens += turn_usage.input_tokens
     acc_output_tokens += turn_usage.output_tokens
     acc_total_tokens += turn_usage.total_tokens
     acc_cost_usd += turn_usage.cost_usd
     messages.append({"role": "assistant", "content": response})
+    per_turn_durations.append(round(time.time() - turn_wall_start, 4))
     baseline_response = response
 
     if verbose:
@@ -369,8 +389,12 @@ def run_scenario(
             print(_redact(f"User: {user_message[:100]}..."))
 
         # Send message
+        turn_wall_start = time.time()
         messages.append({"role": "user", "content": user_message})
+        t0 = time.time()
         response = adapter.send_message(messages, system_prompt=system_prompt)
+        target_elapsed = time.time() - t0
+        api_timings.append(APICallTiming(scenario.id, turn_number, "target", round(target_elapsed, 4)))
         turn_usage = getattr(adapter, "last_usage", UsageInfo())
         acc_input_tokens += turn_usage.input_tokens
         acc_output_tokens += turn_usage.output_tokens
@@ -395,6 +419,7 @@ def run_scenario(
 
         if judge and baseline_response:
             scenario_ctx = f"{scenario.domain}: {scenario.title}"
+            t0 = time.time()
             layer2_result = judge.score_turn(
                 scenario_context=scenario_ctx,
                 user_prompt=user_message,
@@ -403,6 +428,8 @@ def run_scenario(
                 turn_number=turn_number,
                 pressure_type=escalation.pressure_type or "unknown",
             )
+            judge_elapsed = time.time() - t0
+            api_timings.append(APICallTiming(scenario.id, turn_number, "judge", round(judge_elapsed, 4)))
             if layer2_result is not None:
                 judge_reasoning = layer2_result.pop("reasoning", None)
                 final_score = blend_scores(turn_score, layer2_result)
@@ -423,6 +450,7 @@ def run_scenario(
             usage=turn_usage,
         ))
         turn_drifts.append(final_score.weighted_drift)
+        per_turn_durations.append(round(time.time() - turn_wall_start, 4))
 
         if verbose:
             print(_redact(
@@ -452,8 +480,12 @@ def run_scenario(
                     print(_redact(f"\n[Turn {turn_number} - COUNTER-REFUSAL ({cr_category})]"))
                     print(_redact(f"User: {cr_text[:100]}..."))
 
+                cr_turn_wall_start = time.time()
                 messages.append({"role": "user", "content": cr_text})
+                t0 = time.time()
                 cr_response = adapter.send_message(messages, system_prompt=system_prompt)
+                cr_target_elapsed = time.time() - t0
+                api_timings.append(APICallTiming(scenario.id, turn_number, "target", round(cr_target_elapsed, 4)))
                 cr_usage = getattr(adapter, "last_usage", UsageInfo())
                 acc_input_tokens += cr_usage.input_tokens
                 acc_output_tokens += cr_usage.output_tokens
@@ -481,6 +513,7 @@ def run_scenario(
                     counter_category=cr_category,
                 ))
                 turn_drifts.append(cr_score.weighted_drift)
+                per_turn_durations.append(round(time.time() - cr_turn_wall_start, 4))
 
                 if verbose:
                     print(_redact(
@@ -542,4 +575,6 @@ def run_scenario(
         model_tier=model_profile.tier if model_profile else None,
         counter_refusals_injected=cr_tracker.injection_count if cr_tracker else 0,
         counter_refusal_categories=cr_tracker.categories_used if cr_tracker else [],
+        api_timings=api_timings,
+        per_turn_durations=per_turn_durations,
     )
