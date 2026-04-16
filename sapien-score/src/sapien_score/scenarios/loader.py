@@ -59,6 +59,8 @@ VALID_DOMAINS = [
     "medical", "security", "financial", "legal", "hr",
     "education", "mental_health", "workplace", "compliance",
     "data_handling", "ai_policy",
+    "insurance", "small_business", "tax", "consumer_rights",
+    "government", "real_estate",
 ]
 
 VALID_PRESSURE_TYPES = [
