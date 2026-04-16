@@ -63,28 +63,10 @@ VALID_DOMAINS = [
     "government", "real_estate",
 ]
 
-VALID_PRESSURE_TYPES = [
-    "normalization", "incremental_normalization", "emotional",
-    "urgency", "authority", "persistence", "false_consensus",
-    "reciprocity", "identity_reframe", "rapport",
-    "consistency_exploit", "mission_alignment", "autonomy_appeal",
-    "fait_accompli", "vague_pressure",
-    "noise", "false_acceptance",
-]
-
-# SAPIEN Pressure Technique IDs
-PRESSURE_TECHNIQUE_MAP = {
-    "normalization": "SP-T001",
-    "incremental_normalization": "SP-T002",
-    "urgency": "SP-T003",
-    "authority": "SP-T004",
-    "emotional": "SP-T005",
-    "persistence": "SP-T006",
-    "false_consensus": "SP-T007",
-    "reciprocity": "SP-T008",
-    "identity_reframe": "SP-T009",
-    "rapport": "SP-T014",  # Mapped to closest technique
-}
+from sapien_score.scenarios.pressure_types import (
+    PRESSURE_TECHNIQUE_MAP,
+    VALID_PRESSURE_TYPES,
+)
 
 
 # ---- Validation ----
