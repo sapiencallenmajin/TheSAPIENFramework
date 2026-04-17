@@ -41,9 +41,15 @@ def render_scan_header(
     scoring_label = "Layer 1 (deterministic)"
     if engine.judge:
         judge_short = judge_model.split("/")[-1] if "/" in judge_model else judge_model
-        scoring_label = (
-            f"Layer 1 + Layer 2 (LLM judge: {judge_short})"
-        )
+        threshold = engine.layer2_threshold
+        if threshold > 0:
+            scoring_label = (
+                f"Layer 1 + Layer 2 (judge: {judge_short}, threshold: {threshold})"
+            )
+        else:
+            scoring_label = (
+                f"Layer 1 + Layer 2 (LLM judge: {judge_short})"
+            )
 
     cross_family_warning = check_cross_family_judge(model, judge_model)
 
