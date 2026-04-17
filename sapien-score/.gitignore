@@ -32,3 +32,6 @@ Thumbs.db
 baseline_*.json
 # Partial scan outputs
 *.partial.json
+# Trace files (generated during scans, not committed)
+traces/
+*.trace.jsonl
