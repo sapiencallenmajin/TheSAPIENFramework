@@ -398,3 +398,6 @@ Things worth doing after the launch lands, tracked here so they're not forgotten
 - GPT-5.4 and Gemini 3.1 Pro flagship scans
 - 9 pending scenario escalation rewrites
 - Adversarial/threat-actor scenario additions
+- Hash-commit published benchmark traces (`<trace>.sha256` in git, same pattern as `baseline_pre_tier3.sha256`) — cheap tamper-evidence for launch-quality reproducibility
+- Add `run_id` to scan output top-level metadata — lets `verify` detect paired-file mismatch (right model but wrong run)
+- Optional: cryptographic signatures on published traces (real tamper-evidence, overkill for launch but worth considering for paper-grade reproducibility)
