@@ -62,9 +62,11 @@ logger = logging.getLogger(__name__)
               default="auto", help="Model meta-awareness tier (auto = detect from model name)")
 @click.option("--no-counter-refusals", "no_counter_refusals", is_flag=True, default=False,
               help="Disable counter-refusal injection for faster benchmark runs")
+@click.option("--no-trace", "no_trace", is_flag=True, default=False,
+              help="Disable JSONL trace recording of LLM calls")
 def scan(model, judge_model, domain, domains, run_all, report, output, verbose, delay, persona, memory, profile,
          estimate, avg_tokens, cost_csv, resume, retry_delay, debug, collection, authorship, audience,
-         scenarios_dir_override, tier_override, no_counter_refusals):
+         scenarios_dir_override, tier_override, no_counter_refusals, no_trace):
     """Run scenarios against a model and score behavioral safety."""
     from rich.console import Console
     from rich.panel import Panel
@@ -180,6 +182,15 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
     # --- Build adapter ---
     adapter = get_adapter(model=model, rate_limit_delay=delay, base_retry_delay=retry_delay)
 
+    # --- Trace recording ---
+    trace_writer = None
+    if not no_trace:
+        from sapien_score.tracing.trace import TraceWriter, derive_trace_path, new_run_id
+        trace_path = derive_trace_path(output)
+        trace_writer = TraceWriter(path=trace_path, run_id=new_run_id())
+        adapter.trace_writer = trace_writer
+        adapter.call_kind = "target_call"
+
     # --- Model tier / counter-refusal configuration ---
     from sapien_score.model_profiles import get_model_profile, override_profile
     if tier_override == "auto":
@@ -192,6 +203,9 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
     if judge_model:
         from sapien_score.scoring.judge import JudgeScorer
         judge_adapter = get_adapter(model=judge_model, rate_limit_delay=delay, base_retry_delay=retry_delay)
+        if trace_writer:
+            judge_adapter.trace_writer = trace_writer
+            judge_adapter.call_kind = "judge_call"
         judge = JudgeScorer(adapter=judge_adapter)
 
     # --- Header ---
@@ -226,6 +240,8 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
             f"[dim]Layer 2 (LLM judge: {judge_model}) active — "
             f"dimension scores are blended 40% deterministic + 60% semantic[/dim]"
         )
+    if trace_writer:
+        console.print(f"[dim]Trace: {trace_writer.path}[/dim]")
     console.print()
 
     # --- Partial results path ---
@@ -344,6 +360,8 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
             "\n[yellow]Scan interrupted. Saving partial results...[/yellow]"
         )
         _save_partial(results, failed_scenarios, partial_path, model)
+        if trace_writer:
+            trace_writer.close()
         console.print(f"[green]Partial results saved: {partial_path}[/green]")
         console.print(
             f"Resume with: voigt-kampff scan --model {model} "
@@ -554,6 +572,9 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
             Path(partial_path).unlink(missing_ok=True)
         except OSError:
             pass
+
+    if trace_writer:
+        trace_writer.close()
 
     console.print()
 
