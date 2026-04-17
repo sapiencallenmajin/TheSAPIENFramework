@@ -269,25 +269,16 @@ _scenario_cache: dict[frozenset, list[Scenario]] = {}
 
 
 def _resolve_scenarios_root() -> Path:
-    """Return the top-level ``scenarios/`` directory.
+    """Return the ``scenario_data/`` package-data directory.
 
-    Checks the ``SAPIEN_SCENARIOS`` env var first, then falls back to the
-    standard package-relative path.
+    Checks the ``SAPIEN_SCENARIOS`` env var first, then falls back to
+    ``importlib.resources`` to locate data bundled inside the package.
     """
     env_dir = os.environ.get("SAPIEN_SCENARIOS")
     if env_dir:
-        return Path(env_dir)
-    # scenarios/ lives alongside the sapien_score package in the source tree
-    pkg_dir = Path(__file__).resolve().parent.parent  # sapien_score/
-    candidates = [
-        pkg_dir.parent.parent / "scenarios",   # src/../scenarios
-        pkg_dir.parent / "scenarios",           # editable install
-        pkg_dir / "scenarios",                  # bundled inside pkg
-    ]
-    for candidate in candidates:
-        if candidate.is_dir():
-            return candidate
-    return pkg_dir.parent.parent / "scenarios"
+        return Path(env_dir).resolve()
+    from importlib.resources import files
+    return Path(str(files("sapien_score").joinpath("scenario_data")))
 
 
 def load_all_scenarios(

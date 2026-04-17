@@ -190,8 +190,20 @@ def setup_engine(
     if replay:
         if not allow_trace_during_replay:
             no_trace = True
+        replay_path = Path(replay)
+        if not replay_path.exists():
+            # Fall back to package-bundled data (e.g. examples/traces/...).
+            replay_clean = Path(replay)
+            if replay_clean.is_absolute() or any(part == ".." for part in replay_clean.parts):
+                console.print(f"[red]Error: replay path contains illegal components: {replay}[/red]")
+                raise SystemExit(1)
+            from importlib.resources import files
+            replay_path = Path(str(files("sapien_score").joinpath(replay)))
+        if not replay_path.exists():
+            console.print(f"[red]Error: replay file not found: {replay}[/red]")
+            raise SystemExit(1)
         from sapien_score.tracing.replay import TraceReader, ReplayAdapter
-        trace_reader = TraceReader(Path(replay))
+        trace_reader = TraceReader(replay_path)
         meta = trace_reader.metadata()
         if meta["target_model"] and meta["target_model"] != model:
             console.print(
@@ -206,7 +218,7 @@ def setup_engine(
             )
             raise SystemExit(1)
         console.print(
-            f"[dim]Replay: {replay} "
+            f"[dim]Replay: {replay_path} "
             f"({meta['total_entries']} entries, run {meta['run_id'][:8]}...)[/dim]"
         )
 
