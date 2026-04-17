@@ -423,12 +423,17 @@ def finalize_scan(
     cost_csv: Optional[str],
     judge_model: Optional[str],
     scan_elapsed: float,
+    publish: bool = False,
+    publish_label: Optional[str] = None,
+    publish_primary: bool = False,
+    publish_url: Optional[str] = None,
 ) -> None:
-    """Write JSON/CSV/HTML outputs and clean up resources."""
+    """Write JSON/CSV/HTML outputs, optionally publish, and clean up."""
     from .scan_output import build_output_payload, compute_timing_summary, write_cost_csv
 
-    # --- JSON output ---
-    if output:
+    # --- Build output payload (needed for JSON write and/or publish) ---
+    output_data = None
+    if output or publish:
         output_data = build_output_payload(
             model=model,
             results=results,
@@ -442,6 +447,9 @@ def finalize_scan(
         timing_summary = compute_timing_summary(results, scan_elapsed)
         if timing_summary:
             output_data["_timing"] = timing_summary
+
+    # --- JSON output ---
+    if output and output_data:
         with open(output, "w", encoding="utf-8") as f:
             json.dump(output_data, f, indent=2)
         if failed:
@@ -491,5 +499,19 @@ def finalize_scan(
 
     if engine.trace_writer:
         engine.trace_writer.close()
+
+    # --- Publish to scoreboard ---
+    if publish and output_data:
+        from sapien_score.publishing.client import publish_results, resolve_judge_family
+        judge_family = resolve_judge_family(judge_model, console)
+        publish_results(
+            console=console,
+            output_data=output_data,
+            judge_model=judge_model,
+            judge_family=judge_family,
+            run_label=publish_label,
+            is_primary=publish_primary,
+            publish_url=publish_url,
+        )
 
     console.print()

@@ -208,6 +208,26 @@ voigt-kampff scan --mode deep --model bedrock/deepseek.v3.2 --judge openai/gpt-5
 
 **Size:** half day
 
+### Task 4.5 — Publish flag for scoreboard
+
+**Why:** The launch scoreboard at sapienframework.org needs a CLI path for researchers to submit benchmark results. Without `--publish`, the scoreboard stays empty and the "community scoreboard" launch story has no content.
+
+**What:** New `--publish` flag on the scan command. When set, POSTs scan results to the SAPIEN ingestion endpoint after the scan completes. Requires `SAPIEN_INGEST_API_KEY` env var. Never alters scan behavior, never causes non-zero exit on publish failure.
+
+Additional flags: `--publish-label` (required with --publish), `--publish-primary` (mark as model's primary run), `--publish-url` (override endpoint).
+
+Replay fixtures in `examples/` are bundled with the repo so reviewers can see dramatic drift instantly without running a live scan. Each fixture is verifiable.
+
+**Hard constraints:**
+- Scan behavior identical with or without --publish
+- Publish failure never causes non-zero exit
+- No API keys or trace contents in publish payload
+- Uses httpx already in pyproject.toml — no new dependency
+
+**Branch:** `feat/publish-flag`
+
+**Size:** half day
+
 ### Task 5 — README rewrite around the demo
 
 **Why:** The README is what people read after they click the GitHub link. It either converts them to try the demo or loses them.
