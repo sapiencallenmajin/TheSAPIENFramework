@@ -39,8 +39,9 @@ _VALID_SCENARIO = {
 _VALID_JSON = json.dumps(_VALID_SCENARIO)
 
 
-# After restructure: scenarios live under scenarios/sapien/{domain}/
-SCENARIOS_ROOT = Path(__file__).parent.parent / "scenarios"
+# Scenarios live inside the package at sapien_score/scenario_data/
+from importlib.resources import files
+SCENARIOS_ROOT = Path(str(files("sapien_score").joinpath("scenario_data")))
 SAPIEN_DIR = SCENARIOS_ROOT / "sapien"
 
 
@@ -271,9 +272,15 @@ class TestLoadAllScenariosFn:
         scenarios = load_all_scenarios(audience="general")
         assert all(s.audience == "general" for s in scenarios)
 
-    def test_authorship_filter_no_match(self):
-        """No built-in scenarios have authorship set, so this returns empty."""
+    def test_authorship_filter_llm(self):
+        """Scenarios with authorship='llm' are returned by the filter."""
         scenarios = load_all_scenarios(authorship="llm")
+        assert len(scenarios) > 0, "Expected at least one llm-authored scenario"
+        assert all(getattr(s, "authorship", None) == "llm" for s in scenarios)
+
+    def test_authorship_filter_no_match(self):
+        """A nonsense authorship value returns empty."""
+        scenarios = load_all_scenarios(authorship="nonexistent_authorship_value")
         assert len(scenarios) == 0
 
     def test_custom_scenarios_dir(self, tmp_path):
