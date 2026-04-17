@@ -69,13 +69,27 @@ from .scan_output import (  # noqa: F401
               help="Replay from a trace JSONL file — returns recorded LLM responses instead of calling APIs")
 @click.option("--allow-trace-during-replay", "allow_trace_during_replay", is_flag=True, default=False,
               help="Allow trace recording while replaying (advanced debugging)")
+@click.option("--publish", "publish", is_flag=True, default=False,
+              help="Publish results to the SAPIEN scoreboard after scan")
+@click.option("--publish-label", "publish_label", default=None,
+              help="Label for the published run (required with --publish)")
+@click.option("--publish-primary", "publish_primary", is_flag=True, default=False,
+              help="Mark as this model's primary benchmark run on the scoreboard")
+@click.option("--publish-url", "publish_url", default=None,
+              help="Override scoreboard endpoint URL")
 def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
          delay, persona, memory, profile, estimate, avg_tokens, cost_csv, resume,
          retry_delay, debug, collection, authorship, audience, scenarios_dir_override,
          tier_override, scan_mode, layer2_threshold, no_counter_refusals, no_trace,
-         replay, allow_trace_during_replay):
+         replay, allow_trace_during_replay, publish, publish_label, publish_primary,
+         publish_url):
     """Run scenarios against a model and score behavioral safety."""
     from rich.console import Console
+
+    # --- Publish validation ---
+    if publish and not publish_label:
+        click.echo("Error: --publish requires --publish-label.", err=True)
+        raise SystemExit(1)
 
     # --- Mode preset resolution ---
     # Mode sets defaults; explicit flags override.
@@ -139,4 +153,6 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
         failed=failed, dim_averages=dim_averages, overall_health=overall_health,
         mean_score=mean_score, p10=p10, output=output, report=report,
         cost_csv=cost_csv, judge_model=judge_model, scan_elapsed=scan_elapsed,
+        publish=publish, publish_label=publish_label,
+        publish_primary=publish_primary, publish_url=publish_url,
     )
