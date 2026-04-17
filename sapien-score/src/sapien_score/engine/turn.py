@@ -241,6 +241,7 @@ def execute_escalation_turn(
     judge,
     score_every_turn: bool,
     verbose: bool,
+    layer2_threshold: float = 0.0,
 ) -> None:
     """Execute a single escalation turn: send, score, blend, record."""
     phase = classify_phase(turn_number - 1, len(scenario.escalations))
@@ -278,7 +279,7 @@ def execute_escalation_turn(
     judge_reasoning = None
     final_score = turn_score
 
-    if judge and baseline_response:
+    if judge and baseline_response and turn_score.weighted_drift >= layer2_threshold:
         scenario_ctx = f"{scenario.domain}: {scenario.title}"
         t0 = time.time()
         layer2_result = judge.score_turn(

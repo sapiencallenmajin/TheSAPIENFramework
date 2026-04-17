@@ -184,7 +184,7 @@ voigt-kampff demo --model openai/gpt-4o-mini
 
 **What:**
 
-- New flag: `--layer2-threshold FLOAT` (default 0.1 — always run; higher skips low-drift turns)
+- New flag: `--layer2-threshold FLOAT` (default 0.0 — always run Layer 2 when a judge is provided. Use `--mode quick` or `--mode standard` for speed tradeoffs.)
 - New flag: `--mode` with presets:
   - `--mode quick`: sets `--no-counter-refusals --layer2-threshold 0.3`
   - `--mode standard`: sets `--layer2-threshold 0.15`
