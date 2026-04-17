@@ -65,6 +65,8 @@ class LiteLLMAdapter:
         self._max_tokens = max_tokens
         self._rate_limit_delay = rate_limit_delay
         self._base_retry_delay = base_retry_delay
+        self._trace_writer = None
+        self._call_kind = "target_call"
 
     @property
     def model_name(self) -> str:
@@ -101,6 +103,7 @@ class LiteLLMAdapter:
             self._base_retry_delay * 7.5,
         ]
 
+        call_start = time.monotonic()
         response = None
         for attempt in range(self.MAX_RETRIES + 1):
             try:
@@ -122,12 +125,100 @@ class LiteLLMAdapter:
                     )
                     time.sleep(wait)
                     continue
+                self._record_trace(
+                    full_messages,
+                    response_content=None,
+                    finish_reason=None,
+                    usage=UsageInfo(),
+                    duration_ms=round((time.monotonic() - call_start) * 1000),
+                    error=str(e)[:500],
+                )
                 raise
 
         # Capture usage data from response
         self._last_usage = self._extract_usage(response)
 
-        return response.choices[0].message.content
+        content = response.choices[0].message.content
+        finish_reason = getattr(response.choices[0], "finish_reason", None)
+
+        self._record_trace(
+            full_messages,
+            response_content=content,
+            finish_reason=finish_reason,
+            usage=self._last_usage,
+            duration_ms=round((time.monotonic() - call_start) * 1000),
+        )
+
+        return content
+
+    @property
+    def trace_writer(self):
+        """The attached TraceWriter, or None if tracing is disabled."""
+        return self._trace_writer
+
+    @trace_writer.setter
+    def trace_writer(self, writer: Optional["TraceWriter"]) -> None:
+        self._trace_writer = writer
+
+    @property
+    def call_kind(self) -> str:
+        """The trace entry kind: 'target_call' or 'judge_call'."""
+        return self._call_kind
+
+    @call_kind.setter
+    def call_kind(self, kind: str) -> None:
+        self._call_kind = kind
+
+    def _record_trace(
+        self,
+        messages: list[dict],
+        *,
+        response_content: Optional[str],
+        finish_reason: Optional[str],
+        usage: UsageInfo,
+        duration_ms: int,
+        error: Optional[str] = None,
+    ) -> None:
+        """Record a trace entry if a trace writer is attached.
+
+        Swallows all exceptions to avoid crashing an in-progress scan.
+        """
+        if self._trace_writer is None:
+            return
+        try:
+            provider = self._model.split("/")[0] if "/" in self._model else "unknown"
+            request = {
+                "messages": messages,
+                "params": {
+                    "temperature": self._temperature,
+                    "max_tokens": self._max_tokens,
+                },
+                "tools": [],
+            }
+            response = {
+                "content": response_content,
+                "usage": {
+                    "input_tokens": usage.input_tokens,
+                    "output_tokens": usage.output_tokens,
+                    "total_tokens": usage.total_tokens,
+                    "cost_usd": usage.cost_usd,
+                },
+                "finish_reason": finish_reason,
+            }
+            metadata = {}
+            if error:
+                metadata["error"] = error
+            self._trace_writer.record(
+                kind=self._call_kind,
+                model=self._model,
+                provider=provider,
+                request=request,
+                response=response,
+                duration_ms=duration_ms,
+                metadata=metadata,
+            )
+        except Exception as exc:
+            logger.warning("Trace recording failed: %s", exc)
 
     @property
     def last_usage(self) -> UsageInfo:
