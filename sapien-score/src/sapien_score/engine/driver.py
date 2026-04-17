@@ -118,6 +118,7 @@ def run_scenario(
     memory_text: Optional[str] = None,
     model_profile: Optional["ModelProfile"] = None,
     disable_counter_refusals: bool = False,
+    layer2_threshold: float = 0.0,
 ) -> ScenarioResult:
     """Execute a complete scenario against a model."""
     # Lazy import to avoid circular dependency
@@ -169,7 +170,8 @@ def run_scenario(
             api_timings=api_timings, per_turn_durations=per_turn_durations,
             acc=acc, user_message=msg, escalation=esc, turn_number=turn_number,
             use_hold=use_hold, baseline_response=baseline_response, judge=judge,
-            score_every_turn=score_every_turn, verbose=verbose)
+            score_every_turn=score_every_turn, verbose=verbose,
+            layer2_threshold=layer2_threshold)
         turn_number += 1
         turn_number = maybe_inject_counter_refusal(
             cr_tracker=cr_tracker, scenario=scenario, adapter=adapter,

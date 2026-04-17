@@ -48,6 +48,7 @@ class EngineConfig:
     persona_text: Optional[str] = None
     memory_text: Optional[str] = None
     no_counter_refusals: bool = False
+    layer2_threshold: float = 0.0
     partial_path: str = ""
     previous_payload: Optional[dict] = None
     resume_path: Optional[str] = None
@@ -83,6 +84,7 @@ def setup_engine(
     no_trace: bool,
     replay: Optional[str],
     allow_trace_during_replay: bool,
+    layer2_threshold: float = 0.0,
     console: "Console",
 ) -> EngineConfig:
     """Resolve arguments, build adapters, load scenarios.
@@ -268,6 +270,7 @@ def setup_engine(
         persona_text=persona_text,
         memory_text=memory_text,
         no_counter_refusals=no_counter_refusals,
+        layer2_threshold=layer2_threshold,
         partial_path=partial_path,
         previous_payload=previous_payload,
         resume_path=resume,
@@ -328,6 +331,7 @@ def run_scan_loop(
                         memory_text=engine.memory_text,
                         model_profile=engine.model_profile,
                         disable_counter_refusals=engine.no_counter_refusals,
+                        layer2_threshold=engine.layer2_threshold,
                     )
                 except Exception as e:
                     logger.warning(
