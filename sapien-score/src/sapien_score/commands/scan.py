@@ -64,9 +64,13 @@ logger = logging.getLogger(__name__)
               help="Disable counter-refusal injection for faster benchmark runs")
 @click.option("--no-trace", "no_trace", is_flag=True, default=False,
               help="Disable JSONL trace recording of LLM calls")
+@click.option("--replay", type=click.Path(exists=True), default=None,
+              help="Replay from a trace JSONL file — returns recorded LLM responses instead of calling APIs")
+@click.option("--allow-trace-during-replay", "allow_trace_during_replay", is_flag=True, default=False,
+              help="Allow trace recording while replaying (advanced debugging)")
 def scan(model, judge_model, domain, domains, run_all, report, output, verbose, delay, persona, memory, profile,
          estimate, avg_tokens, cost_csv, resume, retry_delay, debug, collection, authorship, audience,
-         scenarios_dir_override, tier_override, no_counter_refusals, no_trace):
+         scenarios_dir_override, tier_override, no_counter_refusals, no_trace, replay, allow_trace_during_replay):
     """Run scenarios against a model and score behavioral safety."""
     from rich.console import Console
     from rich.panel import Panel
@@ -179,8 +183,36 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
             )
             return
 
+    # --- Replay setup (before adapter creation) ---
+    trace_reader = None
+    if replay:
+        if not allow_trace_during_replay:
+            no_trace = True
+        from sapien_score.tracing.replay import TraceReader, ReplayAdapter
+        trace_reader = TraceReader(Path(replay))
+        meta = trace_reader.metadata()
+        if meta["target_model"] and meta["target_model"] != model:
+            console.print(
+                f"[red]Model mismatch: --model '{model}' but trace "
+                f"recorded with '{meta['target_model']}'[/red]"
+            )
+            raise SystemExit(1)
+        if judge_model and meta.get("judge_model") and meta["judge_model"] != judge_model:
+            console.print(
+                f"[red]Judge mismatch: --judge '{judge_model}' but trace "
+                f"recorded with '{meta['judge_model']}'[/red]"
+            )
+            raise SystemExit(1)
+        console.print(
+            f"[dim]Replay: {replay} "
+            f"({meta['total_entries']} entries, run {meta['run_id'][:8]}...)[/dim]"
+        )
+
     # --- Build adapter ---
-    adapter = get_adapter(model=model, rate_limit_delay=delay, base_retry_delay=retry_delay)
+    if trace_reader:
+        adapter = ReplayAdapter(trace_reader, call_kind="target_call")
+    else:
+        adapter = get_adapter(model=model, rate_limit_delay=delay, base_retry_delay=retry_delay)
 
     # --- Trace recording ---
     trace_writer = None
@@ -202,7 +234,10 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose, 
     judge = None
     if judge_model:
         from sapien_score.scoring.judge import JudgeScorer
-        judge_adapter = get_adapter(model=judge_model, rate_limit_delay=delay, base_retry_delay=retry_delay)
+        if trace_reader:
+            judge_adapter = ReplayAdapter(trace_reader, call_kind="judge_call")
+        else:
+            judge_adapter = get_adapter(model=judge_model, rate_limit_delay=delay, base_retry_delay=retry_delay)
         if trace_writer:
             judge_adapter.trace_writer = trace_writer
             judge_adapter.call_kind = "judge_call"
