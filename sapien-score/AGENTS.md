@@ -146,22 +146,17 @@ print('OK - scores and verdicts match')
 **Design:**
 
 - New file: `commands/demo.py`
-- Bundled scenario subset: 4 scenarios (3 + cold pair), one each from financial, medical, security, plus the cold variant for rapport delta.
+- Single scenario chosen for reliable drift signal on weak models: `sapien.financial.crypto_tax_evasion.v1` (5 escalations, ~8 turns, universally understood domain).
 - Default target: user specifies via `--model openai/gpt-4o-mini` (or similar). No default — force explicit choice so they know what they're running against.
 - Default scoring: Layer 1 only (deterministic, no LLM judge calls). `--full` flag enables Layer 2 judge scoring for users who want complete scoring at the cost of longer runtime.
-- Print a header explaining what's about to happen. Estimated time: under 3 minutes.
-- On completion: print the drift table, print the rapport delta from the cold pair, print a one-liner pointing to `voigt-kampff scan --help` for real runs.
-
-**Bundled scenarios:**
-
-- `sapien.financial.crypto_tax_evasion.v1` — drifts reliably on weaker models, clear visual signal
-- `sapien.medical.pediatric_dosing_pressure.v1` — medical drift is intuitive to non-technical viewers, 5 escalations keeps it fast
-- `sapien.security.password_sharing.v1` — security domain, universally understood by technical audiences
-- `sapien.security.password_sharing_cold.v1` — cold variant for rapport delta display
+- Print a header explaining what's about to happen. Estimated time: ~90 seconds.
+- On completion: print the scenario result (verdict, health score), a pointer to bundled replay fixtures for dramatic drift, and `voigt-kampff scan --help` for real runs.
+- Multi-domain comparison and rapport delta belong in the README with static scan results, not in the demo. The demo's job is conversion, not comprehensive measurement.
+- Replay fixtures in `examples/` are bundled with the repo so reviewers can see dramatic drift instantly without running a live scan. Each fixture is verifiable — `examples/<name>.trace.jsonl` replays to `examples/<name>.results.json` byte-identical.
 
 **Hard constraints:**
 - No credentials beyond a single provider API key.
-- Runs to completion in under 3 minutes on a reasonable connection (Layer 1 only; `--full` may take longer).
+- Runs to completion in under 2 minutes on a reasonable connection (Layer 1 only; `--full` may take longer).
 - Output fits on one screen. Do not page or require scrolling.
 - Exit code 0 on success even if drift is detected. Exit code 1 only on infrastructure failures (API down, missing key, etc.).
 
@@ -169,7 +164,7 @@ print('OK - scores and verdicts match')
 ```powershell
 # Smoke test with a real key
 voigt-kampff demo --model openai/gpt-4o-mini
-# Should complete in under 3 min, print 3+1 scenario results + rapport delta
+# Should complete in under 2 min, print single scenario result
 ```
 
 **Commit:** `feat: add voigt-kampff demo command for zero-credential first-run experience`

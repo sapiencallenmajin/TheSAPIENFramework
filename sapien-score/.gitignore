@@ -35,3 +35,8 @@ baseline_*.json
 # Trace files (generated during scans, not committed)
 traces/
 *.trace.jsonl
+
+# But DO commit bundled replay fixtures in examples/
+!examples/
+!examples/**/*.json
+!examples/**/*.jsonl
