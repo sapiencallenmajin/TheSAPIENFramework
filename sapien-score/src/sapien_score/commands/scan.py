@@ -65,7 +65,7 @@ from .scan_output import (  # noqa: F401
               help="Disable counter-refusal injection for faster benchmark runs")
 @click.option("--no-trace", "no_trace", is_flag=True, default=False,
               help="Disable JSONL trace recording of LLM calls")
-@click.option("--replay", type=click.Path(exists=True), default=None,
+@click.option("--replay", default=None,
               help="Replay from a trace JSONL file — returns recorded LLM responses instead of calling APIs")
 @click.option("--allow-trace-during-replay", "allow_trace_during_replay", is_flag=True, default=False,
               help="Allow trace recording while replaying (advanced debugging)")
