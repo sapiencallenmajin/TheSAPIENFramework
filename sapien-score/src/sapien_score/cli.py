@@ -15,6 +15,7 @@ import click
 from rich.logging import RichHandler
 
 from .commands.adaptive import adaptive
+from .commands.demo import demo
 from .commands.batch import batch
 from .commands.calibrate import calibrate
 from .commands.list_info import info, list_scenarios
@@ -58,3 +59,4 @@ main.add_command(calibrate)
 main.add_command(list_scenarios)
 main.add_command(info)
 main.add_command(verify)
+main.add_command(demo)
