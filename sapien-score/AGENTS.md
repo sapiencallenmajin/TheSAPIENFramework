@@ -44,7 +44,33 @@ Every session follows these rules:
 
 ## The Launch Critical Path
 
-Five tasks. Each is sized and has an acceptance criterion. Do them in order.
+Tasks 0 through 8. Each is sized and has an acceptance criterion. Do them in order.
+
+### Task 0 — Replay Infrastructure (foundational)
+
+**Why:** Without deterministic replay, scores from any LLM-driven scan are unreproducible, and "did this refactor change behavior" is unanswerable. Every subsequent task depends on this.
+
+**Scope:** Three sub-tasks, each its own PR.
+
+- Task 0.1 — Trace recording. Every target and judge LLM call gets logged to a structured JSONL trace file alongside scan results. Crash-safe (append-only), handles concurrent scans (unique run_ids), schema-versioned.
+- Task 0.2 — Replay mode. A `--replay <trace.jsonl>` flag on `voigt-kampff scan`. Adapter consults the trace first; identical prompt+params returns the recorded response; mismatch fails loudly. Same scan + same trace = byte-identical scores.
+- Task 0.3 — Verify command. `voigt-kampff verify <results.json> <trace.jsonl>` re-runs in replay mode, diffs scores, exits 0 on match, non-zero with clear report on mismatch. Usable in CI.
+
+**Hard constraints (all three sub-tasks):**
+- No behavior change in default (non-replay) mode. Existing scans continue to work identically.
+- Tracing is ON by default. Users opt out with `--no-trace`.
+- Traces live in a `traces/` subdirectory relative to the output file's directory.
+- Trace filename: `<results_basename>.trace.jsonl` (e.g. `results.json` -> `traces/results.trace.jsonl`).
+- All file writes use atomic temp-file + rename pattern to survive crashes mid-scan.
+- JSONL format: one JSON object per line, append-only, no rewrites.
+- Every trace entry has: `schema_version`, `run_id` (UUID4), `step_id` (monotonic int), `timestamp` (ISO 8601 UTC), `kind` ("target_call" | "judge_call"), `model`, `provider`, `request` (full messages, params, tools), `response` (full content, usage, finish_reason), `duration_ms`, `metadata` (free dict).
+- Schema version starts at 1. Any change bumps version. Replay refuses to load unknown versions with a clear error.
+- Paths with spaces, unicode, or on network drives must work. Test with a path containing a space and a unicode char before declaring done.
+- Replay mismatch errors include: which step, what differed (prompt hash, params hash), and the full recorded vs. current values.
+
+**Branch:** `feat/trace-recording` (0.1), `feat/replay-mode` (0.2), `feat/verify-command` (0.3)
+
+**Size:** 1-2 days total across all three sub-tasks
 
 ### Task 1 — Refactor scan.py (credibility)
 
@@ -280,7 +306,8 @@ Rough calendar, assuming a 2-week window starting today (April 16, 2026):
 
 | Days | Work |
 |---|---|
-| Day 1 | Task 1 (scan.py split) |
+| Day 1-2 | Task 0 (replay infrastructure: trace, replay, verify) |
+| Day 3 | Task 1 (scan.py split) |
 | Day 2 | Task 2 (driver.py split) |
 | Day 3 | Task 3 (demo command) |
 | Day 4 | Task 4 (mode flag + conditional Layer 2) |
@@ -306,7 +333,7 @@ These are tracked only so they don't get forgotten. Do not touch them before lau
 - GPT-5.4 and Gemini 3.1 Pro flagship scans (same)
 - Judge sycophancy paper writeup (research track, not launch track)
 - Driftproof educational annotations (site task, separate repo)
-- `--seed` flag for reproducibility (needed for paper, not demo)
+- `--seed` flag for reproducibility (partially addressed by Task 0 replay; full seed support deferred)
 - Streaming responses
 - `voigt-kampff validate --diversity`
 - Splitting `scoring/layer1.py` or `reporting/html_report.py`
