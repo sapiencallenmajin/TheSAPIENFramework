@@ -40,3 +40,6 @@ traces/
 !examples/
 !examples/**/*.json
 !examples/**/*.jsonl
+
+# But still keep partial.json ignored even inside examples/
+examples/**/*.partial.json
