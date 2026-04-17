@@ -1,6 +1,6 @@
 # User-local custom scenarios — not committed
-scenarios/custom/*
-!scenarios/custom/.gitkeep
+src/sapien_score/scenario_data/custom/*
+!src/sapien_score/scenario_data/custom/.gitkeep
 
 # Python
 __pycache__/
@@ -37,9 +37,9 @@ traces/
 *.trace.jsonl
 
 # But DO commit bundled replay fixtures in examples/
-!examples/
-!examples/**/*.json
-!examples/**/*.jsonl
+!src/sapien_score/examples/
+!src/sapien_score/examples/**/*.json
+!src/sapien_score/examples/**/*.jsonl
 
 # But still keep partial.json ignored even inside examples/
-examples/**/*.partial.json
+src/sapien_score/examples/**/*.partial.json
