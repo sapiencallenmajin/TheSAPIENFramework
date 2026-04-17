@@ -21,6 +21,7 @@ from .commands.list_info import info, list_scenarios
 from .commands.memory_delta import memory_delta
 from .commands.rapport_delta import rapport_delta
 from .commands.scan import scan
+from .commands.verify import verify
 
 # Wire library-level logging (sapien_score.scenarios.loader,
 # sapien_score.personas.loader, sapien_score.scoring.judge) through Rich so
@@ -56,3 +57,4 @@ main.add_command(memory_delta)
 main.add_command(calibrate)
 main.add_command(list_scenarios)
 main.add_command(info)
+main.add_command(verify)
