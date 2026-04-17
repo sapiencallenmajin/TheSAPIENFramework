@@ -10,21 +10,28 @@ readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.10"
 authors = [
-    {name = "SAPIEN Framework Project", email = "contact@sapienframework.org"},
+    {name = "Callen Majin", email = "contact@sapienframework.org"},
 ]
-keywords = ["ai-safety", "behavioral-testing", "sycophancy", "llm-evaluation", "sapien", "voigt-kampff"]
+keywords = ["ai-safety", "llm", "benchmark", "evaluation", "drift-detection", "red-team", "behavioral-safety"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
     "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Security",
 ]
 dependencies = [
     "click>=8.0",
     "pyyaml>=6.0",
     "httpx>=0.24",
-    "rich>=13.0",
+    "rich>=12.5",
     "litellm>=1.0",
 ]
 
@@ -34,8 +41,15 @@ voigt-kampff = "sapien_score.cli:main"
 [tool.hatch.build.targets.wheel]
 packages = ["src/sapien_score"]
 
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/",
+    "LICENSE",
+    "README.md",
+    "pyproject.toml",
+]
+
 [project.urls]
 Homepage = "https://sapienframework.org"
-Documentation = "https://sapienframework.org/getting-started/"
 Repository = "https://github.com/sapiencallenmajin/TheSAPIENFramework"
 Issues = "https://github.com/sapiencallenmajin/TheSAPIENFramework/issues"
