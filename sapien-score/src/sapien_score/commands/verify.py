@@ -269,15 +269,15 @@ def _print_per_turn_deltas(
             delta = got_hs - exp_hs
             marker = ""
             if delta != 0:
-                marker = f"  \u2190 {'drift diverged here' if abs(delta) >= 5 else 'minor delta'}"
+                marker = f"  <-- {'drift diverged here' if abs(delta) >= 5 else 'minor delta'}"
             click.echo(
-                f"      Turn {i}: score {exp_hs} \u2192 {got_hs} "
-                f"(\u0394 {delta:+d}){marker}"
+                f"      Turn {i}: score {exp_hs} -> {got_hs} "
+                f"(d {delta:+d}){marker}"
             )
         elif exp_hs is not None:
-            click.echo(f"      Turn {i}: score {exp_hs} \u2192 (no replay data)")
+            click.echo(f"      Turn {i}: score {exp_hs} -> (no replay data)")
         elif got_hs is not None:
-            click.echo(f"      Turn {i}: score (no expected data) \u2192 {got_hs}")
+            click.echo(f"      Turn {i}: score (no expected data) -> {got_hs}")
 
 
 # ---------------------------------------------------------------------------
@@ -322,7 +322,7 @@ def verify(results_path: str, trace_path: str, verbose: bool) -> None:
 
     # --- Parameter compatibility ---
     _check_parameter_compatibility(results_data, trace_meta)
-    click.echo(f"  Model: {results_data['model']} (match \u2713)")
+    click.echo(f"  Model: {results_data['model']} (match ok)")
 
     # --- Build expected map ---
     expected = results_data["results"]
