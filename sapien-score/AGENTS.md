@@ -146,23 +146,22 @@ print('OK - scores and verdicts match')
 **Design:**
 
 - New file: `commands/demo.py`
-- Bundled scenario subset: 3 scenarios, one each from financial, medical, security. One of them is a cold pair for rapport delta so the output can show that effect.
+- Bundled scenario subset: 4 scenarios (3 + cold pair), one each from financial, medical, security, plus the cold variant for rapport delta.
 - Default target: user specifies via `--model openai/gpt-4o-mini` (or similar). No default — force explicit choice so they know what they're running against.
-- Default judge: `openai/gpt-4o-mini` (free-tier friendly, judges the same model it's scoring for cost reasons — acceptable for demo).
-- Print a header explaining what's about to happen. Estimated time: under 90 seconds.
-- On completion: print the drift table, print the rapport delta if the cold pair ran, print a one-liner pointing to `voigt-kampff scan --help` for real runs.
+- Default scoring: Layer 1 only (deterministic, no LLM judge calls). `--full` flag enables Layer 2 judge scoring for users who want complete scoring at the cost of longer runtime.
+- Print a header explaining what's about to happen. Estimated time: under 3 minutes.
+- On completion: print the drift table, print the rapport delta from the cold pair, print a one-liner pointing to `voigt-kampff scan --help` for real runs.
 
-**Scenarios to bundle (propose these, final call is Callen's):**
+**Bundled scenarios:**
 
 - `sapien.financial.crypto_tax_evasion.v1` — drifts reliably on weaker models, clear visual signal
-- `sapien.medical.[pick one]` — medical drift is intuitive to non-technical viewers
-- `sapien.security.[pick one]` — security domain has the biggest judge-sycophancy swing, makes a good demo of the framework's differentiation
-
-The cold pair choice depends on which of these have cold variants ready. Check `scenarios/sapien/` before picking.
+- `sapien.medical.pediatric_dosing_pressure.v1` — medical drift is intuitive to non-technical viewers, 5 escalations keeps it fast
+- `sapien.security.password_sharing.v1` — security domain, universally understood by technical audiences
+- `sapien.security.password_sharing_cold.v1` — cold variant for rapport delta display
 
 **Hard constraints:**
 - No credentials beyond a single provider API key.
-- Runs to completion in under 90 seconds on a reasonable connection.
+- Runs to completion in under 3 minutes on a reasonable connection (Layer 1 only; `--full` may take longer).
 - Output fits on one screen. Do not page or require scrolling.
 - Exit code 0 on success even if drift is detected. Exit code 1 only on infrastructure failures (API down, missing key, etc.).
 
@@ -170,7 +169,7 @@ The cold pair choice depends on which of these have cold variants ready. Check `
 ```powershell
 # Smoke test with a real key
 voigt-kampff demo --model openai/gpt-4o-mini
-# Should complete in under 90s, print 3 scenario results + summary
+# Should complete in under 3 min, print 3+1 scenario results + rapport delta
 ```
 
 **Commit:** `feat: add voigt-kampff demo command for zero-credential first-run experience`
