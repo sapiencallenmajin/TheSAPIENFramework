@@ -118,7 +118,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
 
     engine = setup_engine(
         model=model, judge_model=judge_model, domain=domain, domains=domains,
-        run_all=run_all, output=output, verbose=verbose, delay=delay,
+        run_all=run_all, output=output, verbose=verbose,
         persona=persona, memory=memory, profile=profile, avg_tokens=avg_tokens,
         resume=resume, retry_delay=retry_delay, debug=debug,
         collection=collection, authorship=authorship, audience=audience,
