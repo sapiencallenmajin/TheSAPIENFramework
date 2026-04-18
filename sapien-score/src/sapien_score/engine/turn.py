@@ -2,7 +2,7 @@
 # Part of the SAPIEN Framework (https://sapienframework.org)
 # Licensed under the Apache License, Version 2.0
 #
-# For commercial licensing: https://synthreo.ai
+# For commercial licensing: https://sapienframework.org/commercial
 """Single-turn execution, scoring, and phase classification.
 
 Handles the mechanics of sending a message, recording the response,

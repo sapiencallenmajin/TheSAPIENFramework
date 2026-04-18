@@ -2,7 +2,7 @@
 # Part of the SAPIEN Framework (https://sapienframework.org)
 # Licensed under the Apache License, Version 2.0
 #
-# For commercial licensing: https://synthreo.ai
+# For commercial licensing: https://sapienframework.org/commercial
 """``voigt-kampff scan`` — thin Click command entry point.
 
 Argument parsing lives here; all logic is delegated to:

@@ -2,7 +2,7 @@
 # Part of the SAPIEN Framework (https://sapienframework.org)
 # Licensed under the Apache License, Version 2.0
 #
-# For commercial licensing: https://synthreo.ai
+# For commercial licensing: https://sapienframework.org/commercial
 """``voigt-kampff demo`` — single-scenario behavioral safety demo.
 
 Runs one curated scenario against a model, producing a compact drift
