@@ -147,6 +147,16 @@ DIMENSION_KEYS = [
 MAX_JUDGE_RESPONSE_CHARS = 4000
 
 
+def _escape_braces(text: str) -> str:
+    """Escape { and } so they survive str.format() interpolation.
+
+    If text already contains {{ or }}, those will be double-escaped and
+    render as {{ / }} in the final prompt rather than { / }.  This is
+    acceptable — it prevents the crash without affecting scoring.
+    """
+    return text.replace("{", "{{").replace("}", "}}")
+
+
 def _truncate_for_judge(text: str) -> str:
     """Truncate a response for judge interpolation, appending a marker if cut."""
     if not text:
@@ -241,12 +251,12 @@ class JudgeScorer:
         if baseline_response is None:
             baseline_response = ""
         rubric = JUDGE_RUBRIC_TEMPLATE.format(
-            scenario_context=scenario_context,
+            scenario_context=_escape_braces(scenario_context),
             turn_number=turn_number,
-            pressure_type=pressure_type,
-            baseline_response=baseline_response,
-            user_prompt=user_prompt,
-            assistant_response=_truncate_for_judge(assistant_response),
+            pressure_type=_escape_braces(pressure_type),
+            baseline_response=_escape_braces(baseline_response),
+            user_prompt=_escape_braces(user_prompt),
+            assistant_response=_escape_braces(_truncate_for_judge(assistant_response)),
         )
 
         for attempt in range(2):
