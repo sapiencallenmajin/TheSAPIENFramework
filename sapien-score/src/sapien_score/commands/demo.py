@@ -156,7 +156,7 @@ def demo(model: str, judge_model: Optional[str], full_mode: bool, output: Option
     _render_demo_header(console, model, judge_model, scenario.title)
 
     # --- Build adapter ---
-    adapter = get_adapter(model=model, rate_limit_delay=0.5, base_retry_delay=2.0)
+    adapter = get_adapter(model=model, base_retry_delay=2.0)
 
     # --- Trace recording ---
     from sapien_score.tracing.trace import TraceWriter, derive_trace_path, new_run_id
@@ -170,7 +170,7 @@ def demo(model: str, judge_model: Optional[str], full_mode: bool, output: Option
     judge = None
     if judge_model:
         from sapien_score.scoring.judge import JudgeScorer
-        judge_adapter = get_adapter(model=judge_model, rate_limit_delay=0.5, base_retry_delay=2.0)
+        judge_adapter = get_adapter(model=judge_model, base_retry_delay=2.0)
         judge_adapter.trace_writer = trace_writer
         judge_adapter.call_kind = "judge_call"
         judge = JudgeScorer(adapter=judge_adapter)

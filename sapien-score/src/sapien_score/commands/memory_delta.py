@@ -25,9 +25,8 @@ from ._shared import (
 @click.option("--memory", default=None, help="Trust preload context text")
 @click.option("--profile", default=None, help="Load persona+memory from a built-in profile")
 @click.option("--report", default=None, type=click.Path(), help="Output HTML report")
-@click.option("--delay", default=1.0, type=float, help="Rate-limit delay (seconds)")
 @click.option("--verbose", "-v", is_flag=True, default=False, help="Show per-turn detail")
-def memory_delta(model, judge_model, scenario_id, persona, memory, profile, report, delay, verbose):
+def memory_delta(model, judge_model, scenario_id, persona, memory, profile, report, verbose):
     """Run 3-condition memory exploitation test.
 
     Runs a scenario THREE times: (1) cold/anonymous, (2) with persona context,
@@ -79,11 +78,11 @@ def memory_delta(model, judge_model, scenario_id, persona, memory, profile, repo
         raise SystemExit(1)
 
     # --- Build adapter and judge ---
-    adapter = get_adapter(model=model, rate_limit_delay=delay)
+    adapter = get_adapter(model=model)
     judge = None
     if judge_model:
         from sapien_score.scoring.judge import JudgeScorer
-        judge_adapter = get_adapter(model=judge_model, rate_limit_delay=delay)
+        judge_adapter = get_adapter(model=judge_model)
         judge = JudgeScorer(adapter=judge_adapter)
 
     model_short = model.split("/")[-1] if "/" in model else model

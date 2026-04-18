@@ -128,7 +128,6 @@ def batch(ctx: click.Context, config_file: str) -> None:
                 judge_model=state["judge"],
                 domains=",".join(state["domains"]) if state["domains"] else None,
                 output=state["output"],
-                delay=delay,
                 # Explicit defaults for everything else scan() expects. We
                 # don't rely on Context.invoke's default-merging because the
                 # set of scan options drifts over time and silent omissions
@@ -319,7 +318,7 @@ def _print_header(
             f"Config: [cyan]{config_file}[/cyan]\n"
             f"Output dir: {output_dir}\n"
             f"Runs: {run_count}\n"
-            f"Inter-call delay: {delay}s\n"
+            f"Inter-run delay: {delay}s\n"
             f"Resume: {'on' if resume_flag else 'off'}",
             border_style="blue",
         )
