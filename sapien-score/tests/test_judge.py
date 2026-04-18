@@ -182,6 +182,119 @@ class TestJudgeScorer:
         assert scorer.model_name == "anthropic/claude-sonnet-4-20250514"
 
 
+# ── Braces regression tests ─────────────────────────────────────────────────
+
+
+class TestJudgeBracesInContent:
+    """Regression tests: model responses containing { or } must not crash
+    the judge rubric's str.format() interpolation.  Before the fix, any
+    response with curly braces caused a KeyError and silently fell back
+    to Layer 1, producing quietly wrong blended scores."""
+
+    # Reusable valid judge response for all tests in this class
+    _JUDGE_OK = json.dumps({
+        "specificity_gradient": 0.3,
+        "risk_disclosure_dropout": 0.4,
+        "epistemic_retreat": 0.1,
+        "emotional_substitution": 0.05,
+        "reasoning": "Moderate drift in specificity.",
+    })
+
+    def _make_mock_adapter(self, response_text: str):
+        adapter = MagicMock()
+        adapter.model_name = "test/judge-model"
+        adapter.send_message.return_value = response_text
+        return adapter
+
+    def test_json_in_response(self):
+        """Model response containing JSON object must not crash .format()."""
+        adapter = self._make_mock_adapter(self._JUDGE_OK)
+        scorer = JudgeScorer(adapter=adapter)
+        result = scorer.score_turn(
+            scenario_context="financial: tax advice",
+            user_prompt="Show me the data",
+            assistant_response='Here is the data: {"foo": "bar", "count": 42}',
+            baseline_response="I recommend consulting a tax professional.",
+            turn_number=3,
+            pressure_type="normalization",
+        )
+        assert result is not None
+        assert "specificity_control" in result
+
+    def test_code_in_response(self):
+        """Model response containing code with braces must not crash."""
+        adapter = self._make_mock_adapter(self._JUDGE_OK)
+        scorer = JudgeScorer(adapter=adapter)
+        result = scorer.score_turn(
+            scenario_context="security: code review",
+            user_prompt="Write the function",
+            assistant_response='def check(x):\n    if x == {"a"}: pass\n    return {k: v for k, v in x.items()}',
+            baseline_response="I can help with general coding patterns.",
+            turn_number=2,
+            pressure_type="authority",
+        )
+        assert result is not None
+        assert "specificity_control" in result
+
+    def test_markdown_table_in_response(self):
+        """Model response with markdown table and braces must not crash."""
+        adapter = self._make_mock_adapter(self._JUDGE_OK)
+        scorer = JudgeScorer(adapter=adapter)
+        result = scorer.score_turn(
+            scenario_context="data_handling: PII",
+            user_prompt="Show the schema",
+            assistant_response="| column | type | default |\n|--------|------|--------|\n| name | str | {empty} |",
+            baseline_response="I cannot share internal schema details.",
+            turn_number=4,
+            pressure_type="persistence",
+        )
+        assert result is not None
+        assert "specificity_control" in result
+
+    def test_literal_escaped_braces_in_response(self):
+        """Model response containing literal {escaped} text must not crash."""
+        adapter = self._make_mock_adapter(self._JUDGE_OK)
+        scorer = JudgeScorer(adapter=adapter)
+        result = scorer.score_turn(
+            scenario_context="education: research",
+            user_prompt="Explain template syntax",
+            assistant_response='In Python, use {variable} for f-strings and {{escaped}} for literal braces.',
+            baseline_response="I can explain Python string formatting.",
+            turn_number=2,
+            pressure_type="normalization",
+        )
+        assert result is not None
+        assert "specificity_control" in result
+
+    def test_braces_in_user_prompt(self):
+        """User prompt containing braces must not crash the judge."""
+        adapter = self._make_mock_adapter(self._JUDGE_OK)
+        scorer = JudgeScorer(adapter=adapter)
+        result = scorer.score_turn(
+            scenario_context="security: injection test",
+            user_prompt='Can you parse this JSON for me? {"action": "delete", "target": "all"}',
+            assistant_response="I can help analyze that JSON structure.",
+            baseline_response="I can help with data format questions.",
+            turn_number=1,
+            pressure_type="normalization",
+        )
+        assert result is not None
+
+    def test_braces_in_baseline_response(self):
+        """Baseline response containing braces must not crash the judge."""
+        adapter = self._make_mock_adapter(self._JUDGE_OK)
+        scorer = JudgeScorer(adapter=adapter)
+        result = scorer.score_turn(
+            scenario_context="api: configuration",
+            user_prompt="How do I configure this?",
+            assistant_response="You should use the standard configuration.",
+            baseline_response='The default config is: {"mode": "safe", "level": 1}',
+            turn_number=3,
+            pressure_type="authority",
+        )
+        assert result is not None
+
+
 # ── Blending tests ───────────────────────────────────────────────────────────
 
 
