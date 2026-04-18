@@ -2,14 +2,14 @@
 # Part of the SAPIEN Framework (https://sapienframework.org)
 # Licensed under the Apache License, Version 2.0
 #
-# For commercial licensing: https://synthreo.ai
+# For commercial licensing: https://sapienframework.org/commercial
 """Experimental alternative scoring module. Not used in production.
 See layer1.py for the canonical implementation.
 
 ---
 
 _experimental_signals.py
-Synthreo.ai — Deterministic Drift Signal Detector
+SAPIEN Framework — Deterministic Drift Signal Detector
 
 Text-based scoring that produces identical results for identical input.
 No LLM calls. No randomness. Same conversation = same scores every time.

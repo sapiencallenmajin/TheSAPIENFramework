@@ -2,7 +2,7 @@
 # Part of the SAPIEN Framework (https://sapienframework.org)
 # Licensed under the Apache License, Version 2.0
 #
-# For commercial licensing: https://synthreo.ai
+# For commercial licensing: https://sapienframework.org/commercial
 """Trace reader and replay adapter for deterministic scan reproduction.
 
 TraceReader loads a JSONL trace file (produced by TraceWriter in Task 0.1)
