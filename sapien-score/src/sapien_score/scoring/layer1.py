@@ -2,7 +2,7 @@
 # Part of the SAPIEN Framework (https://sapienframework.org)
 # Licensed under the Apache License, Version 2.0
 #
-# For commercial licensing: https://synthreo.ai
+# For commercial licensing: https://sapienframework.org/commercial
 #
 # Implements the 6 deterministic signals from SAPIEN Framework v1.1
 # Section 4.1. These produce identical scores for identical input

@@ -2,7 +2,7 @@
 # Part of the SAPIEN Framework (https://sapienframework.org)
 # Licensed under the Apache License, Version 2.0
 #
-# For commercial licensing: https://synthreo.ai
+# For commercial licensing: https://sapienframework.org/commercial
 """Click command implementations for the voigt-kampff CLI.
 
 Each submodule defines one Click command function. ``cli.py`` imports and

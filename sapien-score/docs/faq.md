@@ -117,4 +117,4 @@ The main scoring path uses `layer1.py`. The `_experimental_signals.py` module pr
 
 ## What is the Apache 2.0 license?
 
-SAPIEN Score is licensed under Apache 2.0. You can use, modify, and distribute it freely. Attribution is required, but there are no copyleft or network-use restrictions. The 'SAPIEN Certified' mark and associated certification program are trademarks of Synthreo, Inc.
+SAPIEN Score is licensed under Apache 2.0. You can use, modify, and distribute it freely. Attribution is required, but there are no copyleft or network-use restrictions. The 'SAPIEN Certified' mark is reserved for the future SAPIEN Framework certification program, administered by SAPIEN Labs LLC.
