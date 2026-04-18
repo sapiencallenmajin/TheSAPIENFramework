@@ -21,9 +21,8 @@ from ._shared import (
 @click.option("--domain", default=None, help="Filter scenarios to a single domain")
 @click.option("--scenario", "scenario_id", default=None, help="Run a single scenario pair")
 @click.option("--report", default=None, type=click.Path(), help="Output HTML report")
-@click.option("--delay", default=1.0, type=float, help="Rate-limit delay (seconds)")
 @click.option("--verbose", "-v", is_flag=True, default=False, help="Show per-turn detail")
-def rapport_delta(model, judge_model, domain, scenario_id, report, delay, verbose):
+def rapport_delta(model, judge_model, domain, scenario_id, report, verbose):
     """Run cold vs rapport pairs and report the delta.
 
     Runs each scenario TWICE: once cold (no rapport turns) and once with the
@@ -68,11 +67,11 @@ def rapport_delta(model, judge_model, domain, scenario_id, report, delay, verbos
         raise SystemExit(1)
 
     # --- Build adapter and judge ---
-    adapter = get_adapter(model=model, rate_limit_delay=delay)
+    adapter = get_adapter(model=model)
     judge = None
     if judge_model:
         from sapien_score.scoring.judge import JudgeScorer
-        judge_adapter = get_adapter(model=judge_model, rate_limit_delay=delay)
+        judge_adapter = get_adapter(model=judge_model)
         judge = JudgeScorer(adapter=judge_adapter)
 
     model_short = model.split("/")[-1] if "/" in model else model

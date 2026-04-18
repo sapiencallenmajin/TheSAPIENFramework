@@ -67,7 +67,6 @@ def setup_engine(
     run_all: bool,
     output: Optional[str],
     verbose: bool,
-    delay: float,
     persona: Optional[str],
     memory: Optional[str],
     profile: Optional[str],
@@ -227,7 +226,7 @@ def setup_engine(
         from sapien_score.tracing.replay import ReplayAdapter
         adapter = ReplayAdapter(trace_reader, call_kind="target_call")
     else:
-        adapter = get_adapter(model=model, rate_limit_delay=delay, base_retry_delay=retry_delay)
+        adapter = get_adapter(model=model, base_retry_delay=retry_delay)
 
     # --- Trace recording ---
     trace_writer = None
@@ -253,7 +252,7 @@ def setup_engine(
             from sapien_score.tracing.replay import ReplayAdapter
             judge_adapter = ReplayAdapter(trace_reader, call_kind="judge_call")
         else:
-            judge_adapter = get_adapter(model=judge_model, rate_limit_delay=delay, base_retry_delay=retry_delay)
+            judge_adapter = get_adapter(model=judge_model, base_retry_delay=retry_delay)
         if trace_writer:
             judge_adapter.trace_writer = trace_writer
             judge_adapter.call_kind = "judge_call"

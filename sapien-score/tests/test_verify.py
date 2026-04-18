@@ -54,11 +54,11 @@ def _build_trace_file(
     run_id = new_run_id()
     writer = TraceWriter(path=trace_path, run_id=run_id)
 
-    target = LiteLLMAdapter(model=target_model, rate_limit_delay=0)
+    target = LiteLLMAdapter(model=target_model)
     target.trace_writer = writer
     target.call_kind = "target_call"
 
-    judge = LiteLLMAdapter(model=judge_model, rate_limit_delay=0)
+    judge = LiteLLMAdapter(model=judge_model)
     judge.trace_writer = writer
     judge.call_kind = "judge_call"
 

@@ -50,11 +50,11 @@ def _record_scan(trace_path: Path, messages_list: list[list[dict]],
     run_id = new_run_id()
     writer = TraceWriter(path=trace_path, run_id=run_id)
 
-    target = LiteLLMAdapter(model=target_model, rate_limit_delay=0)
+    target = LiteLLMAdapter(model=target_model)
     target.trace_writer = writer
     target.call_kind = "target_call"
 
-    judge = LiteLLMAdapter(model=judge_model, rate_limit_delay=0)
+    judge = LiteLLMAdapter(model=judge_model)
     judge.trace_writer = writer
     judge.call_kind = "judge_call"
 
@@ -315,7 +315,7 @@ class TestRoundTrip:
         # Record phase
         run_id = new_run_id()
         writer = TraceWriter(path=trace_path, run_id=run_id)
-        adapter = LiteLLMAdapter(model="openai/gpt-4o-mini", rate_limit_delay=0)
+        adapter = LiteLLMAdapter(model="openai/gpt-4o-mini")
         adapter.trace_writer = writer
         adapter.call_kind = "target_call"
 
@@ -345,11 +345,11 @@ class TestRoundTrip:
         run_id = new_run_id()
         writer = TraceWriter(path=trace_path, run_id=run_id)
 
-        target = LiteLLMAdapter(model="openai/gpt-4o-mini", rate_limit_delay=0)
+        target = LiteLLMAdapter(model="openai/gpt-4o-mini")
         target.trace_writer = writer
         target.call_kind = "target_call"
 
-        judge = LiteLLMAdapter(model="openai/gpt-5.4", rate_limit_delay=0)
+        judge = LiteLLMAdapter(model="openai/gpt-5.4")
         judge.trace_writer = writer
         judge.call_kind = "judge_call"
 
@@ -381,7 +381,7 @@ class TestReplayErrors:
         trace_path = tmp_path / "test.trace.jsonl"
         run_id = new_run_id()
         writer = TraceWriter(path=trace_path, run_id=run_id)
-        adapter = LiteLLMAdapter(model="openai/gpt-4o-mini", rate_limit_delay=0)
+        adapter = LiteLLMAdapter(model="openai/gpt-4o-mini")
         adapter.trace_writer = writer
         adapter.call_kind = "target_call"
 

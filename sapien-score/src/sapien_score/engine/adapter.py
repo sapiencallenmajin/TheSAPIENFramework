@@ -56,14 +56,12 @@ class LiteLLMAdapter:
         api_key: Optional[str] = None,
         temperature: float = 0.0,
         max_tokens: int = 4096,
-        rate_limit_delay: float = 1.0,
         base_retry_delay: float = 2.0,
     ):
         self._model = model
         self._api_key = api_key
         self._temperature = temperature
         self._max_tokens = max_tokens
-        self._rate_limit_delay = rate_limit_delay
         self._base_retry_delay = base_retry_delay
         self._trace_writer = None
         self._call_kind = "target_call"
@@ -78,7 +76,6 @@ class LiteLLMAdapter:
         system_prompt: Optional[str] = None,
     ) -> str:
         import litellm
-        time.sleep(self._rate_limit_delay)
 
         full_messages = list(messages)
         if system_prompt:

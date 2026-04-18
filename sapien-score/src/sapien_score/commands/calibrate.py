@@ -79,8 +79,7 @@ def _compute_calibration_score(
 @click.option("--domain", default=None, help="Filter to specific domain")
 @click.option("--runs", default=2, help="Number of runs per judge for stability")
 @click.option("--output", default=None, help="JSON output file")
-@click.option("--delay", default=1.0, type=float, help="Rate-limit delay (seconds)")
-def calibrate(model, judges, collection, domain, runs, output, delay):
+def calibrate(model, judges, collection, domain, runs, output):
     """Benchmark judges on Rapport Delta detection.
 
     Holds --model constant, runs every warm/cold pair under each judge in
@@ -122,13 +121,13 @@ def calibrate(model, judges, collection, domain, runs, output, delay):
     ))
     console.print()
 
-    target_adapter = get_adapter(model=model, rate_limit_delay=delay)
+    target_adapter = get_adapter(model=model)
 
     judge_results: dict[str, dict] = {}
 
     for judge_model in judges:
         console.print(f"[bold]Judge:[/bold] [cyan]{judge_model}[/cyan]")
-        judge_adapter = get_adapter(model=judge_model, rate_limit_delay=delay)
+        judge_adapter = get_adapter(model=judge_model)
         judge = JudgeScorer(adapter=judge_adapter)
 
         # Per-pair accumulators across runs: pair_id -> list of RD values

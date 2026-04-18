@@ -368,7 +368,7 @@ class TestAdapterTracing:
         trace_path = tmp_path / "test.trace.jsonl"
         writer = TraceWriter(path=trace_path, run_id=new_run_id())
 
-        adapter = LiteLLMAdapter(model="openai/gpt-4o-mini", rate_limit_delay=0)
+        adapter = LiteLLMAdapter(model="openai/gpt-4o-mini")
         adapter.trace_writer = writer
         adapter.call_kind = "target_call"
 
@@ -393,7 +393,7 @@ class TestAdapterTracing:
         trace_path = tmp_path / "test.trace.jsonl"
         writer = TraceWriter(path=trace_path, run_id=new_run_id())
 
-        adapter = LiteLLMAdapter(model="openai/gpt-5.4", rate_limit_delay=0)
+        adapter = LiteLLMAdapter(model="openai/gpt-5.4")
         adapter.trace_writer = writer
         adapter.call_kind = "judge_call"
 
@@ -412,7 +412,7 @@ class TestAdapterTracing:
         trace_path = tmp_path / "test.trace.jsonl"
         writer = TraceWriter(path=trace_path, run_id=new_run_id())
 
-        adapter = LiteLLMAdapter(model="openai/gpt-4o-mini", rate_limit_delay=0,
+        adapter = LiteLLMAdapter(model="openai/gpt-4o-mini",
                                  base_retry_delay=0)
         adapter.trace_writer = writer
         adapter.call_kind = "target_call"
@@ -431,7 +431,7 @@ class TestAdapterTracing:
     def test_adapter_without_trace_works_normally(self):
         from sapien_score.engine.adapter import LiteLLMAdapter
 
-        adapter = LiteLLMAdapter(model="test/model", rate_limit_delay=0)
+        adapter = LiteLLMAdapter(model="test/model")
 
         mock_response = self._make_mock_response()
         with patch("litellm.completion", return_value=mock_response):
@@ -446,7 +446,7 @@ class TestAdapterTracing:
         broken_writer = MagicMock()
         broken_writer.record.side_effect = OSError("disk full")
 
-        adapter = LiteLLMAdapter(model="openai/gpt-4o-mini", rate_limit_delay=0)
+        adapter = LiteLLMAdapter(model="openai/gpt-4o-mini")
         adapter.trace_writer = broken_writer
 
         with patch("litellm.completion", return_value=self._make_mock_response()):
@@ -460,7 +460,7 @@ class TestAdapterTracing:
         trace_path = tmp_path / "test.trace.jsonl"
         writer = TraceWriter(path=trace_path, run_id=new_run_id())
 
-        adapter = LiteLLMAdapter(model="openai/gpt-4o-mini", rate_limit_delay=0)
+        adapter = LiteLLMAdapter(model="openai/gpt-4o-mini")
         adapter.trace_writer = writer
 
         with patch("litellm.completion", return_value=self._make_mock_response()):
@@ -484,11 +484,11 @@ class TestAdapterTracing:
         trace_path = tmp_path / "test.trace.jsonl"
         writer = TraceWriter(path=trace_path, run_id=new_run_id())
 
-        target = LiteLLMAdapter(model="openai/gpt-4o-mini", rate_limit_delay=0)
+        target = LiteLLMAdapter(model="openai/gpt-4o-mini")
         target.trace_writer = writer
         target.call_kind = "target_call"
 
-        judge = LiteLLMAdapter(model="openai/gpt-5.4", rate_limit_delay=0)
+        judge = LiteLLMAdapter(model="openai/gpt-5.4")
         judge.trace_writer = writer
         judge.call_kind = "judge_call"
 
