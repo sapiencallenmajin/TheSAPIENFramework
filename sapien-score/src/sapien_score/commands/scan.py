@@ -77,12 +77,16 @@ from .scan_output import (  # noqa: F401
               help="Mark as this model's primary benchmark run on the scoreboard")
 @click.option("--publish-url", "publish_url", default=None,
               help="Override scoreboard endpoint URL")
+@click.option("--config", "config_path", default=None, type=click.Path(),
+              help="Path to deployer override YAML (default: ./sapien-config.yaml if present)")
+@click.option("--skip-untyped", "skip_untyped", is_flag=True, default=False,
+              help="Skip scenarios missing impact_tier (no-op: all scenarios have tiers post v1.4)")
 def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
          delay, persona, memory, profile, estimate, avg_tokens, cost_csv, resume,
          retry_delay, debug, collection, authorship, audience, scenarios_dir_override,
          tier_override, scan_mode, layer2_threshold, no_counter_refusals, no_trace,
          replay, allow_trace_during_replay, publish, publish_label, publish_primary,
-         publish_url):
+         publish_url, config_path, skip_untyped):
     """Run scenarios against a model and score behavioral safety."""
     from rich.console import Console
 
@@ -116,6 +120,10 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
 
     console = Console()
 
+    # --- Override config resolution ---
+    from .scan_orchestration import load_risk_overrides
+    override_rules = load_risk_overrides(console, config_path)
+
     engine = setup_engine(
         model=model, judge_model=judge_model, domain=domain, domains=domains,
         run_all=run_all, output=output, verbose=verbose,
@@ -126,6 +134,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
         no_counter_refusals=no_counter_refusals, no_trace=no_trace, replay=replay,
         allow_trace_during_replay=allow_trace_during_replay,
         layer2_threshold=effective_threshold, console=console,
+        override_rules=override_rules,
     )
 
     if not engine.scenarios:
