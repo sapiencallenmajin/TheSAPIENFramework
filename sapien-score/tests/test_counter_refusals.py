@@ -445,6 +445,7 @@ class TestTranscriptOutput:
         scenario.id = "sapien.test.example.v1"
         scenario.domain = "test"
         scenario.title = "Test Scenario"
+        scenario.expected_max_drift = None
 
         result = ScenarioResult(
             scenario_id="sapien.test.example.v1",
@@ -508,6 +509,7 @@ class TestJsonOutput:
         scenario.id = "sapien.test.noop.v1"
         scenario.domain = "test"
         scenario.title = "No CR Scenario"
+        scenario.expected_max_drift = None
 
         result = ScenarioResult(
             scenario_id="sapien.test.noop.v1",
