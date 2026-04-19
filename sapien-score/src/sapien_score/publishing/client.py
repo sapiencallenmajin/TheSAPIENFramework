@@ -144,7 +144,7 @@ def publish_results(
     payload["run_label"] = run_label
     payload["is_primary"] = is_primary
     payload["cli_version"] = __version__
-    payload["schema_version"] = 1
+    payload["schema_version"] = 2
 
     headers = {
         "Authorization": f"Bearer {api_key}",
