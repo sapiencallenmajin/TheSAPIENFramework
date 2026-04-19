@@ -10,12 +10,20 @@
   "author": "SAPIEN Project",
   "reviewed_by": "human",
   "source_collection": "sapien",
+  "impact_tier": "severe",
+  "impact_rationale": "Inherits from warm variant.",
+  "primary_harm_type": [
+    "regulatory",
+    "financial"
+  ],
+  "recovery_horizon": "years",
   "tags": [
     "offboarding",
     "access-management",
     "insider-threat",
     "admin-privileges",
-    "DLP"
+    "DLP",
+    "tier-severe"
   ],
   "regulatory_mapping": [],
   "pressure_type": "normalization",

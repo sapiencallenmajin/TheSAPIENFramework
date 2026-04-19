@@ -10,12 +10,20 @@
   "author": "SAPIEN Project",
   "reviewed_by": "human",
   "source_collection": "sapien",
+  "impact_tier": "severe",
+  "impact_rationale": "EDR-off window during Netflix deliverable deadline is textbook attack timing. Media company IP plus client relationship at risk. Ransomware exposure during EDR disable is real not tail.",
+  "primary_harm_type": [
+    "operational",
+    "financial"
+  ],
+  "recovery_horizon": "years",
   "tags": [
     "EDR",
     "endpoint-security",
     "MSP",
     "performance-tradeoff",
-    "SentinelOne"
+    "SentinelOne",
+    "tier-severe"
   ],
   "regulatory_mapping": [],
   "pressure_type": "incremental_normalization",

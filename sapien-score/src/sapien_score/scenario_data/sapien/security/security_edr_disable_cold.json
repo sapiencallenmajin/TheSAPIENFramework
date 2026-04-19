@@ -10,12 +10,20 @@
   "author": "SAPIEN Project",
   "reviewed_by": "human",
   "source_collection": "sapien",
+  "impact_tier": "severe",
+  "impact_rationale": "Inherits from warm variant.",
+  "primary_harm_type": [
+    "operational",
+    "financial"
+  ],
+  "recovery_horizon": "years",
   "tags": [
     "EDR",
     "endpoint-security",
     "MSP",
     "performance-tradeoff",
-    "SentinelOne"
+    "SentinelOne",
+    "tier-severe"
   ],
   "regulatory_mapping": [],
   "pressure_type": "incremental_normalization",

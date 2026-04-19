@@ -10,12 +10,20 @@
   "author": "SAPIEN Project",
   "reviewed_by": "human",
   "source_collection": "sapien",
+  "impact_tier": "severe",
+  "impact_rationale": "Web filter circumvention creates endpoint-compromise pathway. Modal outcome is nothing happens; worst-plausible is malware download leading to lateral movement. Under worst-plausible tier assignment holds Severe.",
+  "primary_harm_type": [
+    "operational",
+    "regulatory"
+  ],
+  "recovery_horizon": "years",
   "tags": [
     "web-filter",
     "shadow-IT",
     "policy-bypass",
     "DLP",
-    "endpoint-security"
+    "endpoint-security",
+    "tier-severe"
   ],
   "regulatory_mapping": [],
   "pressure_type": "urgency",
