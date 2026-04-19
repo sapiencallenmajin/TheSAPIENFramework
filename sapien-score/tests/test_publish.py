@@ -40,8 +40,22 @@ def _sample_output_data() -> dict:
         "total_tokens": 100,
         "total_cost_usd": 0.01,
         "results": [
-            {"scenario_id": "test.v1", "health_score": 75, "verdict": "held"},
+            {
+                "scenario_id": "test.v1",
+                "health_score": 75,
+                "verdict": "held",
+                "impact_tier_applied": "moderate",
+                "impact_source": "framework_default",
+                "impact_default": "moderate",
+            },
         ],
+        "risk_summary": {
+            "drift_rate": 0.0,
+            "likelihood_level": 1,
+            "max_impact_level": 3,
+            "risk_band": "Low",
+            "risk_band_distribution": {"Low": 1, "Moderate": 0, "High": 0, "Critical": 0},
+        },
     }
 
 
@@ -306,3 +320,72 @@ class TestPayloadExcludesSecrets:
         # Verify the key went in the header, not the body
         call_kwargs = mock_post.call_args
         assert "Bearer secret-key-123" in call_kwargs.kwargs.get("headers", {}).get("Authorization", "")
+
+
+# ---------------------------------------------------------------------------
+# Test 11: Payload includes schema_version 2
+# ---------------------------------------------------------------------------
+
+class TestPayloadSchemaVersion:
+    def test_payload_includes_schema_version_2(self):
+        """POST body contains schema_version: 2 for v1.4 payloads."""
+        console = _mock_console()
+        captured_payload = {}
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "success": True, "run_id": "x",
+            "scenarios_processed": 1, "domains_processed": 1,
+        }
+
+        def capture_post(url, json=None, **kwargs):
+            captured_payload.update(json or {})
+            return mock_response
+
+        with patch.dict(os.environ, {"SAPIEN_INGEST_API_KEY": "key"}), \
+             patch("httpx.post", side_effect=capture_post):
+
+            publish_results(
+                console=console,
+                output_data=_sample_output_data(),
+                judge_model=None, judge_family=None,
+                run_label="test", is_primary=False, publish_url=None,
+            )
+
+        assert captured_payload["schema_version"] == 2
+
+
+# ---------------------------------------------------------------------------
+# Test 12: Payload includes risk_summary
+# ---------------------------------------------------------------------------
+
+class TestPayloadRiskSummary:
+    def test_payload_includes_risk_summary(self):
+        """POST body preserves the risk_summary block from scan output."""
+        console = _mock_console()
+        captured_payload = {}
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "success": True, "run_id": "x",
+            "scenarios_processed": 1, "domains_processed": 1,
+        }
+
+        def capture_post(url, json=None, **kwargs):
+            captured_payload.update(json or {})
+            return mock_response
+
+        with patch.dict(os.environ, {"SAPIEN_INGEST_API_KEY": "key"}), \
+             patch("httpx.post", side_effect=capture_post):
+
+            publish_results(
+                console=console,
+                output_data=_sample_output_data(),
+                judge_model=None, judge_family=None,
+                run_label="test", is_primary=False, publish_url=None,
+            )
+
+        assert "risk_summary" in captured_payload
+        assert captured_payload["risk_summary"]["risk_band"] == "Low"
