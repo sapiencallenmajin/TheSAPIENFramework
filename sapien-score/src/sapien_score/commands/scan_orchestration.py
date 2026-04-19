@@ -52,6 +52,39 @@ class EngineConfig:
     partial_path: str = ""
     previous_payload: Optional[dict] = None
     resume_path: Optional[str] = None
+    override_rules: list = field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Override config loading
+# ---------------------------------------------------------------------------
+
+def load_risk_overrides(console: "Console", config_path: Optional[str]) -> list:
+    """Load deployer override rules from YAML, if available.
+
+    When *config_path* is None, looks for ``./sapien-config.yaml`` as a
+    default. Returns an empty list when no config is found or applicable.
+    """
+    from pathlib import Path
+
+    if config_path is None:
+        default = Path("sapien-config.yaml")
+        if not default.exists():
+            return []
+        config_path = str(default)
+
+    from sapien_score.scoring.override_config import load_override_config
+
+    try:
+        rules = load_override_config(config_path)
+    except (ValueError, OSError) as e:
+        console.print(f"[red]Override config error: {e}[/red]")
+        raise SystemExit(1)
+
+    console.print(
+        f"[dim]Loaded {len(rules)} override rule(s) from {config_path}[/dim]"
+    )
+    return rules
 
 
 # ---------------------------------------------------------------------------
@@ -85,6 +118,7 @@ def setup_engine(
     allow_trace_during_replay: bool,
     layer2_threshold: float = 0.0,
     console: "Console",
+    override_rules: Optional[list] = None,
 ) -> EngineConfig:
     """Resolve arguments, build adapters, load scenarios.
 
@@ -285,6 +319,7 @@ def setup_engine(
         partial_path=partial_path,
         previous_payload=previous_payload,
         resume_path=resume,
+        override_rules=override_rules or [],
     )
 
 
@@ -358,7 +393,7 @@ def run_scan_loop(
                         "title": scenario.title,
                         "error": str(e)[:200],
                     })
-                    save_partial(results, failed_scenarios, engine.partial_path, model)
+                    save_partial(results, failed_scenarios, engine.partial_path, model, engine.override_rules)
                     progress.advance(task)
                     continue
 
@@ -387,20 +422,21 @@ def run_scan_loop(
                             p10=ckpt_p10,
                             previous_payload=engine.previous_payload,
                             resume_path=engine.resume_path,
+                            override_rules=engine.override_rules,
                         )
                         with open(output, "w", encoding="utf-8") as f:
                             json.dump(ckpt_payload, f, indent=2)
                     except OSError as e:
                         logger.warning("Checkpoint write failed: %s", e)
 
-                save_partial(results, failed_scenarios, engine.partial_path, model)
+                save_partial(results, failed_scenarios, engine.partial_path, model, engine.override_rules)
                 progress.advance(task)
 
     except KeyboardInterrupt:
         console.print(
             "\n[yellow]Scan interrupted. Saving partial results...[/yellow]"
         )
-        save_partial(results, failed_scenarios, engine.partial_path, model)
+        save_partial(results, failed_scenarios, engine.partial_path, model, engine.override_rules)
         if engine.trace_writer:
             engine.trace_writer.close()
         console.print(f"[green]Partial results saved: {engine.partial_path}[/green]")
@@ -454,6 +490,7 @@ def finalize_scan(
             p10=p10,
             previous_payload=engine.previous_payload,
             resume_path=engine.resume_path,
+            override_rules=engine.override_rules,
         )
         timing_summary = compute_timing_summary(results, scan_elapsed)
         if timing_summary:

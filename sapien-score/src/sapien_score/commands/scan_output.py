@@ -70,8 +70,14 @@ def compute_aggregates(results: list) -> tuple:
 # Per-scenario serialization
 # ---------------------------------------------------------------------------
 
-def serialize_result_entry(scenario, result) -> dict:
-    """Flatten a (scenario, result) pair into the dict shape stored in JSON."""
+def serialize_result_entry(scenario, result, override_result=None) -> dict:
+    """Flatten a (scenario, result) pair into the dict shape stored in JSON.
+
+    When *override_result* is provided (an ``OverrideResult`` from
+    ``scoring.override_config``), the per-scenario risk fields are populated.
+    When absent, framework defaults are used with the scenario's own
+    impact_tier.
+    """
     entry = {
         "scenario_id": scenario.id,
         "domain": scenario.domain,
@@ -91,6 +97,20 @@ def serialize_result_entry(scenario, result) -> dict:
         "counter_refusals_injected": result.counter_refusals_injected,
         "counter_refusal_categories": result.counter_refusal_categories,
     }
+
+    # --- v1.4 risk fields (always present) ---
+    if override_result is not None:
+        entry["impact_tier_applied"] = override_result.impact_tier_applied
+        entry["impact_source"] = override_result.impact_source
+        entry["impact_default"] = override_result.impact_default
+        if override_result.impact_source == "user_override":
+            entry["override_assigned_by"] = override_result.override_assigned_by
+            entry["override_rationale"] = override_result.override_rationale
+    else:
+        entry["impact_tier_applied"] = scenario.impact_tier
+        entry["impact_source"] = "framework_default"
+        entry["impact_default"] = scenario.impact_tier
+
     turn_list = []
     for t in result.turns:
         turn_entry = {
@@ -129,6 +149,76 @@ _serialize_result_entry = serialize_result_entry
 # Output payload
 # ---------------------------------------------------------------------------
 
+def _resolve_overrides(results: list, override_rules: list) -> list:
+    """Resolve override results for each (scenario, result) pair."""
+    if override_rules:
+        from sapien_score.scoring.override_config import resolve_override
+        return [resolve_override(s, override_rules) for s, _ in results]
+    return [None] * len(results)
+
+
+def _build_risk_summary(entries: list) -> dict:
+    """Compute aggregate risk summary from serialized result entries.
+
+    Uses the per-scenario impact_tier_applied and verdict fields to compute
+    likelihood from drift rate and look up the domain-level risk band.
+    """
+    from sapien_score.scoring.risk import (
+        compute_risk_band,
+        drift_rate_to_likelihood,
+        impact_tier_to_level,
+    )
+
+    if not entries:
+        return {}
+
+    # Drift rate = fraction of scenarios with DRIFTED or CAPITULATED verdict
+    n_total = len(entries)
+    n_drift = sum(
+        1 for e in entries
+        if e.get("verdict") in ("DRIFTED", "CAPITULATED")
+    )
+    drift_rate = n_drift / n_total if n_total > 0 else 0.0
+    likelihood_level = drift_rate_to_likelihood(drift_rate)
+
+    # Domain impact = max of all scenario tiers (conservative, per spec 7A.3)
+    max_impact_level = 1
+    for e in entries:
+        tier = e.get("impact_tier_applied", "")
+        if tier:
+            try:
+                level = impact_tier_to_level(tier)
+                max_impact_level = max(max_impact_level, level)
+            except ValueError:
+                pass
+
+    risk_band = compute_risk_band(likelihood_level, max_impact_level)
+
+    # Risk band distribution per scenario — use each scenario's peak_drift
+    # as its individual drift rate for likelihood computation
+    band_dist: dict[str, int] = {"Low": 0, "Moderate": 0, "High": 0, "Critical": 0}
+    for e in entries:
+        tier = e.get("impact_tier_applied", "")
+        if not tier:
+            continue
+        try:
+            impact_level = impact_tier_to_level(tier)
+            peak_drift = float(e.get("peak_drift", 0.0))
+            scenario_likelihood = drift_rate_to_likelihood(peak_drift)
+            scenario_band = compute_risk_band(scenario_likelihood, impact_level)
+            band_dist[scenario_band] = band_dist.get(scenario_band, 0) + 1
+        except (ValueError, KeyError):
+            pass
+
+    return {
+        "drift_rate": round(drift_rate, 4),
+        "likelihood_level": likelihood_level,
+        "max_impact_level": max_impact_level,
+        "risk_band": risk_band,
+        "risk_band_distribution": band_dist,
+    }
+
+
 def build_output_payload(
     model: str,
     results: list,
@@ -138,6 +228,7 @@ def build_output_payload(
     p10: float,
     previous_payload: Optional[dict] = None,
     resume_path: Optional[str] = None,
+    override_rules: Optional[list] = None,
 ) -> dict:
     """Build the JSON payload written to ``--output``.
 
@@ -155,10 +246,15 @@ def build_output_payload(
 
     total_tokens_new = sum(r.total_tokens for _, r in results)
     total_cost_new = sum(r.total_cost_usd for _, r in results)
-    new_entries = [serialize_result_entry(s, r) for s, r in results]
+
+    overrides = _resolve_overrides(results, override_rules or [])
+    new_entries = [
+        serialize_result_entry(s, r, ovr)
+        for (s, r), ovr in zip(results, overrides)
+    ]
 
     if previous_payload is None:
-        return {
+        payload = {
             "model": model,
             "framework_version": "1.1",
             "overall_health": overall_health,
@@ -169,6 +265,8 @@ def build_output_payload(
             "total_cost_usd": round(total_cost_new, 6),
             "results": new_entries,
         }
+        payload["risk_summary"] = _build_risk_summary(new_entries)
+        return payload
 
     # --- Resume merge path ---
     old_entries = previous_payload.get("results", []) or []
@@ -214,6 +312,7 @@ def build_output_payload(
         "total_cost_usd": round(combined_cost, 6),
         "results": combined_entries,
     }
+    payload["risk_summary"] = _build_risk_summary(combined_entries)
     if resume_path:
         payload["resumed_from"] = str(resume_path)
     return payload
@@ -305,7 +404,13 @@ def write_cost_csv(path: str, model: str, results: list) -> None:
 # Partial-save checkpoint
 # ---------------------------------------------------------------------------
 
-def save_partial(results: list, failed_scenarios: list, path: str, model: str) -> None:
+def save_partial(
+    results: list,
+    failed_scenarios: list,
+    path: str,
+    model: str,
+    override_rules: Optional[list] = None,
+) -> None:
     """Save current progress so ``--resume`` can recover after a crash.
 
     Called after every scenario (success or failure) and on KeyboardInterrupt.
@@ -313,6 +418,7 @@ def save_partial(results: list, failed_scenarios: list, path: str, model: str) -
     loader doesn't need special-casing.
     """
     try:
+        overrides = _resolve_overrides(results, override_rules or [])
         data = {
             "partial": True,
             "model": model,
@@ -320,7 +426,8 @@ def save_partial(results: list, failed_scenarios: list, path: str, model: str) -
             "failed": len(failed_scenarios),
             "timestamp": datetime.now().isoformat(),
             "results": [
-                serialize_result_entry(s, r) for s, r in results
+                serialize_result_entry(s, r, ovr)
+                for (s, r), ovr in zip(results, overrides)
             ],
             "failed_scenarios": failed_scenarios,
         }
