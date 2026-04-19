@@ -19,7 +19,9 @@ from sapien_score.scenarios.loader import (
     _scenario_cache,
     VALID_COLLECTIONS,
     VALID_DOMAINS,
+    VALID_IMPACT_TIERS,
     VALID_PRESSURE_TYPES,
+    VALID_RECOVERY_HORIZONS,
 )
 from sapien_score.commands._shared import check_cross_family_judge
 
@@ -34,6 +36,8 @@ _VALID_SCENARIO = {
     "description": "ok",
     "opening_prompt": "hi",
     "escalations": [{"turn": 1, "prompt": "tell me more"}],
+    "impact_tier": "moderate",
+    "impact_rationale": "Test scenario with localized harm.",
 }
 
 _VALID_JSON = json.dumps(_VALID_SCENARIO)
@@ -98,9 +102,7 @@ class TestLoadAllScenarios:
 
 class TestLoadFromDictGuards:
     """Malformed-but-parseable input should raise ScenarioValidationError,
-    not bypass validation and crash with TypeError/AttributeError. These
-    guards let load_scenario_directory warn-and-continue instead of dying
-    on the first bad file in a user's scenarios directory."""
+    not bypass validation and crash with TypeError/AttributeError."""
 
     def test_none_raises_validation_error(self):
         with pytest.raises(ScenarioValidationError, match="empty"):
@@ -172,10 +174,111 @@ class TestLoadFromDictGuards:
         assert scenario.hold_variants == {3: ["variant"]}
 
 
+class TestImpactTierValidation:
+    """v1.4 impact classification fields: impact_tier and impact_rationale
+    are required; primary_harm_type, recovery_horizon, impact_tags, and
+    expected_max_drift are optional with type validation."""
+
+    def test_valid_scenario_loads_with_impact_fields(self):
+        """A scenario with all required fields (including v1.4 impact
+        fields) loads cleanly and populates the dataclass."""
+        scenario = load_scenario_from_dict(dict(_VALID_SCENARIO))
+        assert scenario.impact_tier == "moderate"
+        assert scenario.impact_rationale == "Test scenario with localized harm."
+
+    def test_missing_impact_tier_raises_validation_error(self):
+        data = dict(_VALID_SCENARIO)
+        del data["impact_tier"]
+        with pytest.raises(ScenarioValidationError, match="missing required impact_tier"):
+            load_scenario_from_dict(data)
+
+    def test_invalid_impact_tier_raises_validation_error(self):
+        data = dict(_VALID_SCENARIO)
+        data["impact_tier"] = "high"
+        with pytest.raises(ScenarioValidationError, match="Invalid impact_tier"):
+            load_scenario_from_dict(data)
+
+    def test_missing_impact_rationale_raises_validation_error(self):
+        data = dict(_VALID_SCENARIO)
+        del data["impact_rationale"]
+        with pytest.raises(ScenarioValidationError, match="missing required impact_rationale"):
+            load_scenario_from_dict(data)
+
+    def test_empty_impact_rationale_raises_validation_error(self):
+        data = dict(_VALID_SCENARIO)
+        data["impact_rationale"] = ""
+        with pytest.raises(ScenarioValidationError, match="non-empty string"):
+            load_scenario_from_dict(data)
+
+    def test_invalid_primary_harm_type_raises_validation_error(self):
+        """primary_harm_type must be an array of strings, not a bare string."""
+        data = dict(_VALID_SCENARIO)
+        data["primary_harm_type"] = "physical_safety"
+        with pytest.raises(ScenarioValidationError, match="primary_harm_type must be an array"):
+            load_scenario_from_dict(data)
+
+    def test_invalid_recovery_horizon_raises_validation_error(self):
+        data = dict(_VALID_SCENARIO)
+        data["recovery_horizon"] = "forever"
+        with pytest.raises(ScenarioValidationError, match="Invalid recovery_horizon"):
+            load_scenario_from_dict(data)
+
+    def test_impact_tags_roundtrip_empty(self):
+        """Empty impact_tags dict is accepted."""
+        data = dict(_VALID_SCENARIO)
+        data["impact_tags"] = {}
+        scenario = load_scenario_from_dict(data)
+        assert scenario.impact_tags == {}
+
+    def test_impact_tags_roundtrip_populated(self):
+        """Populated impact_tags with valid structure loads and roundtrips."""
+        data = dict(_VALID_SCENARIO)
+        data["impact_tags"] = {
+            "user_archetype": ["patient", "caregiver"],
+            "regulatory_exposure": ["HIPAA"],
+        }
+        scenario = load_scenario_from_dict(data)
+        assert scenario.impact_tags["user_archetype"] == ["patient", "caregiver"]
+        assert scenario.impact_tags["regulatory_exposure"] == ["HIPAA"]
+
+    def test_invalid_impact_tags_raises_validation_error(self):
+        data = dict(_VALID_SCENARIO)
+        data["impact_tags"] = "not a dict"
+        with pytest.raises(ScenarioValidationError, match="impact_tags must be an object"):
+            load_scenario_from_dict(data)
+
+    def test_expected_max_drift_accepted_as_optional_integer(self):
+        """expected_max_drift is optional; when present as int, it loads."""
+        data = dict(_VALID_SCENARIO)
+        data["expected_max_drift"] = 10
+        scenario = load_scenario_from_dict(data)
+        assert scenario.expected_max_drift == 10
+
+    def test_expected_max_drift_absent_defaults_to_none(self):
+        scenario = load_scenario_from_dict(dict(_VALID_SCENARIO))
+        assert scenario.expected_max_drift is None
+
+    def test_expected_max_drift_string_raises_validation_error(self):
+        data = dict(_VALID_SCENARIO)
+        data["expected_max_drift"] = "ten"
+        with pytest.raises(ScenarioValidationError, match="expected_max_drift must be an integer"):
+            load_scenario_from_dict(data)
+
+    def test_production_scenario_loads_with_all_impact_fields(self):
+        """Smoke test: load a real production scenario and verify impact
+        fields are populated."""
+        scenario_files = list(SAPIEN_DIR.rglob("*.json"))
+        assert len(scenario_files) > 0
+        scenario = load_scenario_file(str(scenario_files[0]))
+        assert scenario.impact_tier in VALID_IMPACT_TIERS
+        assert len(scenario.impact_rationale) > 0
+
+
 class TestLoadDirectoryResilience:
-    """load_scenario_directory must warn-and-skip on malformed files rather
-    than crash the whole scan. These are exactly the kinds of bugs the
-    public tool must not generate user-facing tracebacks for."""
+    """File-level I/O failures (malformed JSON, bad encoding) are skipped
+    with a warning. Schema validation failures (ScenarioValidationError)
+    abort the load — silent skipping would hide scenarios from measurement,
+    which is the exact failure mode SAPIEN exists to prevent."""
 
     def test_empty_json_file_is_skipped(self, tmp_path, caplog):
         (tmp_path / "good.json").write_text(_VALID_JSON, encoding="utf-8")
@@ -188,20 +291,20 @@ class TestLoadDirectoryResilience:
         assert scenarios[0].id == "test_good"
         assert any("empty" in rec.message for rec in caplog.records)
 
-    def test_list_root_json_is_skipped(self, tmp_path, caplog):
+    def test_list_root_json_raises_validation_error(self, tmp_path):
+        """A JSON file whose root is a list (not a dict) fails schema
+        validation and aborts the directory load."""
         (tmp_path / "good.json").write_text(_VALID_JSON, encoding="utf-8")
         (tmp_path / "list_root.json").write_text(
             '[{"id": "foo"}, {"id": "bar"}]', encoding="utf-8"
         )
 
-        with caplog.at_level(logging.WARNING, logger="sapien_score.scenarios.loader"):
-            scenarios = load_scenario_directory(str(tmp_path))
+        with pytest.raises(ScenarioValidationError, match="mapping"):
+            load_scenario_directory(str(tmp_path))
 
-        assert len(scenarios) == 1
-        assert scenarios[0].id == "test_good"
-        assert any("mapping" in rec.message for rec in caplog.records)
-
-    def test_malformed_hold_variants_is_skipped(self, tmp_path, caplog):
+    def test_malformed_hold_variants_raises_validation_error(self, tmp_path):
+        """A scenario with non-numeric hold_variants keys fails schema
+        validation and aborts the directory load."""
         (tmp_path / "good.json").write_text(_VALID_JSON, encoding="utf-8")
         bad = dict(_VALID_SCENARIO)
         bad["hold_variants"] = {"abc": ["variant one"]}
@@ -209,12 +312,8 @@ class TestLoadDirectoryResilience:
             json.dumps(bad), encoding="utf-8"
         )
 
-        with caplog.at_level(logging.WARNING, logger="sapien_score.scenarios.loader"):
-            scenarios = load_scenario_directory(str(tmp_path))
-
-        assert len(scenarios) == 1
-        assert scenarios[0].id == "test_good"
-        assert any("hold_variants" in rec.message for rec in caplog.records)
+        with pytest.raises(ScenarioValidationError, match="hold_variants"):
+            load_scenario_directory(str(tmp_path))
 
     def test_malformed_json_file_is_skipped(self, tmp_path, caplog):
         (tmp_path / "good.json").write_text(_VALID_JSON, encoding="utf-8")
