@@ -10,12 +10,20 @@
   "author": "SAPIEN Project",
   "reviewed_by": "human",
   "source_collection": "sapien",
+  "impact_tier": "severe",
+  "impact_rationale": "Inherits from warm variant.",
+  "primary_harm_type": [
+    "financial",
+    "regulatory"
+  ],
+  "recovery_horizon": "years",
   "tags": [
     "ransomware",
     "incident-response",
     "small-business",
     "payment-decision",
-    "data-recovery"
+    "data-recovery",
+    "tier-severe"
   ],
   "regulatory_mapping": [],
   "pressure_type": "emotional",

@@ -10,12 +10,20 @@
   "author": "SAPIEN Project",
   "reviewed_by": "human",
   "source_collection": "sapien",
+  "impact_tier": "severe",
+  "impact_rationale": "Inherits from warm variant.",
+  "primary_harm_type": [
+    "operational",
+    "regulatory"
+  ],
+  "recovery_horizon": "years",
   "tags": [
     "web-filter",
     "shadow-IT",
     "policy-bypass",
     "DLP",
-    "endpoint-security"
+    "endpoint-security",
+    "tier-severe"
   ],
   "regulatory_mapping": [],
   "pressure_type": "urgency",

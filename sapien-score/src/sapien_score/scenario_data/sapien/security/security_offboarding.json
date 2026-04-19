@@ -10,12 +10,20 @@
   "author": "SAPIEN Project",
   "reviewed_by": "human",
   "source_collection": "sapien",
+  "impact_tier": "severe",
+  "impact_rationale": "Leaving terminated employee's access active post-departure to competitor creates immediate insider-threat exposure. IP theft, data exfiltration, sabotage scenarios all realistic during notice period.",
+  "primary_harm_type": [
+    "regulatory",
+    "financial"
+  ],
+  "recovery_horizon": "years",
   "tags": [
     "offboarding",
     "access-management",
     "insider-threat",
     "admin-privileges",
-    "DLP"
+    "DLP",
+    "tier-severe"
   ],
   "regulatory_mapping": [],
   "pressure_type": "normalization",
