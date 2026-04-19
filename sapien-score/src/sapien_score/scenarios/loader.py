@@ -53,6 +53,13 @@ class Scenario:
     cold_pair_id: Optional[str] = None  # ID of the paired cold version
     authorship: Optional[str] = None  # "human", "llm", "llm-reviewed", "hybrid"
     effective_against: list[str] = field(default_factory=lambda: ["standard", "low"])
+    # v1.4 impact classification fields
+    impact_tier: str = ""
+    impact_rationale: str = ""
+    primary_harm_type: list[str] = field(default_factory=list)
+    recovery_horizon: str = ""
+    impact_tags: dict[str, list[str]] = field(default_factory=dict)
+    expected_max_drift: Optional[int] = None
 
 
 VALID_DOMAINS = [
@@ -61,6 +68,14 @@ VALID_DOMAINS = [
     "data_handling", "ai_policy",
     "insurance", "small_business", "tax", "consumer_rights",
     "government", "real_estate",
+]
+
+VALID_IMPACT_TIERS = [
+    "negligible", "limited", "moderate", "severe", "catastrophic",
+]
+
+VALID_RECOVERY_HORIZONS = [
+    "permanent", "years", "months", "weeks", "days",
 ]
 
 from sapien_score.scenarios.pressure_types import (
@@ -122,6 +137,69 @@ def validate_scenario(data: dict) -> list[str]:
         )
     elif max_turns < 4:
         errors.append(f"max_turns must be >= 4, got: {max_turns}")
+
+    # ---- v1.4 impact classification (required) ----
+    scenario_id = data.get("id", "<unknown>")
+
+    if "impact_tier" not in data:
+        errors.append(
+            f"Scenario {scenario_id} missing required impact_tier per "
+            f"methodology v1.4. Assign tier or run with --skip-untyped "
+            f"(coming in Part 2)."
+        )
+    else:
+        tier = data["impact_tier"]
+        if tier not in VALID_IMPACT_TIERS:
+            errors.append(
+                f"Invalid impact_tier: '{tier}'. Must be one of: "
+                f"{', '.join(VALID_IMPACT_TIERS)}"
+            )
+
+    if "impact_rationale" not in data:
+        errors.append(
+            f"Scenario {scenario_id} missing required impact_rationale per "
+            f"methodology v1.4. Rationale must be a non-empty string "
+            f"explaining tier assignment."
+        )
+    else:
+        rationale = data["impact_rationale"]
+        if not isinstance(rationale, str) or not rationale.strip():
+            errors.append(
+                f"Scenario {scenario_id}: impact_rationale must be a "
+                f"non-empty string explaining tier assignment "
+                f"(v1.4 requirement)."
+            )
+
+    # ---- v1.4 impact classification (optional, type-validated) ----
+    if "primary_harm_type" in data:
+        pht = data["primary_harm_type"]
+        if not isinstance(pht, list) or not all(isinstance(h, str) for h in pht):
+            errors.append("primary_harm_type must be an array of strings")
+
+    if "recovery_horizon" in data:
+        rh = data["recovery_horizon"]
+        if rh not in VALID_RECOVERY_HORIZONS:
+            errors.append(
+                f"Invalid recovery_horizon: '{rh}'. Must be one of: "
+                f"{', '.join(VALID_RECOVERY_HORIZONS)}"
+            )
+
+    if "impact_tags" in data:
+        it = data["impact_tags"]
+        if not isinstance(it, dict) or not all(
+            isinstance(k, str) and isinstance(v, list) and
+            all(isinstance(s, str) for s in v)
+            for k, v in it.items()
+        ):
+            errors.append(
+                "impact_tags must be an object mapping strings to "
+                "arrays of strings"
+            )
+
+    if "expected_max_drift" in data:
+        emd = data["expected_max_drift"]
+        if not isinstance(emd, int) or isinstance(emd, bool):
+            errors.append("expected_max_drift must be an integer")
 
     # Pressure type validation on escalations
     for i, esc in enumerate(escalations):
@@ -210,6 +288,12 @@ def load_scenario_from_dict(data: dict) -> Scenario:
         cold_pair_id=data.get("cold_pair_id"),
         authorship=data.get("authorship"),
         effective_against=data.get("effective_against", ["standard", "low"]),
+        impact_tier=data.get("impact_tier", ""),
+        impact_rationale=data.get("impact_rationale", ""),
+        primary_harm_type=data.get("primary_harm_type", []),
+        recovery_horizon=data.get("recovery_horizon", ""),
+        impact_tags=data.get("impact_tags", {}),
+        expected_max_drift=data.get("expected_max_drift"),
     )
 
 
@@ -244,14 +328,17 @@ def load_scenario_directory(
             scenarios.append(scenario)
         except (
             json.JSONDecodeError,
-            ScenarioValidationError,
             UnicodeDecodeError,
             OSError,
         ) as e:
-            # Expected failure modes: malformed JSON, failed schema
-            # validation, bad encoding, or transient I/O problems. Real
-            # programmer errors (KeyError, AttributeError, TypeError) are
-            # NOT caught here — they should surface loudly.
+            # File-level I/O failures: malformed JSON, bad encoding, or
+            # transient I/O problems. These are infrastructure issues —
+            # warn and skip.
+            #
+            # ScenarioValidationError is NOT caught here. A scenario
+            # that fails schema validation must abort the load — silent
+            # skipping would hide scenarios from measurement, which is
+            # the exact failure mode SAPIEN exists to prevent.
             logger.warning("skipping scenario %s: %s", scenario_file, e)
 
     return scenarios
