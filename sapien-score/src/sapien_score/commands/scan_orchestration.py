@@ -119,6 +119,7 @@ def setup_engine(
     layer2_threshold: float = 0.0,
     console: "Console",
     override_rules: Optional[list] = None,
+    scenario_ids: Optional[str] = None,
 ) -> EngineConfig:
     """Resolve arguments, build adapters, load scenarios.
 
@@ -178,7 +179,23 @@ def setup_engine(
     if domain_set:
         all_scenarios = [s for s in all_scenarios if s.domain in domain_set]
 
-    if not run_all and not domain and not domains:
+    # --- Scenario-ID filter (overrides domain/tier/tag filters) ---
+    if scenario_ids:
+        requested_ids = {sid.strip() for sid in scenario_ids.split(",")}
+        if domain or domains or authorship or audience:
+            console.print(
+                "[yellow]--scenario-ids is set; ignoring --domain/--domains/--authorship/--audience filters.[/yellow]"
+            )
+        corpus_ids = {s.id for s in all_scenarios}
+        missing = requested_ids - corpus_ids
+        if missing:
+            console.print(
+                f"[red]Unknown scenario IDs: {', '.join(sorted(missing))}[/red]"
+            )
+            raise SystemExit(1)
+        all_scenarios = [s for s in all_scenarios if s.id in requested_ids]
+
+    if not run_all and not domain and not domains and not scenario_ids:
         console.print(
             "[yellow]No filter specified. Use --all to run every built-in scenario, "
             "or --domain / --domains to narrow the set.[/yellow]"
