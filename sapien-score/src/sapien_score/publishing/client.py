@@ -118,6 +118,7 @@ def publish_results(
     run_label: str,
     is_primary: bool,
     publish_url: Optional[str],
+    publisher: Optional[str] = None,
 ) -> None:
     """POST scan results to the SAPIEN scoreboard.
 
@@ -145,6 +146,8 @@ def publish_results(
     payload["is_primary"] = is_primary
     payload["cli_version"] = __version__
     payload["schema_version"] = 2
+    if publisher is not None:
+        payload["publisher"] = publisher
 
     headers = {
         "Authorization": f"Bearer {api_key}",

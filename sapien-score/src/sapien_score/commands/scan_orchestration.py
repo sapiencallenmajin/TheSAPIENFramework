@@ -491,6 +491,7 @@ def finalize_scan(
     publish_label: Optional[str] = None,
     publish_primary: bool = False,
     publish_url: Optional[str] = None,
+    publisher: Optional[str] = None,
 ) -> None:
     """Write JSON/CSV/HTML outputs, optionally publish, and clean up."""
     from .scan_output import build_output_payload, compute_timing_summary, write_cost_csv
@@ -577,6 +578,7 @@ def finalize_scan(
             run_label=publish_label,
             is_primary=publish_primary,
             publish_url=publish_url,
+            publisher=publisher,
         )
 
     console.print()
