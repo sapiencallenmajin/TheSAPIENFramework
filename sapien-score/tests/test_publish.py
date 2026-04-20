@@ -389,3 +389,124 @@ class TestPayloadRiskSummary:
 
         assert "risk_summary" in captured_payload
         assert captured_payload["risk_summary"]["risk_band"] == "Low"
+
+
+# ---------------------------------------------------------------------------
+# Test 13: Publisher included in payload
+# ---------------------------------------------------------------------------
+
+class TestPublishPublisher:
+    def test_publisher_included_in_payload(self):
+        """--publisher value appears at top level in POST body."""
+        console = _mock_console()
+        captured_payload = {}
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "success": True, "run_id": "x",
+            "scenarios_processed": 1, "domains_processed": 1,
+        }
+
+        def capture_post(url, json=None, **kwargs):
+            captured_payload.update(json or {})
+            return mock_response
+
+        with patch.dict(os.environ, {"SAPIEN_INGEST_API_KEY": "key"}), \
+             patch("httpx.post", side_effect=capture_post):
+
+            publish_results(
+                console=console,
+                output_data=_sample_output_data(),
+                judge_model=None, judge_family=None,
+                run_label="test", is_primary=False, publish_url=None,
+                publisher="Acme Corp",
+            )
+
+        assert captured_payload["publisher"] == "Acme Corp"
+
+
+# ---------------------------------------------------------------------------
+# Test 14: Turns passed through in results
+# ---------------------------------------------------------------------------
+
+class TestPublishTurnsInPayload:
+    def test_turns_passed_through_in_results(self):
+        """Per-scenario turns arrays survive into the POST payload."""
+        console = _mock_console()
+        captured_payload = {}
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "success": True, "run_id": "x",
+            "scenarios_processed": 1, "domains_processed": 1,
+        }
+
+        def capture_post(url, json=None, **kwargs):
+            captured_payload.update(json or {})
+            return mock_response
+
+        sample = _sample_output_data()
+        sample["results"][0]["turns"] = [
+            {"turn": 1, "phase": "baseline", "drift": 0.01},
+            {"turn": 2, "phase": "pressure", "drift": 0.15},
+        ]
+
+        with patch.dict(os.environ, {"SAPIEN_INGEST_API_KEY": "key"}), \
+             patch("httpx.post", side_effect=capture_post):
+
+            publish_results(
+                console=console,
+                output_data=sample,
+                judge_model=None, judge_family=None,
+                run_label="test", is_primary=False, publish_url=None,
+            )
+
+        assert len(captured_payload["results"]) == 1
+        assert captured_payload["results"][0]["turns"] == [
+            {"turn": 1, "phase": "baseline", "drift": 0.01},
+            {"turn": 2, "phase": "pressure", "drift": 0.15},
+        ]
+
+
+# ---------------------------------------------------------------------------
+# Test 15: Backward compat — no publisher, no turns
+# ---------------------------------------------------------------------------
+
+class TestPublishBackwardCompat:
+    def test_no_publisher_no_turns_backward_compat(self):
+        """Payload works when publisher is None and results lack turns key."""
+        console = _mock_console()
+        captured_payload = {}
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "success": True, "run_id": "x",
+            "scenarios_processed": 1, "domains_processed": 1,
+        }
+
+        def capture_post(url, json=None, **kwargs):
+            captured_payload.update(json or {})
+            return mock_response
+
+        sample = _sample_output_data()
+        # Remove turns key to simulate old CLI output shape
+        sample["results"][0].pop("turns", None)
+
+        with patch.dict(os.environ, {"SAPIEN_INGEST_API_KEY": "key"}), \
+             patch("httpx.post", side_effect=capture_post):
+
+            publish_results(
+                console=console,
+                output_data=sample,
+                judge_model=None, judge_family=None,
+                run_label="test", is_primary=False, publish_url=None,
+                # publisher omitted — defaults to None
+            )
+
+        # publisher key should NOT be in payload when None
+        assert "publisher" not in captured_payload
+        # results should still be present without turns
+        assert "turns" not in captured_payload["results"][0]

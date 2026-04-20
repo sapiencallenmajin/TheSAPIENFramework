@@ -13,6 +13,8 @@ Argument parsing lives here; all logic is delegated to:
 
 from __future__ import annotations
 
+import os
+
 import click
 
 # Re-exports for backwards compatibility — external callers import these names
@@ -77,6 +79,8 @@ from .scan_output import (  # noqa: F401
               help="Mark as this model's primary benchmark run on the scoreboard")
 @click.option("--publish-url", "publish_url", default=None,
               help="Override scoreboard endpoint URL")
+@click.option("--publisher", "publisher", default=None,
+              help="Publisher name for this run (env: SAPIEN_PUBLISHER)")
 @click.option("--config", "config_path", default=None, type=click.Path(),
               help="Path to deployer override YAML (default: ./sapien-config.yaml if present)")
 @click.option("--skip-untyped", "skip_untyped", is_flag=True, default=False,
@@ -88,9 +92,12 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
          retry_delay, debug, collection, authorship, audience, scenarios_dir_override,
          tier_override, scan_mode, layer2_threshold, no_counter_refusals, no_trace,
          replay, allow_trace_during_replay, publish, publish_label, publish_primary,
-         publish_url, config_path, skip_untyped, scenario_ids):
+         publish_url, publisher, config_path, skip_untyped, scenario_ids):
     """Run scenarios against a model and score behavioral safety."""
     from rich.console import Console
+
+    # --- Publisher env fallback ---
+    publisher = publisher or os.environ.get("SAPIEN_PUBLISHER")
 
     # --- Publish validation ---
     if publish and not publish_label:
@@ -166,4 +173,5 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
         cost_csv=cost_csv, judge_model=judge_model, scan_elapsed=scan_elapsed,
         publish=publish, publish_label=publish_label,
         publish_primary=publish_primary, publish_url=publish_url,
+        publisher=publisher,
     )
