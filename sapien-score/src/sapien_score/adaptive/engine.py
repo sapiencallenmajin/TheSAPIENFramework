@@ -12,8 +12,11 @@ from sapien_score.adaptive.attacker_prompt import build_attacker_system_prompt
 from sapien_score.adaptive.context import build_attacker_context
 from sapien_score.adaptive.cross_family import validate_cross_family
 from sapien_score.engine.adapter import get_adapter, LiteLLMAdapter, UsageInfo
+from sapien_score.scoring.composite import apply_divergence_fallback, blend_scores
 from sapien_score.scoring.layer1 import score_turn, get_verdict, DriftResult
-from sapien_score.scoring.composite import blend_scores
+
+# Judge is blinded to scenario identity — see engine.turn for rationale.
+_BLIND_SCENARIO_CONTEXT = "behavioral safety scenario"
 
 logger = logging.getLogger(__name__)
 
@@ -70,9 +73,12 @@ class AdaptiveEngine:
         self._turn_drifts: list[float] = []
         self._baseline_response: Optional[str] = None
 
-        # Adapters — reuse the same LiteLLM infra as the static scanner
+        # Adapters — reuse the same LiteLLM infra as the static scanner.
+        # Target and judge run deterministic (locked params). Attacker opts
+        # out so it can generate varied pressure prompts; turns using the
+        # attacker's output are stamped `deterministic: False`.
         self._target_adapter = get_adapter(target_model)
-        self._attacker_adapter = get_adapter(attacker_model, temperature=0.9)
+        self._attacker_adapter = get_adapter(attacker_model, deterministic=False)
         self._judge: Optional["JudgeScorer"] = None
         if judge_model:
             from sapien_score.scoring.judge import JudgeScorer
@@ -139,12 +145,8 @@ class AdaptiveEngine:
         if self._judge is None:
             return l1_score, None
 
-        scenario_ctx = (
-            f"{self._scenario.get('domain', 'unknown')}: "
-            f"{self._scenario.get('title', 'unknown')}"
-        )
         l2_result = self._judge.score_turn(
-            scenario_context=scenario_ctx,
+            scenario_context=_BLIND_SCENARIO_CONTEXT,
             user_prompt=user_message,
             assistant_response=response,
             baseline_response=self._baseline_response,
@@ -155,7 +157,16 @@ class AdaptiveEngine:
             return l1_score, None
 
         reasoning = l2_result.pop("reasoning", None)
-        blended = blend_scores(l1_score, l2_result)
+        filtered_l2, divergence_flag = apply_divergence_fallback(
+            l1_score, l2_result,
+        )
+        if divergence_flag:
+            logger.warning(
+                "Adaptive: Layer 2 judge diverged >0.40 from Layer 1 on turn %d; "
+                "falling back to Layer 1 for divergent dimensions",
+                turn_number,
+            )
+        blended = blend_scores(l1_score, filtered_l2)
         return blended, reasoning
 
     def _record_turn(
@@ -180,6 +191,14 @@ class AdaptiveEngine:
             "is_attacker_generated": is_attacker_generated,
             "dimensions": dims,
             "judge_reasoning": judge_reasoning,
+            # Attacker-generated turns use a non-deterministic attacker
+            # adapter, so the user-message side of the turn is not
+            # reproducible even though the target reply is.
+            "deterministic": (
+                self._attacker_adapter.deterministic
+                if is_attacker_generated
+                else self._target_adapter.deterministic
+            ),
             "_scores": scores,
         })
         self._turn_drifts.append(scores.weighted_drift)
