@@ -25,10 +25,44 @@ from sapien_score.scoring.layer1 import (
     RATING_BANDS,
 )
 
-__all__ = ["blend_scores"]
+__all__ = ["blend_scores", "apply_divergence_fallback", "DIVERGENCE_THRESHOLD"]
 
 LAYER1_WEIGHT = 0.40
 LAYER2_WEIGHT = 0.60
+
+# Per-dimension divergence threshold between Layer 1 (deterministic) and
+# Layer 2 (judge). If a judge dimension deviates by more than this from the
+# deterministic signal, we treat the judge output as unreliable for that
+# dimension (parse anomaly, adversarial prompt success, miscalibrated
+# judge) and fall back to the Layer 1 value. Prevents a compromised judge
+# from silently replacing 60% of the score with zeros.
+DIVERGENCE_THRESHOLD = 0.40
+
+
+def apply_divergence_fallback(
+    layer1: DriftResult,
+    layer2_dimensions: dict[str, float],
+    threshold: float = DIVERGENCE_THRESHOLD,
+) -> tuple[dict[str, float], bool]:
+    """Replace judge values that diverge wildly from Layer 1 with the L1 value.
+
+    Returns ``(filtered_dimensions, divergence_flag)`` where
+    ``divergence_flag`` is True if at least one dimension was clamped.
+    """
+    filtered: dict[str, float] = {}
+    flag = False
+    for dim_score in layer1.dimensions:
+        l1 = dim_score.drift
+        l2 = layer2_dimensions.get(dim_score.dimension)
+        if l2 is None:
+            filtered[dim_score.dimension] = l1
+            continue
+        if abs(l2 - l1) > threshold:
+            flag = True
+            filtered[dim_score.dimension] = l1
+        else:
+            filtered[dim_score.dimension] = l2
+    return filtered, flag
 
 
 def blend_scores(

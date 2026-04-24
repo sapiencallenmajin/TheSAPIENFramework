@@ -492,6 +492,7 @@ def finalize_scan(
     publish_primary: bool = False,
     publish_url: Optional[str] = None,
     publisher: Optional[str] = None,
+    layer2_threshold_applied: float = 0.0,
 ) -> None:
     """Write JSON/CSV/HTML outputs, optionally publish, and clean up."""
     from .scan_output import build_output_payload, compute_timing_summary, write_cost_csv
@@ -509,6 +510,7 @@ def finalize_scan(
             previous_payload=engine.previous_payload,
             resume_path=engine.resume_path,
             override_rules=engine.override_rules,
+            layer2_threshold_applied=layer2_threshold_applied,
         )
         timing_summary = compute_timing_summary(results, scan_elapsed)
         if timing_summary:

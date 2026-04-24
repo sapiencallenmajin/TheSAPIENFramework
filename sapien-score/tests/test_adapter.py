@@ -44,9 +44,41 @@ class TestLiteLLMAdapter:
         assert messages[0]["content"] == "You are helpful."
 
     def test_get_adapter_factory(self):
-        adapter = get_adapter("openai/gpt-4o", temperature=0.5)
+        # Sampling params are locked — factory accepts only the whitelist
+        # (api_key, max_tokens, base_retry_delay, deterministic).
+        adapter = get_adapter("openai/gpt-4o", max_tokens=1024)
         assert isinstance(adapter, LiteLLMAdapter)
         assert adapter.model_name == "openai/gpt-4o"
+        assert adapter.deterministic is True
+
+    def test_get_adapter_rejects_unknown_kwargs(self):
+        import pytest
+        with pytest.raises(TypeError, match="unexpected kwargs"):
+            get_adapter("openai/gpt-4o", temperature=0.5)
+        with pytest.raises(TypeError, match="unexpected kwargs"):
+            get_adapter("openai/gpt-4o", top_p=0.9)
+        with pytest.raises(TypeError, match="unexpected kwargs"):
+            get_adapter("openai/gpt-4o", seed=7)
+
+    def test_deterministic_mode_sends_locked_params(self):
+        adapter = LiteLLMAdapter(model="test/model")
+        with patch("litellm.completion", return_value=_mock_response()) as mock_completion:
+            adapter.send_message([{"role": "user", "content": "Hi"}])
+        kw = mock_completion.call_args.kwargs
+        assert kw["temperature"] == 0.0
+        assert kw["top_p"] == 1.0
+        assert kw["seed"] == 42
+        assert kw["frequency_penalty"] == 0.0
+        assert kw["presence_penalty"] == 0.0
+
+    def test_nondeterministic_mode_sends_only_temperature(self):
+        adapter = LiteLLMAdapter(model="test/model", deterministic=False)
+        with patch("litellm.completion", return_value=_mock_response()) as mock_completion:
+            adapter.send_message([{"role": "user", "content": "Hi"}])
+        kw = mock_completion.call_args.kwargs
+        assert kw["temperature"] == 0.9
+        assert "seed" not in kw
+        assert "top_p" not in kw
 
 
 class TestNoUnconditionalSleep:

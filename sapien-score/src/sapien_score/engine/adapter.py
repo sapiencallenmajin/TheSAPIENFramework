@@ -45,26 +45,55 @@ class UsageInfo:
 
 
 class LiteLLMAdapter:
-    """Universal model adapter using LiteLLM for 100+ providers."""
+    """Universal model adapter using LiteLLM for 100+ providers.
+
+    Deterministic mode (default) pins every sampling parameter the
+    provider APIs accept — temperature, top_p, seed, frequency_penalty,
+    presence_penalty — so two runs of the same scenario against the same
+    model produce identical scores. The only sanctioned non-deterministic
+    caller is the adaptive-attacker adapter, which opts in via
+    ``deterministic=False`` and is stamped as such in the turn record.
+    """
 
     # Number of RE-tries (total attempts = MAX_RETRIES + 1).
     MAX_RETRIES = 3
+
+    # Locked sampling parameters for deterministic calls (target + judge).
+    # Seed=42 is arbitrary but fixed — do NOT make it configurable; changing
+    # the seed invalidates cross-run reproducibility.
+    _DETERMINISTIC_PARAMS = {
+        "temperature": 0.0,
+        "top_p": 1.0,
+        "seed": 42,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+    }
+    # Only-temperature override for the adaptive attacker. top_p / seed /
+    # penalty params are left unset so LiteLLM passes provider defaults —
+    # stamping `deterministic: false` in the turn record flags that the
+    # run is not reproducible.
+    _NONDETERMINISTIC_PARAMS = {"temperature": 0.9}
 
     def __init__(
         self,
         model: str,
         api_key: Optional[str] = None,
-        temperature: float = 0.0,
         max_tokens: int = 4096,
         base_retry_delay: float = 2.0,
+        deterministic: bool = True,
     ):
         self._model = model
         self._api_key = api_key
-        self._temperature = temperature
         self._max_tokens = max_tokens
         self._base_retry_delay = base_retry_delay
+        self._deterministic = bool(deterministic)
         self._trace_writer = None
         self._call_kind = "target_call"
+
+    @property
+    def deterministic(self) -> bool:
+        """True if this adapter uses the locked deterministic params."""
+        return self._deterministic
 
     @property
     def model_name(self) -> str:
@@ -81,11 +110,16 @@ class LiteLLMAdapter:
         if system_prompt:
             full_messages = [{"role": "system", "content": system_prompt}] + full_messages
 
+        sampling = (
+            self._DETERMINISTIC_PARAMS
+            if self._deterministic
+            else self._NONDETERMINISTIC_PARAMS
+        )
         kwargs = dict(
             model=self._model,
             messages=full_messages,
             max_tokens=self._max_tokens,
-            temperature=self._temperature,
+            **sampling,
         )
         if self._api_key:
             kwargs["api_key"] = self._api_key
@@ -184,10 +218,19 @@ class LiteLLMAdapter:
             return
         try:
             provider = self._model.split("/")[0] if "/" in self._model else "unknown"
+            sampling = (
+                self._DETERMINISTIC_PARAMS
+                if self._deterministic
+                else self._NONDETERMINISTIC_PARAMS
+            )
+            # Trace fingerprint keeps the legacy shape (temperature + max_tokens)
+            # so replays of pre-determinism-lock traces still match. The full
+            # locked parameter set is sent to LiteLLM at call time; it's just
+            # not part of the fingerprint surface.
             request = {
                 "messages": messages,
                 "params": {
-                    "temperature": self._temperature,
+                    "temperature": sampling.get("temperature", 0.0),
                     "max_tokens": self._max_tokens,
                 },
                 "tools": [],
@@ -247,5 +290,25 @@ class LiteLLMAdapter:
         )
 
 
+_ALLOWED_ADAPTER_KWARGS = frozenset({
+    "api_key", "max_tokens", "base_retry_delay", "deterministic",
+})
+
+
 def get_adapter(model: str, **kwargs) -> LiteLLMAdapter:
+    """Factory for LiteLLMAdapter.
+
+    Rejects any kwarg not in ``_ALLOWED_ADAPTER_KWARGS`` — notably
+    ``temperature``, ``top_p``, ``seed``, ``frequency_penalty``,
+    ``presence_penalty`` — so sampling parameters cannot be silently
+    relaxed by callers. The adaptive attacker opts out of determinism
+    via ``deterministic=False``; everything else stays locked.
+    """
+    unknown = set(kwargs) - _ALLOWED_ADAPTER_KWARGS
+    if unknown:
+        raise TypeError(
+            f"get_adapter() got unexpected kwargs {sorted(unknown)!r}; "
+            f"allowed: {sorted(_ALLOWED_ADAPTER_KWARGS)!r}. "
+            "Sampling params are locked for benchmark determinism."
+        )
     return LiteLLMAdapter(model=model, **kwargs)
