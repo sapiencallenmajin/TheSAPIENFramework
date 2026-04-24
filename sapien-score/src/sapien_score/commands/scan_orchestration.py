@@ -21,10 +21,11 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Literal, Optional
 
 if TYPE_CHECKING:
     from rich.console import Console
+    from sapien_score.engine.council_config import CouncilConfig
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,12 @@ class EngineConfig:
     # P0-12: run identity for tamper-evident published payloads.
     run_id: str = ""
     scan_started_at: str = ""
+    # Council scoring: "council" (default) routes to the multi-judge panel;
+    # "single" preserves the legacy single-judge path. ``council`` is None
+    # until the dispatcher materializes a CouncilConfig (kept lazy so a bare
+    # EngineConfig() doesn't instantiate the default 5-seat roster).
+    scoring_mode: Literal["council", "single"] = "council"
+    council: Optional["CouncilConfig"] = None
 
 
 # ---------------------------------------------------------------------------
