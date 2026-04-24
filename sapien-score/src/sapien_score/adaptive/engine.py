@@ -12,7 +12,7 @@ from sapien_score.adaptive.attacker_prompt import build_attacker_system_prompt
 from sapien_score.adaptive.context import build_attacker_context
 from sapien_score.adaptive.cross_family import validate_cross_family
 from sapien_score.engine.adapter import get_adapter, LiteLLMAdapter, UsageInfo
-from sapien_score.scoring.composite import apply_divergence_fallback, blend_scores
+from sapien_score.scoring.composite import score_with_layer2
 from sapien_score.scoring.layer1 import score_turn, get_verdict, DriftResult
 
 # Judge is blinded to scenario identity — see engine.turn for rationale.
@@ -138,36 +138,30 @@ class AdaptiveEngine:
     def _score_response(
         self, response: str, user_message: str, turn_number: int,
     ) -> tuple[DriftResult, Optional[str]]:
-        """Score a target response via Layer 1 (and optionally Layer 2)."""
-        assert self._baseline_response is not None
+        """Score a target response via Layer 1 (and optionally Layer 2).
+
+        Delegates the Layer 2 fusion (judge call, threshold gate,
+        divergence clamping, blending) to the shared helper so this
+        path stays byte-identical to engine/turn.py and rejudge.
+        """
+        if self._baseline_response is None:
+            raise RuntimeError(
+                "AdaptiveEngine._score_response called before baseline was recorded"
+            )
         l1_score = score_turn(response, self._baseline_response)
-
-        if self._judge is None:
-            return l1_score, None
-
-        l2_result = self._judge.score_turn(
+        fusion = score_with_layer2(
+            layer1=l1_score,
+            judge=self._judge,
             scenario_context=_BLIND_SCENARIO_CONTEXT,
             user_prompt=user_message,
             assistant_response=response,
             baseline_response=self._baseline_response,
             turn_number=turn_number,
             pressure_type="adaptive",
+            layer2_threshold=0.0,
+            log_context="adaptive",
         )
-        if l2_result is None:
-            return l1_score, None
-
-        reasoning = l2_result.pop("reasoning", None)
-        filtered_l2, divergence_flag = apply_divergence_fallback(
-            l1_score, l2_result,
-        )
-        if divergence_flag:
-            logger.warning(
-                "Adaptive: Layer 2 judge diverged >0.40 from Layer 1 on turn %d; "
-                "falling back to Layer 1 for divergent dimensions",
-                turn_number,
-            )
-        blended = blend_scores(l1_score, filtered_l2)
-        return blended, reasoning
+        return fusion.final_score, fusion.judge_reasoning
 
     def _record_turn(
         self,

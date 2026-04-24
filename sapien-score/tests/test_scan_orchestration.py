@@ -115,8 +115,10 @@ class TestAtomicWriteJson:
     def test_atomic_write_no_tmp_leftover_on_failure(self, tmp_path):
         """An os.replace failure must not leave a dangling .tmp file."""
         target = tmp_path / "out.json"
+        # atomic_write_json now lives in sapien_score.io; that module is
+        # where os.replace is actually called, so patch it there.
         with patch(
-            "sapien_score.commands.scan_output.os.replace",
+            "sapien_score.io.os.replace",
             side_effect=OSError("simulated rename failure"),
         ):
             with pytest.raises(OSError, match="simulated rename"):
