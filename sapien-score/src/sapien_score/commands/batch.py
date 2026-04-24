@@ -184,6 +184,9 @@ def batch(ctx: click.Context, config_file: str) -> None:
                 config_path=None,
                 skip_untyped=False,
                 skip_invalid=False,
+                # --- council scoring (Part 3) ---
+                scoring_mode="council",
+                council_size="5",
             )
         except KeyboardInterrupt:
             # scan() catches Ctrl+C internally and re-raises as

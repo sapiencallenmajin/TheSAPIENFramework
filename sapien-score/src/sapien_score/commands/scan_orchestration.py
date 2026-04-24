@@ -143,6 +143,8 @@ def setup_engine(
     scenario_ids: Optional[str] = None,
     force_resume: bool = False,
     skip_invalid: bool = False,
+    scoring_mode: Literal["council", "single"] = "council",
+    council_size: int = 5,
 ) -> EngineConfig:
     """Resolve arguments, build adapters, load scenarios.
 
@@ -385,9 +387,20 @@ def setup_engine(
     else:
         model_profile = override_profile(tier_override)
 
-    # --- Build judge ---
+    # --- Build judge (single- or council-scoring) ---
+    # Single path: one JudgeScorer over one judge_model adapter.
+    # Council path: one CouncilScorer over a per-seat adapter pool,
+    #   built once here and reused across every turn of every scenario
+    #   so we don't pay LiteLLMAdapter construction cost per call.
     judge = None
-    if judge_model:
+    council: Optional["CouncilConfig"] = None
+    if scoring_mode == "single":
+        if not judge_model:
+            # Defense in depth; CLI already rejects this.
+            console.print(
+                "[red]--scoring single requires --judge MODEL[/red]"
+            )
+            raise SystemExit(1)
         from sapien_score.scoring.judge import JudgeScorer
         if trace_reader:
             from sapien_score.tracing.replay import ReplayAdapter
@@ -398,6 +411,45 @@ def setup_engine(
             judge_adapter.trace_writer = trace_writer
             judge_adapter.call_kind = "judge_call"
         judge = JudgeScorer(adapter=judge_adapter)
+    else:  # scoring_mode == "council"
+        from sapien_score.engine.council_config import CouncilConfig
+        from sapien_score.engine.council_scorer import CouncilScorer
+        council = CouncilConfig(size=int(council_size))
+
+        # Shared adapter pool: one LiteLLMAdapter per seat, constructed
+        # once. The judge_caller closure looks up by seat identity so the
+        # same adapter handles every turn's call for that seat.
+        seat_adapters: dict[str, object] = {}
+        for seat in council.seats:
+            if trace_reader:
+                from sapien_score.tracing.replay import ReplayAdapter
+                seat_adapter = ReplayAdapter(trace_reader, call_kind="judge_call")
+            else:
+                seat_model_str = (
+                    f"{seat.model}@{seat.model_version}"
+                    if seat.model_version else seat.model
+                )
+                seat_adapter = get_adapter(
+                    model=seat_model_str, base_retry_delay=retry_delay,
+                )
+            if trace_writer:
+                seat_adapter.trace_writer = trace_writer
+                seat_adapter.call_kind = "judge_call"
+            seat_adapters[seat.model] = seat_adapter
+
+        def _pool_caller(seat, system: str, user_msg: str) -> str:
+            a = seat_adapters[seat.model]
+            return a.send_message(
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user_msg},
+                ],
+            )
+
+        judge = CouncilScorer(
+            council_config=council,
+            judge_caller=_pool_caller,
+        )
 
     # --- Partial results path ---
     if output:
@@ -436,6 +488,8 @@ def setup_engine(
         run_id=run_id,
         scan_started_at=scan_started_at,
         skipped_scenarios=skipped_scenarios,
+        scoring_mode=scoring_mode,
+        council=council,
     )
 
 

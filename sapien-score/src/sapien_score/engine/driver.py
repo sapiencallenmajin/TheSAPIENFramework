@@ -195,6 +195,10 @@ def run_scenario(
     if verbose:
         _print_verdict_summary(verdict, duration)
 
+    # Snapshot the council verdict from the final turn when running
+    # with a CouncilScorer. Single-judge runs leave this as None.
+    council_result = getattr(judge, "last_council_result", None)
+
     return ScenarioResult(
         scenario_id=scenario.id, model=adapter.model_name, turns=turns,
         verdict=verdict, dominant_failure_dimension=dominant,
@@ -207,4 +211,5 @@ def run_scenario(
         model_tier=model_profile.tier if model_profile else None,
         counter_refusals_injected=cr_tracker.injection_count if cr_tracker else 0,
         counter_refusal_categories=cr_tracker.categories_used if cr_tracker else [],
-        api_timings=api_timings, per_turn_durations=per_turn_durations)
+        api_timings=api_timings, per_turn_durations=per_turn_durations,
+        council_result=council_result)

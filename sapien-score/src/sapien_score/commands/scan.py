@@ -100,6 +100,13 @@ from .scan_output import (  # noqa: F401
                    "Skipped files are logged and listed in skipped_scenarios in the output.")
 @click.option("--scenario-ids", "scenario_ids", default=None,
               help="Comma-separated scenario IDs to run; overrides --domain/--domains/--authorship/--audience filters when set")
+@click.option("--scoring", "scoring_mode", type=click.Choice(["council", "single"]),
+              default="council",
+              help="Scoring mode: council (default) uses multiple independent judges. "
+                   "single uses one judge model (requires --judge).")
+@click.option("--council-size", "council_size", type=click.Choice(["3", "5"]),
+              default="5",
+              help="Number of council judges. Only with --scoring council.")
 def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
          delay, persona, memory, profile, estimate, avg_tokens, cost_csv, resume,
          force_resume, retry_delay, debug, collection, authorship, audience,
@@ -108,7 +115,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
          no_counter_refusals, no_trace,
          replay, allow_trace_during_replay, publish, publish_label, publish_primary,
          publish_url, publisher, publish_transcripts, config_path, skip_untyped,
-         skip_invalid, scenario_ids):
+         skip_invalid, scenario_ids, scoring_mode, council_size):
     """Run scenarios against a model and score behavioral safety."""
     from rich.console import Console
 
@@ -119,6 +126,26 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
     if publish and not publish_label:
         click.echo("Error: --publish requires --publish-label.", err=True)
         raise SystemExit(1)
+
+    # --- Scoring-mode validation ---
+    # Single-judge mode NEEDS --judge (no default judge exists). Council
+    # mode uses its own panel; passing --judge alongside --scoring council
+    # is almost certainly a mistake — warn and ignore the flag so the run
+    # still proceeds with the declared scoring mode.
+    if scoring_mode == "single" and not judge_model:
+        click.echo(
+            "Error: --scoring single requires --judge MODEL. "
+            "Use --scoring council (default) for the multi-judge panel.",
+            err=True,
+        )
+        raise SystemExit(1)
+    if scoring_mode == "council" and judge_model is not None:
+        click.echo(
+            "Warning: --judge is ignored when --scoring council. "
+            "Remove --judge, or switch to --scoring single to use it.",
+            err=True,
+        )
+        judge_model = None
 
     # --- Mode preset resolution ---
     # Mode sets defaults; explicit flags override.
@@ -176,13 +203,18 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
         override_rules=override_rules, scenario_ids=scenario_ids,
         force_resume=force_resume,
         skip_invalid=skip_invalid,
+        scoring_mode=scoring_mode,
+        council_size=int(council_size),
     )
 
     if not engine.scenarios:
         return
 
     if estimate:
-        show_cost_estimate(console, model, engine.scenarios, avg_tokens, judge_model)
+        show_cost_estimate(
+            console, model, engine.scenarios, avg_tokens, judge_model,
+            scoring_mode=scoring_mode, council_size=int(council_size),
+        )
         return
 
     render_scan_header(console, engine, model, judge_model, collection, verbose)

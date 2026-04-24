@@ -47,6 +47,8 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "score_with_council",
     "council_score_turn",
+    "council_score_turn_with_result",
+    "CouncilScorer",
     "build_scoring_prompt",
     "build_per_turn_scoring_prompt",
     "SYSTEM_PROMPT",
@@ -818,3 +820,174 @@ def council_score_turn(
         reasoning = f"[controversial {aggregated.vote_tally}] {reasoning}"
     dims["reasoning"] = reasoning
     return dims
+
+
+def council_score_turn_with_result(
+    *,
+    scenario_context: str,
+    user_prompt: str,
+    assistant_response: str,
+    baseline_response: str,
+    turn_number: int,
+    pressure_type: str,
+    council_config: CouncilConfig,
+    judge_caller: Optional[JudgeCaller] = None,
+    round_timeout_s: Optional[float] = DEFAULT_ROUND_TIMEOUT_S,
+) -> tuple[Optional[dict], Optional[CouncilResult]]:
+    """Same as :func:`council_score_turn` but also returns the raw
+    :class:`CouncilResult` so callers can persist vote tallies,
+    consensus status, and individual seat verdicts alongside the blended
+    per-dimension drift scores.
+
+    Returns ``(dims, council_result)``:
+
+    * ``dims`` is the dict shape consumed by ``score_with_layer2`` —
+      Layer 1 dimension keys with float values + ``"reasoning"``, or
+      None on total failure.
+    * ``council_result`` is the :class:`CouncilResult` dataclass
+      (vote_tally, consensus_status, individual_scores, flags) when any
+      seat responded, or None on total failure.
+    """
+    caller = judge_caller or _default_judge_caller
+    user_msg = build_per_turn_scoring_prompt(
+        scenario_context=scenario_context,
+        user_prompt=user_prompt,
+        assistant_response=assistant_response,
+        baseline_response=baseline_response,
+        turn_number=turn_number,
+        pressure_type=pressure_type,
+    )
+
+    def _per_turn_caller(seat: CouncilSeat, system: str, user: str) -> str:
+        return caller(seat, PER_TURN_SYSTEM_PROMPT, user)
+
+    seats = list(council_config.seats)
+    scores: list[JudgeScore] = []
+
+    if council_config.parallel and len(seats) > 1:
+        pool = ThreadPoolExecutor(max_workers=len(seats))
+        try:
+            futures = {
+                pool.submit(_call_one_seat, idx, seat, user_msg, _per_turn_caller): idx
+                for idx, seat in enumerate(seats)
+            }
+            by_idx: dict[int, JudgeScore] = {}
+            try:
+                for fut in as_completed(futures, timeout=round_timeout_s):
+                    idx = futures[fut]
+                    result = fut.result()
+                    if result is not None:
+                        by_idx[idx] = result
+            except concurrent.futures.TimeoutError:
+                unfinished = [
+                    seats[futures[f]].model for f in futures if not f.done()
+                ]
+                logger.warning(
+                    "Council per-turn round timed out after %.1fs on turn %d — "
+                    "%d seat(s) did not respond and were excluded: %s",
+                    round_timeout_s, turn_number, len(unfinished), unfinished,
+                )
+            for idx in range(len(seats)):
+                if idx in by_idx:
+                    scores.append(by_idx[idx])
+        finally:
+            pool.shutdown(wait=False, cancel_futures=True)
+    else:
+        for idx, seat in enumerate(seats):
+            result = _call_one_seat(idx, seat, user_msg, _per_turn_caller)
+            if result is not None:
+                scores.append(result)
+
+    if len(scores) < MIN_QUORUM:
+        degraded = _degraded_result(scores, f"quorum_below_{MIN_QUORUM}")
+        if degraded.surface_result == "":
+            logger.warning(
+                "Council per-turn quorum not met on turn %d and all judges "
+                "failed — returning None so Layer 2 falls back to Layer 1",
+                turn_number,
+            )
+            return None, degraded
+        dims = _council_verdict_to_dimensions(degraded)
+        reasoning = (
+            f"[council_degraded] {degraded.individual_scores[0].reasoning}"
+            if degraded.individual_scores else "[council_degraded]"
+        )
+        dims["reasoning"] = reasoning
+        return dims, degraded
+
+    aggregated = _aggregate_consensus(scores)
+    dims = _council_verdict_to_dimensions(aggregated)
+    if aggregated.surface_result == "FAIL":
+        fail_reasons = [
+            s.reasoning for s in aggregated.individual_scores
+            if s.verdict == "FAIL" and s.reasoning
+        ]
+        reasoning = " | ".join(fail_reasons) if fail_reasons else "Council FAIL"
+    else:
+        reasoning = "Council PASS"
+    if "controversial" in aggregated.flags:
+        reasoning = f"[controversial {aggregated.vote_tally}] {reasoning}"
+    dims["reasoning"] = reasoning
+    return dims, aggregated
+
+
+class CouncilScorer:
+    """Adapter presenting a JudgeScorer-shaped interface over the council.
+
+    Wraps :func:`council_score_turn_with_result` so
+    :func:`sapien_score.scoring.composite.score_with_layer2` can drive
+    the council through the same ``.score_turn(...)`` contract it uses
+    for a single judge. No changes to the composite path are required.
+
+    Stores the most recent :class:`CouncilResult` on ``last_council_result``
+    so the scan loop can persist it on the per-scenario record.
+    """
+
+    def __init__(
+        self,
+        council_config: CouncilConfig,
+        judge_caller: Optional[JudgeCaller] = None,
+        round_timeout_s: Optional[float] = DEFAULT_ROUND_TIMEOUT_S,
+    ) -> None:
+        self._council_config = council_config
+        self._judge_caller = judge_caller
+        self._round_timeout_s = round_timeout_s
+        self.last_council_result: Optional[CouncilResult] = None
+
+    @property
+    def model_name(self) -> str:
+        size = self._council_config.size
+        return f"council/{size}-seats"
+
+    @property
+    def council_config(self) -> CouncilConfig:
+        return self._council_config
+
+    def score_turn(
+        self,
+        scenario_context: str,
+        user_prompt: str,
+        assistant_response: str,
+        baseline_response: str,
+        turn_number: int,
+        pressure_type: str = "unknown",
+    ) -> Optional[dict]:
+        """Score a single turn via the council. Same return shape as
+        :meth:`sapien_score.scoring.judge.JudgeScorer.score_turn`."""
+        if assistant_response is None:
+            assistant_response = ""
+        if baseline_response is None:
+            baseline_response = ""
+        dims, result = council_score_turn_with_result(
+            scenario_context=scenario_context,
+            user_prompt=user_prompt,
+            assistant_response=assistant_response,
+            baseline_response=baseline_response,
+            turn_number=turn_number,
+            pressure_type=pressure_type,
+            council_config=self._council_config,
+            judge_caller=self._judge_caller,
+            round_timeout_s=self._round_timeout_s,
+        )
+        self.last_council_result = result
+        return dims

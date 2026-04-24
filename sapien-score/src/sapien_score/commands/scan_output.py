@@ -47,6 +47,11 @@ def compute_results_checksum(entries: list) -> str:
     Used to detect tampering of a resume file. Entries are projected to a
     canonical shape and sorted by scenario_id so the checksum is stable
     regardless of list order.
+
+    Council scoring adds a trinary ``surface_result`` (``"PASS"`` /
+    ``"FAIL"`` / ``""`` for all-judges-failed) that's independent of the
+    blended ``verdict`` — include it in the fingerprint so a tamperer
+    can't flip a PASS to FAIL (or vice versa) without detection.
     """
     fingerprint = sorted(
         (
@@ -54,6 +59,7 @@ def compute_results_checksum(entries: list) -> str:
                 e.get("scenario_id", ""),
                 e.get("health_score"),
                 e.get("verdict", ""),
+                (e.get("council_scoring") or {}).get("surface_result", ""),
             )
             for e in entries or []
         ),
@@ -195,6 +201,11 @@ def serialize_result_entry(scenario, result, override_result=None) -> dict:
         for t in result.api_timings
     ]
     entry["per_turn_durations"] = result.per_turn_durations
+    # Council scoring: include the aggregated verdict when this run used
+    # the multi-judge panel. Absent for single-judge scans.
+    council_result = getattr(result, "council_result", None)
+    if council_result is not None:
+        entry["council_scoring"] = council_result.to_dict()
     return entry
 
 
