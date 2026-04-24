@@ -380,6 +380,13 @@ def build_output_payload(
         serialize_result_entry(s, r, ovr)
         for (s, r), ovr in zip(results, overrides)
     ]
+    failed = failed_scenarios or []
+    error_entries = [serialize_failed_entry(fs) for fs in failed]
+
+    # Error entries are surfaced in the results array so consumers can see
+    # the drop count, but are not included in mean/p10 (those were already
+    # computed by the caller from successes only).
+    new_entries = success_entries + error_entries
 
     # P1-7: build an append-only audit trail of user_override applications.
     # Entries live at the top level so they survive even if the override
