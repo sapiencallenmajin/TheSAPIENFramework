@@ -11,8 +11,41 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+
+def _typed_retryable(exc: BaseException) -> bool:
+    """True if *exc* is an exception type we know is retryable.
+
+    Checks built-in TimeoutError plus any litellm.exceptions class whose
+    name matches a retryable category. Imported lazily so that merely
+    importing this module doesn't pull in litellm's heavy transitive deps
+    for pure-score callers (e.g. composite/layer1 unit tests).
+    """
+    if isinstance(exc, TimeoutError):
+        return True
+    try:
+        import litellm.exceptions as le
+    except Exception:
+        return False
+    retryable_types = tuple(
+        cls for cls in (
+            getattr(le, "RateLimitError", None),
+            getattr(le, "Timeout", None),
+            getattr(le, "APITimeoutError", None),
+            getattr(le, "APIConnectionError", None),
+            getattr(le, "ServiceUnavailableError", None),
+            getattr(le, "InternalServerError", None),
+        )
+        if isinstance(cls, type)
+    )
+    if retryable_types and isinstance(exc, retryable_types):
+        return True
+    return False
+
+
 # Substrings in error messages that mark a transient, retryable failure.
-# Matched case-insensitively against str(exception).
+# Fallback for providers whose exceptions come through as bare RuntimeError
+# or strings without a typed class. Matched case-insensitively against
+# str(exception) only after typed dispatch fails.
 _RETRYABLE_ERROR_KEYWORDS = (
     "rate_limit", "rate limit", "429",
     "timeout", "timed out",
@@ -87,6 +120,12 @@ class LiteLLMAdapter:
     # run is not reproducible.
     _NONDETERMINISTIC_PARAMS = {"temperature": 0.9}
 
+    # Default per-scenario retry budget. A scenario typically makes N target
+    # calls; a misbehaving endpoint shouldn't let any one scenario consume
+    # unbounded retries. 8 covers ~2 per turn for an 8-turn scenario under
+    # rare transient failure.
+    DEFAULT_SCENARIO_RETRY_BUDGET = 8
+
     def __init__(
         self,
         model: str,
@@ -103,6 +142,26 @@ class LiteLLMAdapter:
         self._trace_writer = None
         self._call_kind = "target_call"
         self._last_retry_count = 0
+        # Remaining retries for the current scenario. Reset by
+        # begin_scenario(). Each retry (transient or empty-response)
+        # decrements this counter; at 0, the next retry path raises.
+        self._scenario_retry_budget = self.DEFAULT_SCENARIO_RETRY_BUDGET
+
+    def begin_scenario(self, budget: Optional[int] = None) -> None:
+        """Reset the per-scenario retry budget. Call at scenario start.
+
+        Prevents a single misbehaving endpoint from consuming unbounded
+        retries across a long scenario. ``budget`` defaults to
+        :data:`DEFAULT_SCENARIO_RETRY_BUDGET`.
+        """
+        self._scenario_retry_budget = (
+            self.DEFAULT_SCENARIO_RETRY_BUDGET if budget is None else int(budget)
+        )
+
+    @property
+    def scenario_retry_budget(self) -> int:
+        """Remaining retries in the current scenario (for tests/telemetry)."""
+        return self._scenario_retry_budget
 
     @property
     def deterministic(self) -> bool:
@@ -171,11 +230,27 @@ class LiteLLMAdapter:
                     break
                 except Exception as e:
                     error_str = str(e).lower()
-                    is_retryable = any(
-                        kw in error_str for kw in _RETRYABLE_ERROR_KEYWORDS
-                    )
-                    # Never retry client errors — these are config problems
-                    if any(kw in error_str for kw in _CLIENT_ERROR_KEYWORDS):
+                    # Typed dispatch first — more reliable than string matching
+                    # and not fooled by error messages that happen to contain
+                    # retryable keywords (e.g. a prompt discussing "timeout").
+                    is_retryable = _typed_retryable(e)
+                    if not is_retryable:
+                        # Fallback: unknown exception type. Substring-match
+                        # on the message, but still honor the client-error
+                        # blocklist so a 400 isn't retried.
+                        is_retryable = any(
+                            kw in error_str for kw in _RETRYABLE_ERROR_KEYWORDS
+                        )
+                        if any(kw in error_str for kw in _CLIENT_ERROR_KEYWORDS):
+                            is_retryable = False
+                    # Per-scenario budget cap: once exhausted, stop retrying
+                    # within this scenario even if the error is transient.
+                    if is_retryable and self._scenario_retry_budget <= 0:
+                        logger.warning(
+                            "Scenario retry budget exhausted for %s — "
+                            "not retrying further transient errors this scenario",
+                            self._model,
+                        )
                         is_retryable = False
                     if is_retryable and attempt < self.MAX_RETRIES:
                         wait = retry_delays[attempt]
@@ -184,6 +259,7 @@ class LiteLLMAdapter:
                             attempt + 1, self.MAX_RETRIES, str(e)[:100], wait,
                         )
                         self._last_retry_count += 1
+                        self._scenario_retry_budget -= 1
                         time.sleep(wait)
                         continue
                     self._record_trace(
@@ -208,9 +284,10 @@ class LiteLLMAdapter:
             # scan loop can record this scenario as an error rather than
             # silently scoring "" against the baseline.
             if not content:
-                if not empty_retry_used:
+                if not empty_retry_used and self._scenario_retry_budget > 0:
                     empty_retry_used = True
                     self._last_retry_count += 1
+                    self._scenario_retry_budget -= 1
                     logger.warning(
                         "Empty response from %s (finish_reason=%s) — retrying once",
                         self._model, finish_reason,

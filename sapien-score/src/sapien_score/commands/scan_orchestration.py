@@ -58,6 +58,9 @@ class EngineConfig:
     # P0-12: run identity for tamper-evident published payloads.
     run_id: str = ""
     scan_started_at: str = ""
+    # P1-17: scenarios dropped by --skip-invalid during load, surfaced in
+    # the output payload so reviewers can see what was excluded and why.
+    skipped_scenarios: list = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -126,6 +129,7 @@ def setup_engine(
     override_rules: Optional[list] = None,
     scenario_ids: Optional[str] = None,
     force_resume: bool = False,
+    skip_invalid: bool = False,
 ) -> EngineConfig:
     """Resolve arguments, build adapters, load scenarios.
 
@@ -175,13 +179,35 @@ def setup_engine(
         domain_set = {d.strip() for d in domains.split(",")}
 
     # --- Load scenarios ---
-    all_scenarios = load_all_scenarios(
-        domain=domain_filter,
-        collection=collection,
-        authorship=authorship,
-        audience=audience,
-        scenarios_dir=scenarios_dir_override,
-    )
+    from sapien_score.scenarios.loader import get_last_skipped_scenarios
+
+    try:
+        all_scenarios = load_all_scenarios(
+            domain=domain_filter,
+            collection=collection,
+            authorship=authorship,
+            audience=audience,
+            scenarios_dir=scenarios_dir_override,
+            skip_invalid=skip_invalid,
+        )
+    except Exception as e:
+        # Fail-fast path: a validation error bubbles up when skip_invalid
+        # is False (the default). Surface a clear message, including the
+        # --skip-invalid hint, before re-raising.
+        if not skip_invalid:
+            console.print(
+                f"[red]Scenario validation failed: {e}[/red]\n"
+                "[dim]Pass --skip-invalid to log and continue instead of "
+                "aborting the scan.[/dim]"
+            )
+        raise
+    skipped_scenarios = get_last_skipped_scenarios()
+    if skipped_scenarios:
+        console.print(
+            f"[yellow]--skip-invalid: skipped {len(skipped_scenarios)} "
+            "scenario(s) during load. See skipped_scenarios in the "
+            "output payload for details.[/yellow]"
+        )
     if domain_set:
         all_scenarios = [s for s in all_scenarios if s.domain in domain_set]
 
@@ -388,6 +414,7 @@ def setup_engine(
         override_rules=override_rules or [],
         run_id=run_id,
         scan_started_at=scan_started_at,
+        skipped_scenarios=skipped_scenarios,
     )
 
 
@@ -591,6 +618,7 @@ def finalize_scan(
             run_id=engine.run_id,
             scan_started_at=engine.scan_started_at,
             scan_finished_at=scan_finished_at,
+            skipped_scenarios=engine.skipped_scenarios,
         )
         timing_summary = compute_timing_summary(results, scan_elapsed)
         if timing_summary:

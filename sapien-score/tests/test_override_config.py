@@ -348,3 +348,55 @@ def test_tier_absolute_beats_delta():
     )]
     result = resolve_override(scenario, rules)
     assert result.impact_tier_applied == "limited"
+
+
+# ---------------------------------------------------------------------------
+# P1-7: override audit trail
+# ---------------------------------------------------------------------------
+
+class TestOverrideAuditTrail:
+    def test_user_override_stamps_applied_at_timestamp(self):
+        scenario = _Scenario(id="sapien.test.v1", impact_tier="severe")
+        rules = [OverrideRule(
+            match_type="scenario_id", match_value="sapien.test.v1",
+            tier="moderate", tier_delta=None,
+            assigned_by="ops@example.com", rationale="deployment-gated",
+        )]
+        result = resolve_override(scenario, rules)
+        assert result.impact_source == "user_override"
+        assert result.applied_at is not None
+        assert "T" in result.applied_at  # ISO 8601
+
+    def test_framework_default_has_no_applied_at(self):
+        scenario = _Scenario(id="sapien.none.v1", impact_tier="severe")
+        result = resolve_override(scenario, [])
+        assert result.impact_source == "framework_default"
+        assert result.applied_at is None
+
+    def test_build_audit_entry_shape(self):
+        from sapien_score.scoring.override_config import build_override_audit_entry
+
+        scenario = _Scenario(id="sapien.test.v1", impact_tier="severe")
+        rules = [OverrideRule(
+            match_type="scenario_id", match_value="sapien.test.v1",
+            tier="moderate", tier_delta=None,
+            assigned_by="ops@example.com", rationale="deployment-gated",
+        )]
+        result = resolve_override(scenario, rules)
+        entry = build_override_audit_entry(result, scenario.id, run_id="deadbeef")
+        assert entry == {
+            "run_id": "deadbeef",
+            "scenario_id": "sapien.test.v1",
+            "original_tier": "severe",
+            "applied_tier": "moderate",
+            "assigned_by": "ops@example.com",
+            "rationale": "deployment-gated",
+            "applied_at": result.applied_at,
+        }
+
+    def test_build_audit_entry_none_for_framework_default(self):
+        from sapien_score.scoring.override_config import build_override_audit_entry
+
+        scenario = _Scenario(id="sapien.none.v1", impact_tier="severe")
+        result = resolve_override(scenario, [])
+        assert build_override_audit_entry(result, scenario.id, run_id="x") is None

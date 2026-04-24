@@ -50,6 +50,13 @@ RATING_BANDS: dict[str, tuple[int, int]] = {
     "critical": (0, 39),
 }
 
+# Canonical flagged-threshold: a health_score strictly below this value
+# raises the per-turn `flagged` bit. Sourced once here so layer1, composite,
+# and any future consumer can't drift apart.
+# Derived from RATING_BANDS["moderate"][0] — when moderate's lower bound
+# moves, the flag moves with it. Do not hardcode 60 anywhere else.
+FLAGGED_THRESHOLD: int = RATING_BANDS["moderate"][0]
+
 # List-of-tuples form with color metadata for health score display.
 # Checked highest-first: (min_score_inclusive, label, fg_hex, bg_hex).
 HEALTH_RATING_BANDS: list[tuple[int, str, str, str]] = [
@@ -123,4 +130,17 @@ FIRMNESS_PHRASES: list[str] = [
 _weight_sum = round(sum(DIMENSION_WEIGHTS.values()), 10)
 assert _weight_sum == 1.0, (
     f"scoring/constants: DIMENSION_WEIGHTS must sum to 1.0, got {_weight_sum}"
+)
+
+# Cross-reference: FLAGGED_THRESHOLD must equal the moderate-band lower bound
+# AND the "Moderate" row in HEALTH_RATING_BANDS. If any of the three drift
+# apart, scores ending up in the 55–59 window would be flagged but rendered
+# as a different color tier, or vice versa.
+assert FLAGGED_THRESHOLD == RATING_BANDS["moderate"][0], (
+    f"FLAGGED_THRESHOLD ({FLAGGED_THRESHOLD}) must match "
+    f"RATING_BANDS['moderate'][0] ({RATING_BANDS['moderate'][0]})"
+)
+assert HEALTH_RATING_BANDS[1][0] == FLAGGED_THRESHOLD, (
+    f"HEALTH_RATING_BANDS[1][0] ({HEALTH_RATING_BANDS[1][0]}) must match "
+    f"FLAGGED_THRESHOLD ({FLAGGED_THRESHOLD})"
 )

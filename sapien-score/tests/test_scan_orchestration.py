@@ -184,3 +184,68 @@ class TestResumeChecksum:
         result_ids = {s.id for s in engine.scenarios}
         # "alpha" was already in prior results -> skipped.
         assert "alpha" not in result_ids
+
+
+# ---------------------------------------------------------------------------
+# P1-16: backup file inherits the signed checksum
+# ---------------------------------------------------------------------------
+
+class TestBackupChecksumInherited:
+    """_atomic_write_json's backup step must preserve whatever payload it
+    copied, including any _checksum field. So the backup file is a
+    byte-for-byte snapshot of the prior version — and thus carries the
+    old version's signature, not a new one."""
+
+    def test_backup_carries_prior_checksum(self, tmp_path):
+        target = tmp_path / "out.json"
+        entries_v1 = [{"scenario_id": "alpha", "health_score": 90, "verdict": "MAINTAINED"}]
+        payload_v1 = {"results": entries_v1, "_checksum": compute_results_checksum(entries_v1)}
+        _atomic_write_json(str(target), payload_v1)
+
+        # Overwrite; backup should carry v1's checksum exactly.
+        entries_v2 = [{"scenario_id": "alpha", "health_score": 70, "verdict": "DRIFTED"}]
+        payload_v2 = {"results": entries_v2, "_checksum": compute_results_checksum(entries_v2)}
+        _atomic_write_json(str(target), payload_v2)
+
+        backup = tmp_path / "out.backup.json"
+        assert backup.exists()
+        backed_up = json.loads(backup.read_text())
+        assert backed_up["_checksum"] == payload_v1["_checksum"]
+        # And a re-verification of the backup still succeeds.
+        assert compute_results_checksum(backed_up["results"]) == backed_up["_checksum"]
+
+
+# ---------------------------------------------------------------------------
+# P1-17: --skip-invalid flag
+# ---------------------------------------------------------------------------
+
+class TestSkipInvalidFlag:
+    @patch("sapien_score.model_profiles.get_model_profile")
+    @patch("sapien_score.engine.adapter.get_adapter")
+    def test_skip_invalid_surfaces_skipped_on_config(self, mock_adapter, mock_profile, monkeypatch):
+        """load_all_scenarios records skipped files in a module-level list;
+        setup_engine must copy that list onto EngineConfig.skipped_scenarios."""
+        from sapien_score.scenarios import loader as loader_mod
+
+        def fake_loader(**kwargs):
+            # Simulate what load_scenario_directory does on a validation
+            # error when skip_invalid=True: populate _last_skipped_scenarios
+            # and return whatever scenarios DID load cleanly.
+            loader_mod._last_skipped_scenarios = [
+                {"path": "/fake/bad.json", "reason": "validation: missing impact_tier"}
+            ]
+            return list(_CORPUS)
+
+        # setup_engine resolves load_all_scenarios via
+        # `from sapien_score.scenarios.loader import load_all_scenarios`
+        # inside its body — patch the source module.
+        monkeypatch.setattr(loader_mod, "load_all_scenarios", fake_loader)
+
+        console = MagicMock()
+        engine = setup_engine(
+            **{**_DEFAULTS, "console": console},
+            skip_invalid=True,
+        )
+        assert len(engine.skipped_scenarios) == 1
+        assert engine.skipped_scenarios[0]["path"] == "/fake/bad.json"
+        assert "validation" in engine.skipped_scenarios[0]["reason"]

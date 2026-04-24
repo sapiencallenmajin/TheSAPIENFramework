@@ -18,6 +18,7 @@ signal can't be hidden by a lenient judge.
 
 from __future__ import annotations
 
+from sapien_score.scoring.constants import FLAGGED_THRESHOLD
 from sapien_score.scoring.layer1 import (
     DriftResult,
     DimensionScore,
@@ -110,5 +111,5 @@ def blend_scores(
         weighted_drift=weighted_drift,
         dimensions=blended_dims,
         rating=rating,
-        flagged=health_score < 60,
+        flagged=health_score < FLAGGED_THRESHOLD,
     )

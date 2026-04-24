@@ -356,6 +356,7 @@ def build_output_payload(
     scan_started_at: Optional[str] = None,
     scan_finished_at: Optional[str] = None,
     cross_family: Optional[bool] = None,
+    skipped_scenarios: Optional[list] = None,
 ) -> dict:
     """Build the JSON payload written to ``--output``.
 
@@ -379,6 +380,17 @@ def build_output_payload(
         serialize_result_entry(s, r, ovr)
         for (s, r), ovr in zip(results, overrides)
     ]
+
+    # P1-7: build an append-only audit trail of user_override applications.
+    # Entries live at the top level so they survive even if the override
+    # YAML file is later deleted.
+    from sapien_score.scoring.override_config import build_override_audit_entry
+    override_audit: list[dict] = []
+    for (scenario, _result), ovr in zip(results, overrides):
+        entry = build_override_audit_entry(ovr, scenario.id, run_id) if ovr else None
+        if entry:
+            override_audit.append(entry)
+
     failed = failed_scenarios or []
     error_entries = [serialize_failed_entry(fs) for fs in failed]
 
@@ -411,6 +423,10 @@ def build_output_payload(
             payload["scan_finished_at"] = scan_finished_at
         if cross_family is not None:
             payload["cross_family"] = cross_family
+        if override_audit:
+            payload["override_audit"] = override_audit
+        if skipped_scenarios:
+            payload["skipped_scenarios"] = list(skipped_scenarios)
         payload["risk_summary"] = _build_risk_summary(success_entries)
         # Risk summary excludes error entries — they have no verdict/tier.
         payload["content_hash"] = compute_content_hash(new_entries)
@@ -484,6 +500,17 @@ def build_output_payload(
         payload["scan_finished_at"] = scan_finished_at
     if cross_family is not None:
         payload["cross_family"] = cross_family
+    # Merge override_audit: prior-payload entries keep their original
+    # run_id/applied_at, new entries append.
+    prior_audit = list(previous_payload.get("override_audit") or [])
+    merged_audit = prior_audit + override_audit
+    if merged_audit:
+        payload["override_audit"] = merged_audit
+    # skipped_scenarios: same merge — prior skips remain visible.
+    prior_skipped = list(previous_payload.get("skipped_scenarios") or [])
+    merged_skipped = prior_skipped + list(skipped_scenarios or [])
+    if merged_skipped:
+        payload["skipped_scenarios"] = merged_skipped
     payload["risk_summary"] = _build_risk_summary(success_combined)
     payload["content_hash"] = compute_content_hash(combined_entries)
     payload["_checksum"] = compute_results_checksum(combined_entries)
