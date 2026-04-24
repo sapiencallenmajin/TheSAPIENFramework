@@ -1,0 +1,9 @@
+# GitGuardian configuration for sapien-score.
+#
+# Files listed under paths-ignore contain intentionally fake credential
+# strings used by the redaction tests. GitGuardian's high-entropy
+# secret detector flags them as real secrets; they are test fixtures
+# only and live under tests/.
+
+paths-ignore:
+  - "sapien-score/tests/test_credential_redaction.py"

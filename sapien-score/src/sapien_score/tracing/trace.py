@@ -99,7 +99,28 @@ class TraceWriter:
     """
 
     def __init__(self, path: Path, run_id: str) -> None:
-        self._path = Path(path)
+        # Canonicalize the path so a user-supplied ``--output`` with
+        # "../" components can't escape to an unintended directory via
+        # the derived trace-file path. Parents are created relative to
+        # the resolved location, and .parent.resolve() handles the
+        # (not-yet-existing) path component safely on all platforms.
+        raw_path = Path(path)
+        self._path = (raw_path.parent.resolve() / raw_path.name)
+        allowed_roots = (Path.cwd().resolve(), Path.home().resolve())
+        try:
+            resolved_parent = self._path.parent
+            if not any(
+                str(resolved_parent).startswith(str(root))
+                for root in allowed_roots
+            ):
+                logger.warning(
+                    "Trace path %s resolves outside cwd/home; "
+                    "writing anyway but verify --output is intended",
+                    self._path,
+                )
+        except (OSError, ValueError) as exc:
+            logger.warning("Trace path canonicalization check failed: %s", exc)
+
         self._run_id = run_id
         self._lock = threading.Lock()
         self._step_counter = itertools.count(1)

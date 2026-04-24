@@ -334,6 +334,7 @@ def _generate_adaptive_html_report(
             dominant_failure_dimension=r.get("dominant_dimension"),
             most_effective_pressure_type=None,
             total_duration_seconds=r.get("duration_seconds", 0.0),
+            domain=r.get("domain"),
         ))
 
     generate_html_report(

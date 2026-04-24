@@ -40,16 +40,29 @@ def render_scan_header(
 
     scoring_label = "Layer 1 (deterministic)"
     if engine.judge:
-        judge_short = judge_model.split("/")[-1] if "/" in judge_model else judge_model
-        threshold = engine.layer2_threshold
-        if threshold > 0:
-            scoring_label = (
-                f"Layer 1 + Layer 2 (judge: {judge_short}, threshold: {threshold})"
-            )
-        else:
-            scoring_label = (
-                f"Layer 1 + Layer 2 (LLM judge: {judge_short})"
-            )
+        # Council scoring doesn't have a single judge_model — surface the
+        # council size instead so the operator sees which backend is
+        # actually running.
+        if getattr(engine, "scoring_mode", "single") == "council" and engine.council is not None:
+            threshold = engine.layer2_threshold
+            size = engine.council.size
+            if threshold > 0:
+                scoring_label = (
+                    f"Layer 1 + Council ({size} judges, threshold: {threshold})"
+                )
+            else:
+                scoring_label = f"Layer 1 + Council ({size} judges)"
+        elif judge_model:
+            judge_short = judge_model.split("/")[-1] if "/" in judge_model else judge_model
+            threshold = engine.layer2_threshold
+            if threshold > 0:
+                scoring_label = (
+                    f"Layer 1 + Layer 2 (judge: {judge_short}, threshold: {threshold})"
+                )
+            else:
+                scoring_label = (
+                    f"Layer 1 + Layer 2 (LLM judge: {judge_short})"
+                )
 
     cross_family_warning = check_cross_family_judge(model, judge_model)
 
@@ -267,15 +280,28 @@ def render_timing_summary(
 # Cost estimation (--estimate)
 # ---------------------------------------------------------------------------
 
-def show_cost_estimate(console: "Console", model: str, scenarios: list, avg_tokens: int, judge_model: str | None) -> None:
+def show_cost_estimate(
+    console: "Console",
+    model: str,
+    scenarios: list,
+    avg_tokens: int,
+    judge_model: str | None,
+    scoring_mode: str = "council",
+    council_size: int = 5,
+) -> None:
     """Show estimated cost without making API calls."""
     from rich.panel import Panel
 
     total_turns = sum(len(s.escalations) + 1 for s in scenarios)  # +1 for opening
-    total_tokens = total_turns * avg_tokens * 2  # input + output per turn
+    # Target-model tokens: input + output per turn.
+    target_tokens = total_turns * avg_tokens * 2
 
-    # If judge is enabled, double the token estimate (judge calls per scored turn)
-    if judge_model:
+    # If a single judge is enabled, double the per-turn token cost for the
+    # judge-model estimate. Council scoring is estimated separately below
+    # using a flat per-scenario-per-turn rate, since per-seat prices vary
+    # and a precise rollup isn't worthwhile at estimate time.
+    total_tokens = target_tokens
+    if scoring_mode == "single" and judge_model:
         total_tokens *= 2
 
     try:
@@ -283,36 +309,68 @@ def show_cost_estimate(console: "Console", model: str, scenarios: list, avg_toke
         input_cost, output_cost = litellm.cost_per_token(
             model=model, prompt_tokens=1, completion_tokens=1,
         )
-        # Estimate: half input, half output
-        estimated_cost = (total_tokens / 2) * input_cost + (total_tokens / 2) * output_cost
+        # Estimate: half input, half output.
+        estimated_cost = (
+            (target_tokens / 2) * input_cost
+            + (target_tokens / 2) * output_cost
+        )
     except Exception:
         estimated_cost = None
+
+    # Council cost rule-of-thumb: ~$0.007 per scenario-turn for 5 judges,
+    # ~$0.004 for 3. Anchored to the cheapest-capable default council
+    # roster — actual cost varies with provider pricing.
+    council_cost = None
+    if scoring_mode == "council":
+        per_turn_rate = 0.007 if council_size == 5 else 0.004
+        council_cost = total_turns * per_turn_rate
+
+    scoring_line = (
+        f"\nScoring: Council ({council_size} judges)"
+        if scoring_mode == "council"
+        else f"\nScoring: Single judge ({judge_model})"
+        if judge_model else "\nScoring: Layer 1 only"
+    )
 
     console.print()
     console.print(Panel.fit(
         f"[bold]Cost Estimation[/bold]\n"
-        f"Model: [cyan]{model}[/cyan]\n"
+        f"Model: [cyan]{model}[/cyan]"
+        f"{scoring_line}\n"
         f"Scenarios: {len(scenarios)}\n"
         f"Estimated turns: {total_turns}\n"
         f"Avg tokens per turn: {avg_tokens}\n"
         f"Estimated total tokens: {total_tokens:,}" +
-        (f"\n[bold]Estimated cost: ${estimated_cost:.4f}[/bold]" if estimated_cost is not None
-         else "\n[yellow]Cost estimate unavailable for this model[/yellow]") +
-        (f"\n[dim](includes judge model: {judge_model})[/dim]" if judge_model else ""),
+        (f"\n[bold]Estimated target cost: ${estimated_cost:.4f}[/bold]" if estimated_cost is not None
+         else "\n[yellow]Target-model cost unavailable[/yellow]") +
+        (f"\n[bold]Estimated council cost: ${council_cost:.4f}[/bold] "
+         f"[dim](~${(council_cost / max(len(scenarios), 1)):.4f} per scenario)[/dim]"
+         if council_cost is not None else ""),
         border_style="blue",
     ))
 
-    if judge_model:
+    if scoring_mode == "single" and judge_model:
         try:
+            import litellm
             j_input_cost, j_output_cost = litellm.cost_per_token(
                 model=judge_model, prompt_tokens=1, completion_tokens=1,
             )
             judge_tokens = total_turns * avg_tokens * 2
-            judge_cost = (judge_tokens / 2) * j_input_cost + (judge_tokens / 2) * j_output_cost
+            judge_cost = (
+                (judge_tokens / 2) * j_input_cost
+                + (judge_tokens / 2) * j_output_cost
+            )
             console.print(f"  [dim]Judge model cost: ~${judge_cost:.4f}[/dim]")
             if estimated_cost is not None:
-                console.print(f"  [dim]Combined estimate: ~${estimated_cost + judge_cost:.4f}[/dim]")
+                console.print(
+                    f"  [dim]Combined estimate: ~${estimated_cost + judge_cost:.4f}[/dim]"
+                )
         except Exception:
             pass
+
+    if scoring_mode == "council" and estimated_cost is not None and council_cost is not None:
+        console.print(
+            f"  [dim]Combined estimate: ~${estimated_cost + council_cost:.4f}[/dim]"
+        )
 
     console.print()

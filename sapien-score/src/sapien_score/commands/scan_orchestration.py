@@ -90,14 +90,20 @@ def load_risk_overrides(console: "Console", config_path: Optional[str]) -> list:
 
     from sapien_score.scoring.override_config import load_override_config
 
+    # Resolve to an absolute path so the operator sees exactly which file
+    # was loaded — "./sapien-config.yaml" is cwd-dependent and ambiguous
+    # when multiple working directories (CI agent, ops console) are in play.
+    resolved_path = str(Path(config_path).resolve())
+
     try:
         rules = load_override_config(config_path)
     except (ValueError, OSError) as e:
         console.print(f"[red]Override config error: {e}[/red]")
         raise SystemExit(1)
 
+    logger.info("Loaded override config from %s", resolved_path)
     console.print(
-        f"[dim]Loaded {len(rules)} override rule(s) from {config_path}[/dim]"
+        f"[dim]Loaded {len(rules)} override rule(s) from {resolved_path}[/dim]"
     )
     return rules
 
@@ -137,6 +143,8 @@ def setup_engine(
     scenario_ids: Optional[str] = None,
     force_resume: bool = False,
     skip_invalid: bool = False,
+    scoring_mode: Literal["council", "single"] = "council",
+    council_size: int = 5,
 ) -> EngineConfig:
     """Resolve arguments, build adapters, load scenarios.
 
@@ -316,11 +324,19 @@ def setup_engine(
     if replay:
         if not allow_trace_during_replay:
             no_trace = True
+        # Validate the user-supplied path BEFORE any filesystem access so a
+        # path containing ".." or that resolves outside the working tree is
+        # rejected regardless of whether the file happens to exist on disk.
+        replay_clean = Path(replay)
+        if any(part == ".." for part in replay_clean.parts):
+            console.print(f"[red]Error: replay path contains illegal components: {replay}[/red]")
+            raise SystemExit(1)
         replay_path = Path(replay)
         if not replay_path.exists():
             # Fall back to package-bundled data (e.g. examples/traces/...).
-            replay_clean = Path(replay)
-            if replay_clean.is_absolute() or any(part == ".." for part in replay_clean.parts):
+            # Absolute paths must already exist at the user-supplied location;
+            # the bundled-resource fallback only makes sense for relative paths.
+            if replay_clean.is_absolute():
                 console.print(f"[red]Error: replay path contains illegal components: {replay}[/red]")
                 raise SystemExit(1)
             from importlib.resources import files
@@ -371,9 +387,20 @@ def setup_engine(
     else:
         model_profile = override_profile(tier_override)
 
-    # --- Build judge ---
+    # --- Build judge (single- or council-scoring) ---
+    # Single path: one JudgeScorer over one judge_model adapter.
+    # Council path: one CouncilScorer over a per-seat adapter pool,
+    #   built once here and reused across every turn of every scenario
+    #   so we don't pay LiteLLMAdapter construction cost per call.
     judge = None
-    if judge_model:
+    council: Optional["CouncilConfig"] = None
+    if scoring_mode == "single":
+        if not judge_model:
+            # Defense in depth; CLI already rejects this.
+            console.print(
+                "[red]--scoring single requires --judge MODEL[/red]"
+            )
+            raise SystemExit(1)
         from sapien_score.scoring.judge import JudgeScorer
         if trace_reader:
             from sapien_score.tracing.replay import ReplayAdapter
@@ -384,6 +411,45 @@ def setup_engine(
             judge_adapter.trace_writer = trace_writer
             judge_adapter.call_kind = "judge_call"
         judge = JudgeScorer(adapter=judge_adapter)
+    else:  # scoring_mode == "council"
+        from sapien_score.engine.council_config import CouncilConfig
+        from sapien_score.engine.council_scorer import CouncilScorer
+        council = CouncilConfig(size=int(council_size))
+
+        # Shared adapter pool: one LiteLLMAdapter per seat, constructed
+        # once. The judge_caller closure looks up by seat identity so the
+        # same adapter handles every turn's call for that seat.
+        seat_adapters: dict[str, object] = {}
+        for seat in council.seats:
+            if trace_reader:
+                from sapien_score.tracing.replay import ReplayAdapter
+                seat_adapter = ReplayAdapter(trace_reader, call_kind="judge_call")
+            else:
+                seat_model_str = (
+                    f"{seat.model}@{seat.model_version}"
+                    if seat.model_version else seat.model
+                )
+                seat_adapter = get_adapter(
+                    model=seat_model_str, base_retry_delay=retry_delay,
+                )
+            if trace_writer:
+                seat_adapter.trace_writer = trace_writer
+                seat_adapter.call_kind = "judge_call"
+            seat_adapters[seat.model] = seat_adapter
+
+        def _pool_caller(seat, system: str, user_msg: str) -> str:
+            a = seat_adapters[seat.model]
+            return a.send_message(
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user_msg},
+                ],
+            )
+
+        judge = CouncilScorer(
+            council_config=council,
+            judge_caller=_pool_caller,
+        )
 
     # --- Partial results path ---
     if output:
@@ -422,6 +488,8 @@ def setup_engine(
         run_id=run_id,
         scan_started_at=scan_started_at,
         skipped_scenarios=skipped_scenarios,
+        scoring_mode=scoring_mode,
+        council=council,
     )
 
 
@@ -457,6 +525,11 @@ def run_scan_loop(
     failed_scenarios: list[dict] = []
     running_tokens = 0
     running_cost = 0.0
+    # Halt the scan after this many consecutive checkpoint-write failures.
+    # A full disk or a permissions glitch shouldn't produce hundreds of
+    # warning lines and a scan whose --resume file never materializes.
+    CHECKPOINT_FAILURE_LIMIT = 3
+    consecutive_checkpoint_failures = 0
 
     try:
         with Progress(
@@ -539,7 +612,22 @@ def run_scan_loop(
                         )
                         _atomic_write_json(output, ckpt_payload)
                     except OSError as e:
-                        logger.warning("Checkpoint write failed: %s", e)
+                        consecutive_checkpoint_failures += 1
+                        logger.warning(
+                            "Checkpoint write failed (%d consecutive): %s",
+                            consecutive_checkpoint_failures, e,
+                        )
+                        if consecutive_checkpoint_failures >= CHECKPOINT_FAILURE_LIMIT:
+                            console.print(
+                                f"\n[red]Checkpoint write has failed "
+                                f"{consecutive_checkpoint_failures} times in a row "
+                                f"(last error: {e}). Aborting scan so the problem "
+                                f"isn't hidden under a flood of warnings — check "
+                                f"disk space / permissions on {output}.[/red]"
+                            )
+                            raise SystemExit(1)
+                    else:
+                        consecutive_checkpoint_failures = 0
 
                 save_partial(
                     results, failed_scenarios, engine.partial_path,
@@ -593,6 +681,7 @@ def finalize_scan(
     publish_primary: bool = False,
     publish_url: Optional[str] = None,
     publisher: Optional[str] = None,
+    publish_transcripts: bool = False,
     layer2_threshold_applied: float = 0.0,
 ) -> None:
     """Write JSON/CSV/HTML outputs, optionally publish, and clean up."""
@@ -685,6 +774,20 @@ def finalize_scan(
     if engine.trace_writer:
         engine.trace_writer.close()
 
+    # --- Surface any silently-degraded judge activity ---
+    # JudgeScorer tracks total turns where both attempts failed. If that
+    # count is >0, L2 silently fell back to L1 for those turns — warn
+    # loudly so the operator doesn't assume a clean judge run.
+    judge_failures = getattr(engine.judge, "failure_count", 0) or 0
+    if judge_failures > 0:
+        total_turns = sum(len(r.turns) for _, r in results) if results else 0
+        console.print(
+            f"[yellow]Judge degraded: {judge_failures} turn(s) fell back "
+            f"to Layer 1 only (out of {total_turns} scored). "
+            f"Check earlier WARNING lines for causes (API key / rate "
+            f"limits / parse failures).[/yellow]"
+        )
+
     # --- Publish to scoreboard ---
     if publish and output_data:
         from sapien_score.publishing.client import publish_results, resolve_judge_family
@@ -698,6 +801,7 @@ def finalize_scan(
             is_primary=publish_primary,
             publish_url=publish_url,
             publisher=publisher,
+            publish_transcripts=publish_transcripts,
         )
 
     console.print()

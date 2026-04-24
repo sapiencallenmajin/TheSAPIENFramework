@@ -17,14 +17,19 @@ import csv
 import hashlib
 import json
 import logging
-import os
-import tempfile
 from datetime import datetime
 from pathlib import Path
 from statistics import quantiles
 from typing import Optional
 
+from sapien_score.io import atomic_write_json
+
 logger = logging.getLogger(__name__)
+
+# Back-compat alias: external callers (including tests that patch
+# ``sapien_score.commands.scan_output.os.replace``) imported the private
+# name. Keep the alias so the name still resolves at the old path.
+_atomic_write_json = atomic_write_json
 
 
 # ---------------------------------------------------------------------------
@@ -42,6 +47,11 @@ def compute_results_checksum(entries: list) -> str:
     Used to detect tampering of a resume file. Entries are projected to a
     canonical shape and sorted by scenario_id so the checksum is stable
     regardless of list order.
+
+    Council scoring adds a trinary ``surface_result`` (``"PASS"`` /
+    ``"FAIL"`` / ``""`` for all-judges-failed) that's independent of the
+    blended ``verdict`` — include it in the fingerprint so a tamperer
+    can't flip a PASS to FAIL (or vice versa) without detection.
     """
     fingerprint = sorted(
         (
@@ -49,6 +59,7 @@ def compute_results_checksum(entries: list) -> str:
                 e.get("scenario_id", ""),
                 e.get("health_score"),
                 e.get("verdict", ""),
+                (e.get("council_scoring") or {}).get("surface_result", ""),
             )
             for e in entries or []
         ),
@@ -68,50 +79,6 @@ def compute_content_hash(entries: list) -> str:
     return hashlib.sha256(
         _canonical_json(entries or []).encode("utf-8")
     ).hexdigest()
-
-
-def _atomic_write_json(path: str, data: dict) -> None:
-    """Write JSON atomically: temp file → fsync → rename.
-
-    Safety properties:
-      * A crash mid-write never leaves the target path partially written —
-        it's replaced in a single ``os.replace`` call.
-      * Before replacement, the previous contents (if any) are copied to
-        ``<path>.backup.json`` so a corrupted new payload is recoverable.
-      * Temp file lives in the same directory as the target so the final
-        rename is atomic on the same filesystem.
-    """
-    target = Path(path)
-    target.parent.mkdir(parents=True, exist_ok=True)
-
-    # Preserve prior contents before we overwrite.
-    if target.exists():
-        backup = target.with_suffix(target.suffix + ".backup.json") \
-            if target.suffix != ".json" \
-            else target.with_name(target.stem + ".backup.json")
-        try:
-            backup.write_bytes(target.read_bytes())
-        except OSError as exc:
-            logger.warning("Could not write backup %s: %s", backup, exc)
-
-    fd, tmp_path = tempfile.mkstemp(
-        prefix=target.name + ".",
-        suffix=".tmp",
-        dir=str(target.parent),
-    )
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, default=str)
-            f.flush()
-            os.fsync(f.fileno())
-        os.replace(tmp_path, target)
-    except Exception:
-        # Never leave a stale tmp on failure.
-        try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
-        raise
 
 
 # ---------------------------------------------------------------------------
@@ -234,6 +201,11 @@ def serialize_result_entry(scenario, result, override_result=None) -> dict:
         for t in result.api_timings
     ]
     entry["per_turn_durations"] = result.per_turn_durations
+    # Council scoring: include the aggregated verdict when this run used
+    # the multi-judge panel. Absent for single-judge scans.
+    council_result = getattr(result, "council_result", None)
+    if council_result is not None:
+        entry["council_scoring"] = council_result.to_dict()
     return entry
 
 
@@ -397,14 +369,6 @@ def build_output_payload(
         entry = build_override_audit_entry(ovr, scenario.id, run_id) if ovr else None
         if entry:
             override_audit.append(entry)
-
-    failed = failed_scenarios or []
-    error_entries = [serialize_failed_entry(fs) for fs in failed]
-
-    # Error entries are surfaced in the results array so consumers can see
-    # the drop count, but are not included in mean/p10 (those were already
-    # computed by the caller from successes only).
-    new_entries = success_entries + error_entries
 
     if previous_payload is None:
         payload = {

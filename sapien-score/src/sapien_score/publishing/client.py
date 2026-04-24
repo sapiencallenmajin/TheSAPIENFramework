@@ -109,6 +109,45 @@ def resolve_judge_family(
     return None
 
 
+_TRANSCRIPT_FIELDS = ("user_message", "assistant_response")
+
+
+def _strip_transcripts(output_data: dict) -> dict:
+    """Return a deep-ish copy of *output_data* with per-turn transcripts removed.
+
+    Preserves scores, dimensions, health, verdicts, timings, and all
+    top-level metadata so the scoreboard retains everything it needs to
+    plot and rank — but drops the verbatim ``user_message`` and
+    ``assistant_response`` text. Persona / memory strings and any
+    credentials a misconfigured provider echoed back stay local.
+    """
+    stripped = dict(output_data)
+    results = stripped.get("results")
+    if isinstance(results, list):
+        new_results = []
+        for entry in results:
+            if not isinstance(entry, dict):
+                new_results.append(entry)
+                continue
+            new_entry = dict(entry)
+            turns = new_entry.get("turns")
+            if isinstance(turns, list):
+                new_turns = []
+                for turn in turns:
+                    if isinstance(turn, dict):
+                        new_turn = {
+                            k: v for k, v in turn.items()
+                            if k not in _TRANSCRIPT_FIELDS
+                        }
+                        new_turns.append(new_turn)
+                    else:
+                        new_turns.append(turn)
+                new_entry["turns"] = new_turns
+            new_results.append(new_entry)
+        stripped["results"] = new_results
+    return stripped
+
+
 def publish_results(
     *,
     console: "Console",
@@ -119,10 +158,17 @@ def publish_results(
     is_primary: bool,
     publish_url: Optional[str],
     publisher: Optional[str] = None,
+    publish_transcripts: bool = False,
 ) -> None:
     """POST scan results to the SAPIEN scoreboard.
 
     Never raises — all errors are printed as warnings.
+
+    By default, per-turn ``user_message`` and ``assistant_response`` text
+    is stripped from each result entry before transmit — scores and
+    metadata go to the scoreboard but raw transcripts (which may embed
+    persona / memory context or provider-echoed credentials) stay local.
+    Pass ``publish_transcripts=True`` to opt in to sending full text.
     """
     import httpx
 
@@ -142,7 +188,11 @@ def publish_results(
     # output_data already carries run_id, scan_started_at, scan_finished_at,
     # content_hash, _checksum, n_requested, n_completed, n_failed — schema
     # v3 is the first version where all of those are required server-side.
-    payload = dict(output_data)
+    if publish_transcripts:
+        payload = dict(output_data)
+    else:
+        payload = _strip_transcripts(output_data)
+        payload["transcripts_stripped"] = True
     payload["judge_model"] = judge_model
     payload["judge_family"] = judge_family
     payload["run_label"] = run_label

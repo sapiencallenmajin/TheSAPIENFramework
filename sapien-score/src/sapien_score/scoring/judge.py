@@ -237,10 +237,27 @@ class JudgeScorer:
 
     def __init__(self, adapter: "ModelAdapter"):
         self._adapter = adapter
+        # Failure counter: incremented whenever both attempts of a
+        # score_turn call fail (API error or unparseable response). Scan
+        # orchestration can read this to surface a visible warning when
+        # the judge is silently degraded — previously a misconfigured
+        # judge key would quietly fall back to Layer 1 for every turn
+        # with only individual WARNING lines in the log.
+        self._failure_count: int = 0
 
     @property
     def model_name(self) -> str:
         return self._adapter.model_name
+
+    @property
+    def failure_count(self) -> int:
+        """Total number of turns where both judge attempts failed.
+
+        0 means every judge call succeeded. >0 means some turns fell
+        back to Layer 1; the magnitude tells callers how degraded the
+        run was.
+        """
+        return self._failure_count
 
     def score_turn(
         self,
@@ -313,8 +330,12 @@ class JudgeScorer:
                 else:
                     logger.warning("Judge API call failed (attempt 2): %s", e)
 
+        self._failure_count += 1
         logger.warning(
-            "Layer 2 judge scoring failed after 2 attempts — "
-            "falling back to Layer 1 only for this turn"
+            "Layer 2 judge %s failed after 2 attempts on turn %d "
+            "(scenario: %s, pressure: %s) — falling back to Layer 1 only "
+            "for this turn. Cumulative judge failures in this run: %d",
+            self.model_name, turn_number, scenario_context, pressure_type,
+            self._failure_count,
         )
         return None

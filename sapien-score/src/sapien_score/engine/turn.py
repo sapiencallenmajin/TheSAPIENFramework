@@ -22,7 +22,7 @@ import logging
 from sapien_score.engine.adapter import UsageInfo
 from sapien_score.engine.types import APICallTiming, TurnRecord
 from sapien_score.scenarios.loader import Escalation, Scenario
-from sapien_score.scoring.composite import apply_divergence_fallback, blend_scores
+from sapien_score.scoring.composite import score_with_layer2
 from sapien_score.scoring.layer1 import DriftResult, score_turn
 
 logger = logging.getLogger(__name__)
@@ -42,10 +42,16 @@ _BLIND_SCENARIO_CONTEXT = "behavioral safety scenario"
 # in logs. Redact anything resembling a common credential format before
 # any verbose print/log call in this module.
 _CREDENTIAL_PATTERNS = (
-    re.compile(r"sk-\S+"),
-    re.compile(r"Bearer\s+\S+"),
-    re.compile(r"AKIA\S+"),
-    re.compile(r"AIza\S+"),
+    re.compile(r"sk-ant-\S+"),          # Anthropic (explicit, matched before generic sk-)
+    re.compile(r"sk-\S+"),              # OpenAI-style secret keys
+    re.compile(r"Bearer\s+\S+"),        # Generic bearer tokens
+    re.compile(r"AKIA\S+"),             # AWS access key ID
+    re.compile(r"AIza\S+"),             # Google API keys
+    re.compile(r"ya29\.\S+"),           # Google OAuth access tokens
+    re.compile(r"ghp_\S+"),              # GitHub personal access token (classic)
+    re.compile(r"github_pat_\S+"),      # GitHub fine-grained PAT
+    re.compile(r"xoxb-\S+"),             # Slack bot tokens
+    re.compile(r"xoxp-\S+"),             # Slack user tokens
 )
 
 
@@ -285,37 +291,32 @@ def execute_escalation_turn(
     else:
         turn_score = score_turn(response, response)
 
-    # Layer 2 judge scoring
+    # Layer 2 judge scoring — unified helper handles threshold gate,
+    # judge-None fallback, divergence clamping, blending, and reasoning
+    # extraction. Mirrors the same flow in adaptive/engine.py and
+    # commands/rejudge.py (all three sites go through score_with_layer2).
     layer1_result = turn_score if judge else None
-    layer2_result = None
-    judge_reasoning = None
-    final_score = turn_score
-    divergence_flag = False
-
-    if judge and baseline_response and turn_score.weighted_drift >= layer2_threshold:
-        t0 = time.time()
-        layer2_result = judge.score_turn(
-            scenario_context=_BLIND_SCENARIO_CONTEXT,
-            user_prompt=user_message,
-            assistant_response=response,
-            baseline_response=baseline_response,
-            turn_number=turn_number,
-            pressure_type=escalation.pressure_type or "unknown",
-        )
-        judge_elapsed = time.time() - t0
-        api_timings.append(APICallTiming(scenario.id, turn_number, "judge", round(judge_elapsed, 4)))
-        if layer2_result is not None:
-            judge_reasoning = layer2_result.pop("reasoning", None)
-            filtered_l2, divergence_flag = apply_divergence_fallback(
-                turn_score, layer2_result,
-            )
-            if divergence_flag:
-                logger.warning(
-                    "Layer 2 judge diverged >0.40 from Layer 1 on scenario %s "
-                    "turn %d; falling back to Layer 1 for divergent dimensions",
-                    scenario.id, turn_number,
-                )
-            final_score = blend_scores(turn_score, filtered_l2)
+    fusion = score_with_layer2(
+        layer1=turn_score,
+        judge=judge if baseline_response else None,
+        scenario_context=_BLIND_SCENARIO_CONTEXT,
+        user_prompt=user_message,
+        assistant_response=response,
+        baseline_response=baseline_response,
+        turn_number=turn_number,
+        pressure_type=escalation.pressure_type or "unknown",
+        layer2_threshold=layer2_threshold,
+        log_context=f"scenario {scenario.id}",
+    )
+    if fusion.judge_invoked:
+        api_timings.append(APICallTiming(
+            scenario.id, turn_number, "judge",
+            round(fusion.judge_elapsed_seconds, 4),
+        ))
+    layer2_result = fusion.layer2_raw
+    judge_reasoning = fusion.judge_reasoning
+    final_score = fusion.final_score
+    divergence_flag = fusion.divergence_flag
 
     turns.append(TurnRecord(
         turn_number=turn_number,
