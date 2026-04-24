@@ -244,6 +244,7 @@ def build_output_payload(
     previous_payload: Optional[dict] = None,
     resume_path: Optional[str] = None,
     override_rules: Optional[list] = None,
+    layer2_threshold_applied: float = 0.0,
 ) -> dict:
     """Build the JSON payload written to ``--output``.
 
@@ -278,6 +279,7 @@ def build_output_payload(
             "dimension_averages": {k: round(v, 4) for k, v in (dim_averages or {}).items()},
             "total_tokens": total_tokens_new,
             "total_cost_usd": round(total_cost_new, 6),
+            "layer2_threshold_applied": layer2_threshold_applied,
             "results": new_entries,
         }
         payload["risk_summary"] = _build_risk_summary(new_entries)
@@ -325,6 +327,7 @@ def build_output_payload(
         "dimension_averages": {k: round(v, 4) for k, v in merged_dim.items()},
         "total_tokens": combined_tokens,
         "total_cost_usd": round(combined_cost, 6),
+        "layer2_threshold_applied": layer2_threshold_applied,
         "results": combined_entries,
     }
     payload["risk_summary"] = _build_risk_summary(combined_entries)

@@ -62,7 +62,11 @@ from .scan_output import (  # noqa: F401
 @click.option("--mode", "scan_mode", type=click.Choice(["quick", "standard", "deep"]),
               default=None, help="Scan mode preset: quick (fast), standard (balanced), deep (full)")
 @click.option("--layer2-threshold", "layer2_threshold", type=float, default=None,
-              help="Skip Layer 2 judge on turns with weighted_drift below this (0.0=always judge)")
+              help="Skip Layer 2 judge on turns with weighted_drift below this (0.0=always judge). "
+                   "Any value >0.0 requires --allow-partial-judging.")
+@click.option("--allow-partial-judging", "allow_partial_judging", is_flag=True, default=False,
+              help="Opt in to partial judging (layer2_threshold>0). Results are stamped with "
+                   "layer2_threshold_applied so downstream consumers know not all turns were judged.")
 @click.option("--no-counter-refusals", "no_counter_refusals", is_flag=True, default=False,
               help="Disable counter-refusal injection for faster benchmark runs")
 @click.option("--no-trace", "no_trace", is_flag=True, default=False,
@@ -90,7 +94,8 @@ from .scan_output import (  # noqa: F401
 def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
          delay, persona, memory, profile, estimate, avg_tokens, cost_csv, resume,
          retry_delay, debug, collection, authorship, audience, scenarios_dir_override,
-         tier_override, scan_mode, layer2_threshold, no_counter_refusals, no_trace,
+         tier_override, scan_mode, layer2_threshold, allow_partial_judging,
+         no_counter_refusals, no_trace,
          replay, allow_trace_during_replay, publish, publish_label, publish_primary,
          publish_url, publisher, config_path, skip_untyped, scenario_ids):
     """Run scenarios against a model and score behavioral safety."""
@@ -115,6 +120,20 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
     # --layer2-threshold overrides mode preset
     if layer2_threshold is not None:
         effective_threshold = layer2_threshold
+
+    # Partial judging (threshold>0) means some turns are scored on Layer 1
+    # alone. Require explicit opt-in so published results can't silently
+    # ship with incomplete judge coverage.
+    if effective_threshold > 0.0 and not allow_partial_judging:
+        click.echo(
+            f"Error: layer2_threshold={effective_threshold} requires "
+            "--allow-partial-judging. Partial judging skips the LLM judge on "
+            "low-drift turns, which weakens benchmark coverage. Re-run with "
+            "the flag to opt in, or use --mode deep / --layer2-threshold 0 "
+            "for full coverage.",
+            err=True,
+        )
+        raise SystemExit(1)
 
     from .scan_display import (
         render_per_turn_detail,
@@ -174,4 +193,5 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
         publish=publish, publish_label=publish_label,
         publish_primary=publish_primary, publish_url=publish_url,
         publisher=publisher,
+        layer2_threshold_applied=effective_threshold,
     )

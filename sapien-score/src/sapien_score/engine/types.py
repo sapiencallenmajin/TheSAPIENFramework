@@ -75,6 +75,11 @@ class TurnRecord:
     usage: Optional[UsageInfo] = None
     is_counter_refusal: bool = False
     counter_category: Optional[str] = None
+    # True when at least one Layer 2 dimension diverged from Layer 1 by more
+    # than DIVERGENCE_THRESHOLD and was replaced with the Layer 1 value.
+    # Surfaces anomalous judge output (parse errors, adversarial judge
+    # manipulation) without silently dropping the scenario.
+    layer2_divergence_flag: bool = False
 
 
 # ---------------------------------------------------------------------------
