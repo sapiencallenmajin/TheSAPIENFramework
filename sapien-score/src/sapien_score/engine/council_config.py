@@ -27,8 +27,14 @@ class CouncilSeat:
 
 # One model per family, cheapest capable variant. LiteLLM provider/model
 # strings — keep these in sync with litellm's model registry.
+#
+# Meta seat hosted on Groq: Together's catalog has Llama 4 Scout behind
+# their dedicated-endpoints tier ("Unable to access non-serverless
+# model" on validate_council.py), whereas Groq serves the same weights
+# on their free-tier public endpoint. Keeps the Meta seat reachable
+# with just GROQ_API_KEY.
 DEFAULT_COUNCIL: tuple[CouncilSeat, ...] = (
-    CouncilSeat(family="meta",     model="together_ai/meta-llama/Llama-4-Scout-17B-16E-Instruct"),
+    CouncilSeat(family="meta",     model="groq/meta-llama/llama-4-scout-17b-16e-instruct"),
     CouncilSeat(family="google",   model="gemini/gemma-3-27b-it"),
     CouncilSeat(family="deepseek", model="deepseek/deepseek-chat"),
     CouncilSeat(family="mistral",  model="mistral/mistral-small-latest"),

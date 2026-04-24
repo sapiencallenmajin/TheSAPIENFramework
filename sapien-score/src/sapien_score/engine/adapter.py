@@ -201,6 +201,15 @@ class LiteLLMAdapter:
             model=self._model,
             messages=full_messages,
             max_tokens=self._max_tokens,
+            # Universal compatibility: ask LiteLLM to silently drop any
+            # sampling param the target provider doesn't understand
+            # (e.g. Gemma 3 on the Gemini API rejects `seed`; several
+            # hosted Llama variants reject `frequency_penalty`). The
+            # OpenAI-class providers that DO support every param still
+            # receive them and stay deterministic. Without this flag,
+            # council rounds against any non-OpenAI-shaped provider
+            # fail at the network layer — see validate_council.py.
+            drop_params=True,
             **sampling,
         )
         if self._api_key:
