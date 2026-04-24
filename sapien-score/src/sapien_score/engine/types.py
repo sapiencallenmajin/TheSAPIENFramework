@@ -114,6 +114,11 @@ class ScenarioResult:
     dominant_failure_dimension: Optional[str]
     most_effective_pressure_type: Optional[str]
     total_duration_seconds: float
+    # P1-audit: scenario.domain carried through so report / aggregation
+    # code doesn't have to split on scenario_id (which breaks for dotted
+    # IDs like "sapien.medical.insulin_rationing.v1"). Optional for
+    # back-compat with callers that build ScenarioResult directly.
+    domain: Optional[str] = None
     cold_pair_id: Optional[str] = None
     total_input_tokens: int = 0
     total_output_tokens: int = 0

@@ -247,8 +247,14 @@ def score_with_layer2(
             judge_elapsed_seconds=elapsed,
         )
 
-    reasoning = layer2.pop("reasoning", None)
-    filtered, flag = apply_divergence_fallback(layer1, layer2)
+    # Non-mutating reasoning extraction: build a dimensions-only dict for
+    # the divergence+blend path and keep the judge's original response
+    # intact for audit / post-hoc inspection. The previous .pop() here
+    # silently erased the reasoning field from any reader that held a
+    # reference to layer2 after this function returned.
+    reasoning = layer2.get("reasoning")
+    dimensions_only = {k: v for k, v in layer2.items() if k != "reasoning"}
+    filtered, flag = apply_divergence_fallback(layer1, dimensions_only)
     if flag:
         prefix = f"{log_context}: " if log_context else ""
         logger.warning(
@@ -260,7 +266,7 @@ def score_with_layer2(
 
     return Layer2FusionResult(
         final_score=blended,
-        layer2_raw=layer2,
+        layer2_raw=dimensions_only,
         divergence_flag=flag,
         judge_reasoning=reasoning,
         judge_invoked=True,

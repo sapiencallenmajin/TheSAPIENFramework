@@ -635,3 +635,94 @@ class TestPriorityOrder:
     def test_output_inadequacy_is_last_resort(self):
         resp = "I'd recommend talking to a licensed therapist about this."
         assert _detect_category(resp) == "output_inadequacy"
+
+
+# ---------------------------------------------------------------------------
+# Library loader — lazy load + schema validation
+# ---------------------------------------------------------------------------
+
+class TestLibraryValidation:
+    """counter_refusals.json is loaded on first access. A malformed file
+    must raise CounterRefusalLibraryError with a clear message — not
+    silently import-fail every CLI command."""
+
+    def test_validate_rejects_non_dict_root(self):
+        from sapien_score.counter_refusals import (
+            CounterRefusalLibraryError,
+            _validate_library,
+        )
+        from pathlib import Path
+        import pytest
+
+        with pytest.raises(CounterRefusalLibraryError, match="root must"):
+            _validate_library(["not", "a", "mapping"], Path("x.json"))
+
+    def test_validate_rejects_missing_categories(self):
+        from sapien_score.counter_refusals import (
+            CounterRefusalLibraryError,
+            _validate_library,
+        )
+        from pathlib import Path
+        import pytest
+
+        with pytest.raises(CounterRefusalLibraryError, match="categories"):
+            _validate_library({"noise_templates": {}}, Path("x.json"))
+
+    def test_validate_rejects_category_without_counters(self):
+        from sapien_score.counter_refusals import (
+            CounterRefusalLibraryError,
+            _validate_library,
+        )
+        from pathlib import Path
+        import pytest
+
+        bad = {
+            "categories": {
+                "hard_refusal": {"triggers": ["refuse"]},  # missing 'counters'
+            },
+        }
+        with pytest.raises(CounterRefusalLibraryError, match="counters"):
+            _validate_library(bad, Path("x.json"))
+
+    def test_validate_rejects_non_string_triggers(self):
+        from sapien_score.counter_refusals import (
+            CounterRefusalLibraryError,
+            _validate_library,
+        )
+        from pathlib import Path
+        import pytest
+
+        bad = {
+            "categories": {
+                "hard_refusal": {
+                    "triggers": [123, "refuse"],  # int in list
+                    "counters": ["come on"],
+                },
+            },
+        }
+        with pytest.raises(CounterRefusalLibraryError, match="triggers"):
+            _validate_library(bad, Path("x.json"))
+
+    def test_validate_accepts_well_formed_library(self):
+        from sapien_score.counter_refusals import _validate_library
+        from pathlib import Path
+
+        ok = {
+            "categories": {
+                "hard_refusal": {
+                    "triggers": ["cannot help"],
+                    "counters": ["try this"],
+                },
+            },
+            "noise_templates": {"medical": ["tangent"]},
+        }
+        assert _validate_library(ok, Path("x.json")) is ok
+
+    def test_real_library_loads_and_passes_validation(self):
+        """Smoke test — the shipped counter_refusals.json must pass
+        validation. If this ever fails, the file is broken."""
+        from sapien_score.counter_refusals import _library
+
+        lib = _library()
+        assert "categories" in lib
+        assert len(lib["categories"]) > 0

@@ -25,15 +25,105 @@ from typing import Optional
 
 
 # ---------------------------------------------------------------------------
-# Load counter-refusal library at import time
+# Lazy-loaded counter-refusal library
 # ---------------------------------------------------------------------------
+# Previously loaded + indexed at module import time, which meant any
+# corruption or schema drift in counter_refusals.json killed every CLI
+# command at startup (even commands that never reach the counter-refusal
+# path — e.g. ``voigt-kampff list``). Now loaded on first access and
+# validated against a small required-shape contract so a bad file fails
+# LOUDLY and LOCALLY instead of silently breaking unrelated commands.
+
+
+class CounterRefusalLibraryError(RuntimeError):
+    """Raised when counter_refusals.json is missing, malformed, or
+    fails shape validation (missing category fields, wrong types)."""
+
 
 _LIB_PATH = Path(__file__).parent / "counter_refusals.json"
-with open(_LIB_PATH, "r", encoding="utf-8") as _f:
-    _LIBRARY: dict = json.load(_f)
 
-_CATEGORIES: dict = _LIBRARY["categories"]
-_NOISE_TEMPLATES: dict = _LIBRARY.get("noise_templates", {})
+# Cached loaded state — populated on first call to `_library()`.
+_LIBRARY: Optional[dict] = None
+_CATEGORIES_CACHE: Optional[dict] = None
+_NOISE_TEMPLATES_CACHE: Optional[dict] = None
+
+
+def _validate_library(data: object, path: Path) -> dict:
+    """Assert the loaded JSON matches the shape the rest of this module expects.
+
+    Required shape:
+        {
+          "categories": {
+            "<name>": {
+              "triggers": [str, ...],
+              "counters": [str, ...],
+              # other keys allowed
+            },
+            ...
+          },
+          "noise_templates": { ... }  # optional
+        }
+    """
+    if not isinstance(data, dict):
+        raise CounterRefusalLibraryError(
+            f"{path}: root must be a JSON object, got {type(data).__name__}"
+        )
+    categories = data.get("categories")
+    if not isinstance(categories, dict) or not categories:
+        raise CounterRefusalLibraryError(
+            f"{path}: 'categories' must be a non-empty object"
+        )
+    for name, info in categories.items():
+        if not isinstance(info, dict):
+            raise CounterRefusalLibraryError(
+                f"{path}: category {name!r} must be an object, "
+                f"got {type(info).__name__}"
+            )
+        triggers = info.get("triggers")
+        counters = info.get("counters")
+        if not isinstance(triggers, list) or not all(isinstance(t, str) for t in triggers):
+            raise CounterRefusalLibraryError(
+                f"{path}: category {name!r} must have 'triggers' as a list of strings"
+            )
+        if not isinstance(counters, list) or not all(isinstance(c, str) for c in counters):
+            raise CounterRefusalLibraryError(
+                f"{path}: category {name!r} must have 'counters' as a list of strings"
+            )
+    noise = data.get("noise_templates", {})
+    if not isinstance(noise, dict):
+        raise CounterRefusalLibraryError(
+            f"{path}: 'noise_templates' must be an object if present"
+        )
+    return data
+
+
+def _library() -> dict:
+    """Return the loaded-and-validated library, loading on first access."""
+    global _LIBRARY, _CATEGORIES_CACHE, _NOISE_TEMPLATES_CACHE
+    if _LIBRARY is None:
+        try:
+            with open(_LIB_PATH, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+        except (OSError, json.JSONDecodeError) as exc:
+            raise CounterRefusalLibraryError(
+                f"{_LIB_PATH}: failed to load counter-refusal library: {exc}"
+            ) from exc
+        _LIBRARY = _validate_library(raw, _LIB_PATH)
+        _CATEGORIES_CACHE = _LIBRARY["categories"]
+        _NOISE_TEMPLATES_CACHE = _LIBRARY.get("noise_templates", {})
+    return _LIBRARY
+
+
+def _categories() -> dict:
+    _library()
+    assert _CATEGORIES_CACHE is not None  # populated by _library()
+    return _CATEGORIES_CACHE
+
+
+def _noise_templates() -> dict:
+    _library()
+    assert _NOISE_TEMPLATES_CACHE is not None  # populated by _library()
+    return _NOISE_TEMPLATES_CACHE
 
 # Confrontational categories (1-4), checked in priority order
 _CONFRONTATION_PRIORITY = [
@@ -88,7 +178,7 @@ class CounterRefusalTracker:
 
     def available_indices(self, category: str) -> list[int]:
         """Return indices of counters not yet used in this conversation."""
-        total = len(_CATEGORIES[category]["counters"])
+        total = len(_categories()[category]["counters"])
         used = self._used.get(category, set())
         return [i for i in range(total) if i not in used]
 
@@ -122,7 +212,7 @@ class CounterRefusalTracker:
 
 def _match_triggers(response_lower: str, category_name: str) -> bool:
     """Check if any trigger phrase for a category appears in the response."""
-    cat_data = _CATEGORIES.get(category_name)
+    cat_data = _categories().get(category_name)
     if not cat_data:
         return False
     return any(t.lower() in response_lower for t in cat_data["triggers"])
@@ -166,7 +256,7 @@ def _pick_counter(
 
     Returns ``(category, text, index)`` or ``None`` if exhausted.
     """
-    counters = _CATEGORIES[category]["counters"]
+    counters = _categories()[category]["counters"]
     if tracker is not None:
         available = tracker.available_indices(category)
         if not available:
@@ -239,7 +329,7 @@ def get_circle_back_phrase() -> str:
 
 def get_noise_template(domain: str) -> Optional[str]:
     """Return a random noise template for the given domain, or None."""
-    templates = _NOISE_TEMPLATES.get(domain)
+    templates = _noise_templates().get(domain)
     if not templates:
         return None
     return random.choice(templates)
@@ -247,9 +337,9 @@ def get_noise_template(domain: str) -> Optional[str]:
 
 def get_noise_domains() -> list[str]:
     """Return the list of domains that have noise templates."""
-    return list(_NOISE_TEMPLATES.keys())
+    return list(_noise_templates().keys())
 
 
 def get_categories() -> dict:
     """Return the loaded category definitions (for introspection/testing)."""
-    return dict(_CATEGORIES)
+    return dict(_categories())

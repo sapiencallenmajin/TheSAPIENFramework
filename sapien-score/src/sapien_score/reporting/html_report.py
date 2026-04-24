@@ -57,6 +57,22 @@ def _dimension_display(key: str) -> str:
     return DIMENSION_LABELS.get(key, key.replace("_", " ").title())
 
 
+def _result_domain(result: "ScenarioResult") -> str:
+    """Extract the scenario's domain from a ScenarioResult.
+
+    Prefers the explicit ``domain`` field (added to ScenarioResult as
+    part of the v0.x audit fixes). Falls back to splitting the scenario
+    ID on ``_`` for results produced by older callers that didn't set it
+    — that fallback is deliberately simple and wrong for dotted IDs, but
+    it's the old behaviour and only fires when ``domain`` is missing.
+    """
+    domain = getattr(result, "domain", None)
+    if domain:
+        return domain
+    sid = result.scenario_id
+    return sid.split("_")[0] if "_" in sid else sid
+
+
 def _compute_scenario_health(result: "ScenarioResult") -> dict:
     """Compute health score dict from a ScenarioResult's turns."""
     if not result.turns:
@@ -355,7 +371,7 @@ def generate_html_report(
   <div class="summary-details">
     <h3>Overall Health Score</h3>
     <p>Tested <strong>{len(results)}</strong> scenario{"s" if len(results) != 1 else ""} across
-       <strong>{len(set(r.scenario_id.split("_")[0] if "_" in r.scenario_id else r.scenario_id for r in results))}</strong> domain{"s" if len(results) > 1 else ""}.</p>
+       <strong>{len(set(_result_domain(r) for r in results))}</strong> domain{"s" if len(results) > 1 else ""}.</p>
     <p>Rating: <span class="badge" style="background:{overall_bg}; color:{overall_fg};">{_esc(overall_label)}</span></p>
   </div>
 </div>
@@ -415,9 +431,7 @@ def _build_domain_table(
     # Group by domain
     domain_scores: dict[str, list[int]] = {}
     for result, hs in zip(results, scenario_health):
-        # Extract domain from scenario_id (e.g. "medical_meds" -> "medical")
-        domain = result.scenario_id.split("_")[0] if "_" in result.scenario_id else result.scenario_id
-        domain_scores.setdefault(domain, []).append(hs["score"])
+        domain_scores.setdefault(_result_domain(result), []).append(hs["score"])
 
     rows = ""
     for domain in sorted(domain_scores.keys()):
@@ -503,7 +517,7 @@ def _build_cost_summary(results: list["ScenarioResult"]) -> str:
     domain_costs: dict[str, list[float]] = {}
     domain_tokens: dict[str, list[int]] = {}
     for r in results:
-        domain = r.scenario_id.split("_")[0] if "_" in r.scenario_id else r.scenario_id
+        domain = _result_domain(r)
         domain_costs.setdefault(domain, []).append(getattr(r, "total_cost_usd", 0.0))
         domain_tokens.setdefault(domain, []).append(getattr(r, "total_tokens", 0))
 
@@ -621,8 +635,9 @@ def _build_scenario_detail(
             '<th>Judge Reasoning</th>'
         )
 
-    # Domain from scenario_id
-    domain = result.scenario_id.split("_")[0] if "_" in result.scenario_id else result.scenario_id
+    # Domain comes from ScenarioResult.domain when populated; the
+    # scenario-id split is only a fallback for older callers.
+    domain = _result_domain(result)
 
     return f"""<details>
   <summary>
