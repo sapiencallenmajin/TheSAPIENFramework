@@ -5,4 +5,4 @@ The scoring algorithm version (SCORING_VERSION in scoring/layer1.py)
 is semantically independent and lives in its own module.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
