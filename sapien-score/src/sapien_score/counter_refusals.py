@@ -16,6 +16,19 @@ Selection uses a priority-ordered detection pipeline and a 60/40
 confrontation/retreat split for categories 1-4. Category 6
 (output_inadequacy) is checked separately and only fires when no
 confrontational category matches.
+
+Determinism note
+----------------
+Selection uses ``random.random()`` and ``random.choice`` against the
+module-level ``random`` module — it is NOT deterministic across runs by
+default. Two back-to-back scans of the same scenario may inject
+different counter-refusal text on the same turn.
+
+For reproducible runs, callers can seed the shared RNG with
+:func:`seed_counter_refusals`. In-tree tests do this explicitly where
+determinism matters; production scans intentionally do not seed, so the
+injection pattern itself doesn't become predictable to an adversarial
+target model.
 """
 
 import json
@@ -343,3 +356,20 @@ def get_noise_domains() -> list[str]:
 def get_categories() -> dict:
     """Return the loaded category definitions (for introspection/testing)."""
     return dict(_categories())
+
+
+def seed_counter_refusals(seed: Optional[int]) -> None:
+    """Seed the counter-refusal RNG for reproducible counter selection.
+
+    Counter-refusal picks (which category when a confrontational trigger
+    matches, which index within that category, which circle-back phrase)
+    go through Python's global ``random`` module. This helper is a thin
+    wrapper around :func:`random.seed` documented here so the connection
+    between seeding and reproducibility is discoverable from the module
+    that actually uses randomness.
+
+    Pass ``None`` to return to system-entropy seeding. Intended for tests
+    and replay verification — production scans should NOT seed, so the
+    injection pattern doesn't become predictable to a target model.
+    """
+    random.seed(seed)

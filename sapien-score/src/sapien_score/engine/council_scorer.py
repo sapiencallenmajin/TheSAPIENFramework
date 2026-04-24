@@ -299,6 +299,73 @@ def _call_one_seat(
     )
 
 
+def _poll_seats_parallel(
+    seats: list[CouncilSeat],
+    user_msg: str,
+    caller: JudgeCaller,
+    round_timeout_s: Optional[float],
+    *,
+    round_label: str = "council round",
+) -> list[JudgeScore]:
+    """Run ``_call_one_seat`` for every seat in parallel with a wall-clock
+    ceiling, explicitly cancelling anything still in flight when the
+    timer fires.
+
+    Replaces the prior ``pool.shutdown(wait=False, cancel_futures=True)``
+    path, which cancelled queued futures but left running worker threads
+    detached in the background — a slow leak across long batches.
+
+    Returns the :class:`JudgeScore` list in seat order. Skipped / failed
+    / unparseable seats are omitted; the caller applies the quorum check.
+    """
+    pool = ThreadPoolExecutor(max_workers=len(seats))
+    try:
+        futures = {
+            pool.submit(_call_one_seat, idx, seat, user_msg, caller): idx
+            for idx, seat in enumerate(seats)
+        }
+        done, not_done = concurrent.futures.wait(
+            futures.keys(),
+            timeout=round_timeout_s,
+            return_when=concurrent.futures.ALL_COMPLETED,
+        )
+        if not_done:
+            unfinished = [
+                seats[futures[f]].model for f in not_done
+            ]
+            logger.warning(
+                "%s timed out after %.1fs — %d seat(s) did not respond "
+                "and were cancelled: %s",
+                round_label,
+                round_timeout_s if round_timeout_s is not None else -1.0,
+                len(unfinished),
+                unfinished,
+            )
+            for f in not_done:
+                # Request cancellation; for tasks already running this is a
+                # no-op in Python (threads can't be forcibly killed) but we
+                # stop waiting on them so the scan loop isn't held up.
+                f.cancel()
+
+        by_idx: dict[int, JudgeScore] = {}
+        for fut in done:
+            idx = futures[fut]
+            # _call_one_seat catches per-seat exceptions, so fut.result()
+            # only raises if the executor machinery itself failed. Let
+            # that surface — it's not a per-seat fault.
+            result = fut.result()
+            if result is not None:
+                by_idx[idx] = result
+
+        return [by_idx[i] for i in range(len(seats)) if i in by_idx]
+    finally:
+        # wait=False: don't block the scan loop on hung workers. The
+        # cancel=True flag drops queued tasks. Running threads finish in
+        # background but they hold only their own adapter (pool-scoped);
+        # no shared state is mutated after _call_one_seat returns.
+        pool.shutdown(wait=False, cancel_futures=True)
+
+
 def _aggregate_consensus(scores: list[JudgeScore]) -> CouncilResult:
     """Run the consensus engine on a list of successfully-parsed scores.
 
@@ -435,43 +502,10 @@ def score_with_council(
     scores: list[JudgeScore] = []
 
     if council_config.parallel and len(seats) > 1:
-        # Preserve seat order in the final output so seat numbering stays
-        # stable across reruns. futures -> idx map enables the reorder.
-        # Manual pool lifecycle (no ``with``) so we can shut down without
-        # waiting for hung workers when the round timeout fires.
-        pool = ThreadPoolExecutor(max_workers=len(seats))
-        try:
-            futures = {
-                pool.submit(_call_one_seat, idx, seat, user_msg, caller): idx
-                for idx, seat in enumerate(seats)
-            }
-            by_idx: dict[int, JudgeScore] = {}
-            try:
-                for fut in as_completed(futures, timeout=round_timeout_s):
-                    idx = futures[fut]
-                    # _call_one_seat catches everything, so fut.result() only
-                    # raises if the executor machinery itself fails. Let that
-                    # surface — it's not a per-seat fault.
-                    result = fut.result()
-                    if result is not None:
-                        by_idx[idx] = result
-            except concurrent.futures.TimeoutError:
-                unfinished = [
-                    seats[futures[f]].model for f in futures if not f.done()
-                ]
-                logger.warning(
-                    "Council round timed out after %.1fs — %d seat(s) did not "
-                    "respond in time and were excluded: %s",
-                    round_timeout_s, len(unfinished), unfinished,
-                )
-            for idx in range(len(seats)):
-                if idx in by_idx:
-                    scores.append(by_idx[idx])
-        finally:
-            # cancel_futures drops anything still queued; running threads
-            # (which are daemonic in CPython's ThreadPoolExecutor) finish in
-            # the background, but we don't block the scan loop on them.
-            pool.shutdown(wait=False, cancel_futures=True)
+        scores.extend(_poll_seats_parallel(
+            seats, user_msg, caller, round_timeout_s,
+            round_label="Council round (holistic)",
+        ))
     else:
         for idx, seat in enumerate(seats):
             result = _call_one_seat(idx, seat, user_msg, caller)
@@ -751,33 +785,10 @@ def council_score_turn(
     scores: list[JudgeScore] = []
 
     if council_config.parallel and len(seats) > 1:
-        pool = ThreadPoolExecutor(max_workers=len(seats))
-        try:
-            futures = {
-                pool.submit(_call_one_seat, idx, seat, user_msg, _per_turn_caller): idx
-                for idx, seat in enumerate(seats)
-            }
-            by_idx: dict[int, JudgeScore] = {}
-            try:
-                for fut in as_completed(futures, timeout=round_timeout_s):
-                    idx = futures[fut]
-                    result = fut.result()
-                    if result is not None:
-                        by_idx[idx] = result
-            except concurrent.futures.TimeoutError:
-                unfinished = [
-                    seats[futures[f]].model for f in futures if not f.done()
-                ]
-                logger.warning(
-                    "Council per-turn round timed out after %.1fs on turn %d — "
-                    "%d seat(s) did not respond and were excluded: %s",
-                    round_timeout_s, turn_number, len(unfinished), unfinished,
-                )
-            for idx in range(len(seats)):
-                if idx in by_idx:
-                    scores.append(by_idx[idx])
-        finally:
-            pool.shutdown(wait=False, cancel_futures=True)
+        scores.extend(_poll_seats_parallel(
+            seats, user_msg, _per_turn_caller, round_timeout_s,
+            round_label=f"Council per-turn round (turn {turn_number})",
+        ))
     else:
         for idx, seat in enumerate(seats):
             result = _call_one_seat(idx, seat, user_msg, _per_turn_caller)
@@ -865,33 +876,10 @@ def council_score_turn_with_result(
     scores: list[JudgeScore] = []
 
     if council_config.parallel and len(seats) > 1:
-        pool = ThreadPoolExecutor(max_workers=len(seats))
-        try:
-            futures = {
-                pool.submit(_call_one_seat, idx, seat, user_msg, _per_turn_caller): idx
-                for idx, seat in enumerate(seats)
-            }
-            by_idx: dict[int, JudgeScore] = {}
-            try:
-                for fut in as_completed(futures, timeout=round_timeout_s):
-                    idx = futures[fut]
-                    result = fut.result()
-                    if result is not None:
-                        by_idx[idx] = result
-            except concurrent.futures.TimeoutError:
-                unfinished = [
-                    seats[futures[f]].model for f in futures if not f.done()
-                ]
-                logger.warning(
-                    "Council per-turn round timed out after %.1fs on turn %d — "
-                    "%d seat(s) did not respond and were excluded: %s",
-                    round_timeout_s, turn_number, len(unfinished), unfinished,
-                )
-            for idx in range(len(seats)):
-                if idx in by_idx:
-                    scores.append(by_idx[idx])
-        finally:
-            pool.shutdown(wait=False, cancel_futures=True)
+        scores.extend(_poll_seats_parallel(
+            seats, user_msg, _per_turn_caller, round_timeout_s,
+            round_label=f"Council per-turn round (turn {turn_number})",
+        ))
     else:
         for idx, seat in enumerate(seats):
             result = _call_one_seat(idx, seat, user_msg, _per_turn_caller)

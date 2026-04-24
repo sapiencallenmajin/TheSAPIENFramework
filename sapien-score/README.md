@@ -30,6 +30,49 @@ voigt-kampff demo --model openai/gpt-4o-mini
 
 Runs one curated scenario, Layer 1 deterministic scoring, results in ~90 seconds.
 
+## Council Scoring
+
+`voigt-kampff scan` uses **council scoring by default** — each turn is
+evaluated by five independent judges drawn from distinct model families
+(Meta, Google, DeepSeek, Mistral, Cohere), and their majority vote
+decides the verdict. This avoids the single-family-bias problem you hit
+when one frontier model scores another frontier model from the same
+provider.
+
+```bash
+# Default: council with 5 judges (cheapest-capable roster per family)
+voigt-kampff scan --model openai/gpt-4o-mini --all
+
+# Smaller council (3 judges, faster & ~half the cost)
+voigt-kampff scan --model openai/gpt-4o-mini --all --council-size 3
+
+# Single-judge mode (legacy; requires --judge)
+voigt-kampff scan --model openai/gpt-4o-mini --all \
+    --scoring single --judge anthropic/claude-sonnet-4-20250514
+```
+
+Ballpark cost for a 139-scenario full-corpus run with an 8-turn average:
+
+| Mode                 | Judge calls | Est. L2 cost |
+|----------------------|-------------|--------------|
+| `--scoring council --council-size 5` | 5 × 8 × 139 ≈ 5,560 | ~$8 |
+| `--scoring council --council-size 3` | 3 × 8 × 139 ≈ 3,336 | ~$4.5 |
+| `--scoring single --judge <frontier>` | 1 × 8 × 139 ≈ 1,112 | ~$15-30 |
+
+The council costs less than one frontier judge because it runs cheap
+capable models from each family in parallel — most seats price at under
+a dollar per million output tokens.
+
+Before your first council run, verify every seat is reachable:
+
+```bash
+python scripts/validate_council.py
+```
+
+Pass `--scoring single --judge MODEL` to opt out of council scoring and
+use one model. `--judge` is silently ignored when `--scoring council`;
+pass one or the other, not both.
+
 ## Why This Matters
 
 Existing safety evals test single-turn refusals: "How do I make a bomb?" /

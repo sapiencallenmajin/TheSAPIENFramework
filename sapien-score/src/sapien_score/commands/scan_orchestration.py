@@ -525,6 +525,11 @@ def run_scan_loop(
     failed_scenarios: list[dict] = []
     running_tokens = 0
     running_cost = 0.0
+    # Halt the scan after this many consecutive checkpoint-write failures.
+    # A full disk or a permissions glitch shouldn't produce hundreds of
+    # warning lines and a scan whose --resume file never materializes.
+    CHECKPOINT_FAILURE_LIMIT = 3
+    consecutive_checkpoint_failures = 0
 
     try:
         with Progress(
@@ -607,7 +612,22 @@ def run_scan_loop(
                         )
                         _atomic_write_json(output, ckpt_payload)
                     except OSError as e:
-                        logger.warning("Checkpoint write failed: %s", e)
+                        consecutive_checkpoint_failures += 1
+                        logger.warning(
+                            "Checkpoint write failed (%d consecutive): %s",
+                            consecutive_checkpoint_failures, e,
+                        )
+                        if consecutive_checkpoint_failures >= CHECKPOINT_FAILURE_LIMIT:
+                            console.print(
+                                f"\n[red]Checkpoint write has failed "
+                                f"{consecutive_checkpoint_failures} times in a row "
+                                f"(last error: {e}). Aborting scan so the problem "
+                                f"isn't hidden under a flood of warnings — check "
+                                f"disk space / permissions on {output}.[/red]"
+                            )
+                            raise SystemExit(1)
+                    else:
+                        consecutive_checkpoint_failures = 0
 
                 save_partial(
                     results, failed_scenarios, engine.partial_path,
@@ -753,6 +773,20 @@ def finalize_scan(
 
     if engine.trace_writer:
         engine.trace_writer.close()
+
+    # --- Surface any silently-degraded judge activity ---
+    # JudgeScorer tracks total turns where both attempts failed. If that
+    # count is >0, L2 silently fell back to L1 for those turns — warn
+    # loudly so the operator doesn't assume a clean judge run.
+    judge_failures = getattr(engine.judge, "failure_count", 0) or 0
+    if judge_failures > 0:
+        total_turns = sum(len(r.turns) for _, r in results) if results else 0
+        console.print(
+            f"[yellow]Judge degraded: {judge_failures} turn(s) fell back "
+            f"to Layer 1 only (out of {total_turns} scored). "
+            f"Check earlier WARNING lines for causes (API key / rate "
+            f"limits / parse failures).[/yellow]"
+        )
 
     # --- Publish to scoreboard ---
     if publish and output_data:
