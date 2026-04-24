@@ -88,6 +88,9 @@ from .scan_output import (  # noqa: F401
               help="Override scoreboard endpoint URL")
 @click.option("--publisher", "publisher", default=None,
               help="Publisher name for this run (env: SAPIEN_PUBLISHER)")
+@click.option("--publish-transcripts", "publish_transcripts", is_flag=True, default=False,
+              help="Include per-turn user_message/assistant_response text in the published "
+                   "payload. Off by default — scores and metadata publish, raw transcripts stay local.")
 @click.option("--config", "config_path", default=None, type=click.Path(),
               help="Path to deployer override YAML (default: ./sapien-config.yaml if present)")
 @click.option("--skip-untyped", "skip_untyped", is_flag=True, default=False,
@@ -104,7 +107,8 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
          tier_override, scan_mode, layer2_threshold, allow_partial_judging,
          no_counter_refusals, no_trace,
          replay, allow_trace_during_replay, publish, publish_label, publish_primary,
-         publish_url, publisher, config_path, skip_untyped, skip_invalid, scenario_ids):
+         publish_url, publisher, publish_transcripts, config_path, skip_untyped,
+         skip_invalid, scenario_ids):
     """Run scenarios against a model and score behavioral safety."""
     from rich.console import Console
 
@@ -202,5 +206,6 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
         publish=publish, publish_label=publish_label,
         publish_primary=publish_primary, publish_url=publish_url,
         publisher=publisher,
+        publish_transcripts=publish_transcripts,
         layer2_threshold_applied=effective_threshold,
     )

@@ -42,10 +42,16 @@ _BLIND_SCENARIO_CONTEXT = "behavioral safety scenario"
 # in logs. Redact anything resembling a common credential format before
 # any verbose print/log call in this module.
 _CREDENTIAL_PATTERNS = (
-    re.compile(r"sk-\S+"),
-    re.compile(r"Bearer\s+\S+"),
-    re.compile(r"AKIA\S+"),
-    re.compile(r"AIza\S+"),
+    re.compile(r"sk-ant-\S+"),          # Anthropic (explicit, matched before generic sk-)
+    re.compile(r"sk-\S+"),              # OpenAI-style secret keys
+    re.compile(r"Bearer\s+\S+"),        # Generic bearer tokens
+    re.compile(r"AKIA\S+"),             # AWS access key ID
+    re.compile(r"AIza\S+"),             # Google API keys
+    re.compile(r"ya29\.\S+"),           # Google OAuth access tokens
+    re.compile(r"ghp_\S+"),              # GitHub personal access token (classic)
+    re.compile(r"github_pat_\S+"),      # GitHub fine-grained PAT
+    re.compile(r"xoxb-\S+"),             # Slack bot tokens
+    re.compile(r"xoxp-\S+"),             # Slack user tokens
 )
 
 

@@ -90,14 +90,20 @@ def load_risk_overrides(console: "Console", config_path: Optional[str]) -> list:
 
     from sapien_score.scoring.override_config import load_override_config
 
+    # Resolve to an absolute path so the operator sees exactly which file
+    # was loaded — "./sapien-config.yaml" is cwd-dependent and ambiguous
+    # when multiple working directories (CI agent, ops console) are in play.
+    resolved_path = str(Path(config_path).resolve())
+
     try:
         rules = load_override_config(config_path)
     except (ValueError, OSError) as e:
         console.print(f"[red]Override config error: {e}[/red]")
         raise SystemExit(1)
 
+    logger.info("Loaded override config from %s", resolved_path)
     console.print(
-        f"[dim]Loaded {len(rules)} override rule(s) from {config_path}[/dim]"
+        f"[dim]Loaded {len(rules)} override rule(s) from {resolved_path}[/dim]"
     )
     return rules
 
@@ -316,11 +322,19 @@ def setup_engine(
     if replay:
         if not allow_trace_during_replay:
             no_trace = True
+        # Validate the user-supplied path BEFORE any filesystem access so a
+        # path containing ".." or that resolves outside the working tree is
+        # rejected regardless of whether the file happens to exist on disk.
+        replay_clean = Path(replay)
+        if any(part == ".." for part in replay_clean.parts):
+            console.print(f"[red]Error: replay path contains illegal components: {replay}[/red]")
+            raise SystemExit(1)
         replay_path = Path(replay)
         if not replay_path.exists():
             # Fall back to package-bundled data (e.g. examples/traces/...).
-            replay_clean = Path(replay)
-            if replay_clean.is_absolute() or any(part == ".." for part in replay_clean.parts):
+            # Absolute paths must already exist at the user-supplied location;
+            # the bundled-resource fallback only makes sense for relative paths.
+            if replay_clean.is_absolute():
                 console.print(f"[red]Error: replay path contains illegal components: {replay}[/red]")
                 raise SystemExit(1)
             from importlib.resources import files
@@ -593,6 +607,7 @@ def finalize_scan(
     publish_primary: bool = False,
     publish_url: Optional[str] = None,
     publisher: Optional[str] = None,
+    publish_transcripts: bool = False,
     layer2_threshold_applied: float = 0.0,
 ) -> None:
     """Write JSON/CSV/HTML outputs, optionally publish, and clean up."""
@@ -698,6 +713,7 @@ def finalize_scan(
             is_primary=publish_primary,
             publish_url=publish_url,
             publisher=publisher,
+            publish_transcripts=publish_transcripts,
         )
 
     console.print()

@@ -249,3 +249,44 @@ class TestSkipInvalidFlag:
         assert len(engine.skipped_scenarios) == 1
         assert engine.skipped_scenarios[0]["path"] == "/fake/bad.json"
         assert "validation" in engine.skipped_scenarios[0]["reason"]
+
+
+# ---------------------------------------------------------------------------
+# --replay path traversal hardening
+# ---------------------------------------------------------------------------
+
+class TestReplayPathTraversal:
+    """The --replay path is a user-controlled file argument. A path
+    containing ".." must be rejected regardless of whether it happens to
+    resolve to a real file on disk — the previous implementation only
+    validated the bundled-resource fallback branch."""
+
+    @patch("sapien_score.scenarios.loader.load_all_scenarios", return_value=list(_CORPUS))
+    def test_replay_with_parent_dir_component_rejected(self, mock_load, tmp_path):
+        # Construct a ".." path; setup_engine must reject it BEFORE any
+        # filesystem resolution, whether or not the file actually exists.
+        hostile = str(tmp_path / ".." / "some_trace.jsonl")
+        console = MagicMock()
+        with pytest.raises(SystemExit) as exc_info:
+            setup_engine(**{**_DEFAULTS, "console": console, "replay": hostile})
+        assert exc_info.value.code == 1
+        printed = " ".join(str(c) for c in console.print.call_args_list)
+        assert "illegal" in printed.lower()
+
+    @patch("sapien_score.scenarios.loader.load_all_scenarios", return_value=list(_CORPUS))
+    def test_replay_with_existing_dotdot_still_rejected(self, mock_load, tmp_path):
+        """Even when a ".." path resolves to an existing file, it must be
+        rejected — this is the regression window the fix closes."""
+        # Create a real file and point at it via ".."
+        real = tmp_path / "real_trace.jsonl"
+        real.write_text("{}\n", encoding="utf-8")
+        # Path with ".." that resolves to the real file.
+        subdir = tmp_path / "sub"
+        subdir.mkdir()
+        hostile = str(subdir / ".." / "real_trace.jsonl")
+        console = MagicMock()
+        with pytest.raises(SystemExit) as exc_info:
+            setup_engine(**{**_DEFAULTS, "console": console, "replay": hostile})
+        assert exc_info.value.code == 1
+        printed = " ".join(str(c) for c in console.print.call_args_list)
+        assert "illegal" in printed.lower()
