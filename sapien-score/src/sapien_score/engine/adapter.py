@@ -44,6 +44,19 @@ class UsageInfo:
     cost_usd: float = 0.0
 
 
+class EmptyResponseError(RuntimeError):
+    """Raised when an LLM returns None or an empty string as content.
+
+    Carries enough context (model + reason) for the scan loop to attach
+    the failure to a scenario record rather than crashing silently.
+    """
+
+    def __init__(self, model: str, reason: str = "empty content"):
+        super().__init__(f"Empty response from {model}: {reason}")
+        self.model = model
+        self.reason = reason
+
+
 class LiteLLMAdapter:
     """Universal model adapter using LiteLLM for 100+ providers.
 
@@ -89,11 +102,21 @@ class LiteLLMAdapter:
         self._deterministic = bool(deterministic)
         self._trace_writer = None
         self._call_kind = "target_call"
+        self._last_retry_count = 0
 
     @property
     def deterministic(self) -> bool:
         """True if this adapter uses the locked deterministic params."""
         return self._deterministic
+
+    @property
+    def last_retry_count(self) -> int:
+        """Number of retries the most recent ``send_message`` call used.
+
+        0 = succeeded first try. Includes both transient-error retries and
+        the one empty-response retry. Reset on each new send_message call.
+        """
+        return self._last_retry_count
 
     @property
     def model_name(self) -> str:
@@ -134,53 +157,86 @@ class LiteLLMAdapter:
             self._base_retry_delay * 7.5,
         ]
 
+        # Retry counter resets per call. Includes both transient-error
+        # retries and the one empty-content retry below.
+        self._last_retry_count = 0
+        empty_retry_used = False
         call_start = time.monotonic()
-        response = None
-        for attempt in range(self.MAX_RETRIES + 1):
-            try:
-                response = litellm.completion(**kwargs)
-                break
-            except Exception as e:
-                error_str = str(e).lower()
-                is_retryable = any(
-                    kw in error_str for kw in _RETRYABLE_ERROR_KEYWORDS
-                )
-                # Never retry client errors — these are config problems
-                if any(kw in error_str for kw in _CLIENT_ERROR_KEYWORDS):
-                    is_retryable = False
-                if is_retryable and attempt < self.MAX_RETRIES:
-                    wait = retry_delays[attempt]
-                    logger.warning(
-                        "Retryable error on attempt %d/%d: %s — waiting %ds",
-                        attempt + 1, self.MAX_RETRIES, str(e)[:100], wait,
+
+        while True:
+            response = None
+            for attempt in range(self.MAX_RETRIES + 1):
+                try:
+                    response = litellm.completion(**kwargs)
+                    break
+                except Exception as e:
+                    error_str = str(e).lower()
+                    is_retryable = any(
+                        kw in error_str for kw in _RETRYABLE_ERROR_KEYWORDS
                     )
-                    time.sleep(wait)
+                    # Never retry client errors — these are config problems
+                    if any(kw in error_str for kw in _CLIENT_ERROR_KEYWORDS):
+                        is_retryable = False
+                    if is_retryable and attempt < self.MAX_RETRIES:
+                        wait = retry_delays[attempt]
+                        logger.warning(
+                            "Retryable error on attempt %d/%d: %s — waiting %ds",
+                            attempt + 1, self.MAX_RETRIES, str(e)[:100], wait,
+                        )
+                        self._last_retry_count += 1
+                        time.sleep(wait)
+                        continue
+                    self._record_trace(
+                        full_messages,
+                        response_content=None,
+                        finish_reason=None,
+                        usage=UsageInfo(),
+                        duration_ms=round((time.monotonic() - call_start) * 1000),
+                        error=str(e)[:500],
+                    )
+                    raise
+
+            # Capture usage data from response
+            self._last_usage = self._extract_usage(response)
+
+            content = response.choices[0].message.content
+            finish_reason = getattr(response.choices[0], "finish_reason", None)
+
+            # P1-14: an empty or None content is almost always a provider
+            # glitch (max_tokens hit pre-content, safety filter, race on a
+            # streamed response). Retry exactly once, then raise so the
+            # scan loop can record this scenario as an error rather than
+            # silently scoring "" against the baseline.
+            if not content:
+                if not empty_retry_used:
+                    empty_retry_used = True
+                    self._last_retry_count += 1
+                    logger.warning(
+                        "Empty response from %s (finish_reason=%s) — retrying once",
+                        self._model, finish_reason,
+                    )
                     continue
                 self._record_trace(
                     full_messages,
-                    response_content=None,
-                    finish_reason=None,
-                    usage=UsageInfo(),
+                    response_content=content,
+                    finish_reason=finish_reason,
+                    usage=self._last_usage,
                     duration_ms=round((time.monotonic() - call_start) * 1000),
-                    error=str(e)[:500],
+                    error=f"empty content after retry (finish_reason={finish_reason})",
                 )
-                raise
+                raise EmptyResponseError(
+                    model=self._model,
+                    reason=f"empty content after retry (finish_reason={finish_reason})",
+                )
 
-        # Capture usage data from response
-        self._last_usage = self._extract_usage(response)
-
-        content = response.choices[0].message.content
-        finish_reason = getattr(response.choices[0], "finish_reason", None)
-
-        self._record_trace(
-            full_messages,
-            response_content=content,
-            finish_reason=finish_reason,
-            usage=self._last_usage,
-            duration_ms=round((time.monotonic() - call_start) * 1000),
-        )
-
-        return content
+            self._record_trace(
+                full_messages,
+                response_content=content,
+                finish_reason=finish_reason,
+                usage=self._last_usage,
+                duration_ms=round((time.monotonic() - call_start) * 1000),
+            )
+            return content
 
     @property
     def trace_writer(self):

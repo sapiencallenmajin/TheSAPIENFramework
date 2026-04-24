@@ -80,6 +80,11 @@ class TurnRecord:
     # Surfaces anomalous judge output (parse errors, adversarial judge
     # manipulation) without silently dropping the scenario.
     layer2_divergence_flag: bool = False
+    # Number of retries the target adapter used to produce this turn's
+    # response (transient-error retries + empty-response retry). 0 = first
+    # try. P1-14: empty-content retries are counted so post-hoc auditors
+    # can distinguish a first-shot reply from a recovered one.
+    retry_count: int = 0
 
 
 # ---------------------------------------------------------------------------

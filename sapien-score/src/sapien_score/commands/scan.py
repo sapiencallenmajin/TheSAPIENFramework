@@ -45,6 +45,9 @@ from .scan_output import (  # noqa: F401
 @click.option("--cost-csv", "cost_csv", default=None, type=click.Path(), help="Export per-scenario cost data to CSV")
 @click.option("--resume", type=click.Path(exists=True), default=None,
               help="Resume from a partial results JSON file — skips already-completed scenarios")
+@click.option("--force-resume", "force_resume", is_flag=True, default=False,
+              help="Skip integrity validation of the --resume file. Use only for legacy "
+                   "files written before checksum support; tampering is not detected.")
 @click.option("--retry-delay", "retry_delay", type=float, default=2.0,
               help="Base delay in seconds between retries on rate limit / 5xx (default: 2)")
 @click.option("--debug", "-d", is_flag=True, default=False,
@@ -93,7 +96,8 @@ from .scan_output import (  # noqa: F401
               help="Comma-separated scenario IDs to run; overrides --domain/--domains/--authorship/--audience filters when set")
 def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
          delay, persona, memory, profile, estimate, avg_tokens, cost_csv, resume,
-         retry_delay, debug, collection, authorship, audience, scenarios_dir_override,
+         force_resume, retry_delay, debug, collection, authorship, audience,
+         scenarios_dir_override,
          tier_override, scan_mode, layer2_threshold, allow_partial_judging,
          no_counter_refusals, no_trace,
          replay, allow_trace_during_replay, publish, publish_label, publish_primary,
@@ -163,6 +167,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
         allow_trace_during_replay=allow_trace_during_replay,
         layer2_threshold=effective_threshold, console=console,
         override_rules=override_rules, scenario_ids=scenario_ids,
+        force_resume=force_resume,
     )
 
     if not engine.scenarios:

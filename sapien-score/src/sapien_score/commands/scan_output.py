@@ -14,14 +14,104 @@ checkpoints and by the thin ``scan()`` CLI entry point for the final write.
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import logging
+import os
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from statistics import quantiles
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Atomic JSON writer + checksum helpers (P0-10, P0-11, P0-12)
+# ---------------------------------------------------------------------------
+
+def _canonical_json(obj) -> str:
+    """Serialize to a stable string (sorted keys, ensure_ascii) for hashing."""
+    return json.dumps(obj, sort_keys=True, ensure_ascii=True, default=str)
+
+
+def compute_results_checksum(entries: list) -> str:
+    """SHA-256 over the id/health/verdict fingerprint of each result entry.
+
+    Used to detect tampering of a resume file. Entries are projected to a
+    canonical shape and sorted by scenario_id so the checksum is stable
+    regardless of list order.
+    """
+    fingerprint = sorted(
+        (
+            (
+                e.get("scenario_id", ""),
+                e.get("health_score"),
+                e.get("verdict", ""),
+            )
+            for e in entries or []
+        ),
+        key=lambda t: t[0],
+    )
+    return hashlib.sha256(
+        _canonical_json(fingerprint).encode("utf-8")
+    ).hexdigest()
+
+
+def compute_content_hash(entries: list) -> str:
+    """SHA-256 over the canonical JSON of the full results array.
+
+    Stamped into the published payload so the scoreboard (or any consumer)
+    can detect post-hoc edits.
+    """
+    return hashlib.sha256(
+        _canonical_json(entries or []).encode("utf-8")
+    ).hexdigest()
+
+
+def _atomic_write_json(path: str, data: dict) -> None:
+    """Write JSON atomically: temp file → fsync → rename.
+
+    Safety properties:
+      * A crash mid-write never leaves the target path partially written —
+        it's replaced in a single ``os.replace`` call.
+      * Before replacement, the previous contents (if any) are copied to
+        ``<path>.backup.json`` so a corrupted new payload is recoverable.
+      * Temp file lives in the same directory as the target so the final
+        rename is atomic on the same filesystem.
+    """
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+
+    # Preserve prior contents before we overwrite.
+    if target.exists():
+        backup = target.with_suffix(target.suffix + ".backup.json") \
+            if target.suffix != ".json" \
+            else target.with_name(target.stem + ".backup.json")
+        try:
+            backup.write_bytes(target.read_bytes())
+        except OSError as exc:
+            logger.warning("Could not write backup %s: %s", backup, exc)
+
+    fd, tmp_path = tempfile.mkstemp(
+        prefix=target.name + ".",
+        suffix=".tmp",
+        dir=str(target.parent),
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, default=str)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, target)
+    except Exception:
+        # Never leave a stale tmp on failure.
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
 
 
 # ---------------------------------------------------------------------------
@@ -128,6 +218,7 @@ def serialize_result_entry(scenario, result, override_result=None) -> dict:
             "drift": round(t.scores.weighted_drift, 4) if t.scores else None,
             "health_score": t.scores.health_score if t.scores else None,
             "judge_reasoning": t.judge_reasoning,
+            "retry_count": getattr(t, "retry_count", 0),
         }
         if t.is_counter_refusal:
             turn_entry["is_counter_refusal"] = True
@@ -148,6 +239,21 @@ def serialize_result_entry(scenario, result, override_result=None) -> dict:
 
 # Backwards-compatible alias — external callers import this name
 _serialize_result_entry = serialize_result_entry
+
+
+def serialize_failed_entry(failed: dict) -> dict:
+    """Serialize a failed scenario into a uniform error entry.
+
+    Lets consumers see *which* scenarios dropped out without inflating
+    the mean (callers exclude ``verdict == "error"`` from aggregates).
+    """
+    return {
+        "scenario_id": failed.get("id"),
+        "title": failed.get("title"),
+        "verdict": "error",
+        "health_score": None,
+        "error_reason": failed.get("error"),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -245,6 +351,11 @@ def build_output_payload(
     resume_path: Optional[str] = None,
     override_rules: Optional[list] = None,
     layer2_threshold_applied: float = 0.0,
+    failed_scenarios: Optional[list] = None,
+    run_id: Optional[str] = None,
+    scan_started_at: Optional[str] = None,
+    scan_finished_at: Optional[str] = None,
+    cross_family: Optional[bool] = None,
 ) -> dict:
     """Build the JSON payload written to ``--output``.
 
@@ -264,10 +375,17 @@ def build_output_payload(
     total_cost_new = sum(r.total_cost_usd for _, r in results)
 
     overrides = _resolve_overrides(results, override_rules or [])
-    new_entries = [
+    success_entries = [
         serialize_result_entry(s, r, ovr)
         for (s, r), ovr in zip(results, overrides)
     ]
+    failed = failed_scenarios or []
+    error_entries = [serialize_failed_entry(fs) for fs in failed]
+
+    # Error entries are surfaced in the results array so consumers can see
+    # the drop count, but are not included in mean/p10 (those were already
+    # computed by the caller from successes only).
+    new_entries = success_entries + error_entries
 
     if previous_payload is None:
         payload = {
@@ -280,16 +398,34 @@ def build_output_payload(
             "total_tokens": total_tokens_new,
             "total_cost_usd": round(total_cost_new, 6),
             "layer2_threshold_applied": layer2_threshold_applied,
+            "n_requested": len(success_entries) + len(error_entries),
+            "n_completed": len(success_entries),
+            "n_failed": len(error_entries),
             "results": new_entries,
         }
-        payload["risk_summary"] = _build_risk_summary(new_entries)
+        if run_id is not None:
+            payload["run_id"] = run_id
+        if scan_started_at is not None:
+            payload["scan_started_at"] = scan_started_at
+        if scan_finished_at is not None:
+            payload["scan_finished_at"] = scan_finished_at
+        if cross_family is not None:
+            payload["cross_family"] = cross_family
+        payload["risk_summary"] = _build_risk_summary(success_entries)
+        # Risk summary excludes error entries — they have no verdict/tier.
+        payload["content_hash"] = compute_content_hash(new_entries)
+        payload["_checksum"] = compute_results_checksum(new_entries)
         return payload
 
     # --- Resume merge path ---
     old_entries = previous_payload.get("results", []) or []
     combined_entries = old_entries + new_entries
 
-    combined_scores = [e["health_score"] for e in combined_entries]
+    # Exclude error entries (health_score is None) from aggregates.
+    combined_scores = [
+        e["health_score"] for e in combined_entries
+        if e.get("health_score") is not None and e.get("verdict") != "error"
+    ]
     if combined_scores:
         combined_mean = sum(combined_scores) / len(combined_scores)
         if len(combined_scores) < 2:
@@ -318,6 +454,13 @@ def build_output_payload(
     combined_tokens = (previous_payload.get("total_tokens", 0) or 0) + total_tokens_new
     combined_cost = (previous_payload.get("total_cost_usd", 0.0) or 0.0) + total_cost_new
 
+    success_combined = [
+        e for e in combined_entries if e.get("verdict") != "error"
+    ]
+    error_combined = [
+        e for e in combined_entries if e.get("verdict") == "error"
+    ]
+
     payload = {
         "model": model,
         "framework_version": "1.1",
@@ -328,9 +471,22 @@ def build_output_payload(
         "total_tokens": combined_tokens,
         "total_cost_usd": round(combined_cost, 6),
         "layer2_threshold_applied": layer2_threshold_applied,
+        "n_requested": len(combined_entries),
+        "n_completed": len(success_combined),
+        "n_failed": len(error_combined),
         "results": combined_entries,
     }
-    payload["risk_summary"] = _build_risk_summary(combined_entries)
+    if run_id is not None:
+        payload["run_id"] = run_id
+    if scan_started_at is not None:
+        payload["scan_started_at"] = scan_started_at
+    if scan_finished_at is not None:
+        payload["scan_finished_at"] = scan_finished_at
+    if cross_family is not None:
+        payload["cross_family"] = cross_family
+    payload["risk_summary"] = _build_risk_summary(success_combined)
+    payload["content_hash"] = compute_content_hash(combined_entries)
+    payload["_checksum"] = compute_results_checksum(combined_entries)
     if resume_path:
         payload["resumed_from"] = str(resume_path)
     return payload
@@ -428,29 +584,42 @@ def save_partial(
     path: str,
     model: str,
     override_rules: Optional[list] = None,
+    run_id: Optional[str] = None,
 ) -> None:
     """Save current progress so ``--resume`` can recover after a crash.
 
     Called after every scenario (success or failure) and on KeyboardInterrupt.
     Uses the same per-scenario dict format as the final output so the resume
     loader doesn't need special-casing.
+
+    Writes atomically via ``_atomic_write_json`` — a crash mid-write cannot
+    leave the partial file in a half-serialized state.
     """
     try:
         overrides = _resolve_overrides(results, override_rules or [])
+        success_entries = [
+            serialize_result_entry(s, r, ovr)
+            for (s, r), ovr in zip(results, overrides)
+        ]
+        error_entries = [
+            serialize_failed_entry(fs) for fs in (failed_scenarios or [])
+        ]
+        combined = success_entries + error_entries
         data = {
             "partial": True,
             "model": model,
             "completed": len(results),
             "failed": len(failed_scenarios),
+            "n_requested": len(combined),
+            "n_completed": len(success_entries),
+            "n_failed": len(error_entries),
             "timestamp": datetime.now().isoformat(),
-            "results": [
-                serialize_result_entry(s, r, ovr)
-                for (s, r), ovr in zip(results, overrides)
-            ],
+            "results": combined,
             "failed_scenarios": failed_scenarios,
         }
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, default=str)
+        if run_id is not None:
+            data["run_id"] = run_id
+        data["_checksum"] = compute_results_checksum(combined)
+        _atomic_write_json(path, data)
     except Exception as e:
         logger.warning("Could not save partial results: %s", e)
