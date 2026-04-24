@@ -59,9 +59,12 @@ class EngineConfig:
     # P0-12: run identity for tamper-evident published payloads.
     run_id: str = ""
     scan_started_at: str = ""
+<<<<<<< HEAD
     # P1-17: scenarios dropped by --skip-invalid during load, surfaced in
     # the output payload so reviewers can see what was excluded and why.
     skipped_scenarios: list = field(default_factory=list)
+=======
+>>>>>>> main
     # Council scoring: "council" (default) routes to the multi-judge panel;
     # "single" preserves the legacy single-judge path. ``council`` is None
     # until the dispatcher materializes a CouncilConfig (kept lazy so a bare
