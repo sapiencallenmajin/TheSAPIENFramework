@@ -28,14 +28,19 @@ class CouncilSeat:
 # One model per family, cheapest capable variant. LiteLLM provider/model
 # strings — keep these in sync with litellm's model registry.
 #
-# Meta seat hosted on Groq: Together's catalog has Llama 4 Scout behind
-# their dedicated-endpoints tier ("Unable to access non-serverless
-# model" on validate_council.py), whereas Groq serves the same weights
-# on their free-tier public endpoint. Keeps the Meta seat reachable
-# with just GROQ_API_KEY.
+# Mixed-provider routing: OpenRouter's free tier hosts Meta and Google
+# (seats 1-2) but has no free DeepSeek or Mistral endpoint, so those
+# seats hit their native providers directly. Cohere likewise stays on
+# its own API because Command-A is not mirrored on OpenRouter.
+#
+# Required env vars:
+#   OPENROUTER_API_KEY  (seats 1-2: Meta, Google)
+#   DEEPSEEK_API_KEY    (seat 3)
+#   MISTRAL_API_KEY     (seat 4)
+#   COHERE_API_KEY      (seat 5)
 DEFAULT_COUNCIL: tuple[CouncilSeat, ...] = (
-    CouncilSeat(family="meta",     model="groq/meta-llama/llama-4-scout-17b-16e-instruct"),
-    CouncilSeat(family="google",   model="gemini/gemma-3-27b-it"),
+    CouncilSeat(family="meta",     model="openrouter/meta-llama/llama-3.3-70b-instruct:free"),
+    CouncilSeat(family="google",   model="openrouter/google/gemma-4-26b-a4b-it:free"),
     CouncilSeat(family="deepseek", model="deepseek/deepseek-chat"),
     CouncilSeat(family="mistral",  model="mistral/mistral-small-latest"),
     CouncilSeat(family="cohere",   model="cohere/command-a-03-2025"),
