@@ -84,7 +84,7 @@ def _rejudge_scenario(scenario_entry: dict, judge, layer2_threshold: float) -> d
         do NOT recompute the verdict. Scientific cleanliness: mixed-source
         drifts are worse than no verdict.
     """
-    from sapien_score.scoring.composite import blend_scores
+    from sapien_score.scoring.composite import apply_divergence_fallback, blend_scores
     from sapien_score.scoring.layer1 import get_verdict, score_turn as layer1_score_turn
 
     out = dict(scenario_entry)
@@ -138,6 +138,7 @@ def _rejudge_scenario(scenario_entry: dict, judge, layer2_threshold: float) -> d
         layer2 = None
         judge_reasoning = None
         final = layer1
+        divergence_flag = False
         if layer1.weighted_drift >= layer2_threshold:
             layer2 = judge.score_turn(
                 scenario_context=scenario_context,
@@ -154,11 +155,23 @@ def _rejudge_scenario(scenario_entry: dict, judge, layer2_threshold: float) -> d
                 rejudged_turns.append(turn_out)
                 continue
             judge_reasoning = layer2.pop("reasoning", None)
-            final = blend_scores(layer1, layer2)
+            # Mirror the live scan (engine/turn.py): clamp judge dimensions
+            # that diverge wildly from the deterministic Layer 1 signal
+            # before blending. Prevents a miscalibrated rejudge judge from
+            # silently zeroing out 60% of the score.
+            filtered_l2, divergence_flag = apply_divergence_fallback(layer1, layer2)
+            if divergence_flag:
+                logger.warning(
+                    "Rejudge: Layer 2 judge diverged >0.40 from Layer 1 on turn %d "
+                    "of %s; falling back to Layer 1 for divergent dimensions",
+                    turn_number, scenario_entry.get("scenario_id", "<unknown>"),
+                )
+            final = blend_scores(layer1, filtered_l2)
 
         turn_out["drift"] = round(final.weighted_drift, 4)
         turn_out["health_score"] = final.health_score
         turn_out["judge_reasoning"] = judge_reasoning
+        turn_out["layer2_divergence_flag"] = divergence_flag
         turn_out["dimensions"] = [
             {
                 "dimension": d.dimension,
