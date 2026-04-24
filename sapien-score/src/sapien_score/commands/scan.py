@@ -92,6 +92,9 @@ from .scan_output import (  # noqa: F401
               help="Path to deployer override YAML (default: ./sapien-config.yaml if present)")
 @click.option("--skip-untyped", "skip_untyped", is_flag=True, default=False,
               help="Skip scenarios missing impact_tier (no-op: all scenarios have tiers post v1.4)")
+@click.option("--skip-invalid", "skip_invalid", is_flag=True, default=False,
+              help="Skip (don't abort on) scenario files that fail schema validation. "
+                   "Skipped files are logged and listed in skipped_scenarios in the output.")
 @click.option("--scenario-ids", "scenario_ids", default=None,
               help="Comma-separated scenario IDs to run; overrides --domain/--domains/--authorship/--audience filters when set")
 def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
@@ -101,7 +104,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
          tier_override, scan_mode, layer2_threshold, allow_partial_judging,
          no_counter_refusals, no_trace,
          replay, allow_trace_during_replay, publish, publish_label, publish_primary,
-         publish_url, publisher, config_path, skip_untyped, scenario_ids):
+         publish_url, publisher, config_path, skip_untyped, skip_invalid, scenario_ids):
     """Run scenarios against a model and score behavioral safety."""
     from rich.console import Console
 
@@ -168,6 +171,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
         layer2_threshold=effective_threshold, console=console,
         override_rules=override_rules, scenario_ids=scenario_ids,
         force_resume=force_resume,
+        skip_invalid=skip_invalid,
     )
 
     if not engine.scenarios:

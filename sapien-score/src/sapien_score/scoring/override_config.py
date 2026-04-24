@@ -37,6 +37,7 @@ YAML schema:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Optional
 
 from sapien_score.scoring.risk import IMPACT_TIERS, impact_tier_to_level
@@ -64,6 +65,35 @@ class OverrideResult:
     impact_default: str         # original tier from scenario
     override_assigned_by: Optional[str] = None
     override_rationale: Optional[str] = None
+    # P1-7: UTC ISO8601 timestamp for when this override was applied.
+    # Set only when impact_source == "user_override" so the audit trail
+    # carries a verifiable "when" alongside the "who" and "why". Persists
+    # in the final result JSON even if the override YAML is later deleted.
+    applied_at: Optional[str] = None
+
+
+def build_override_audit_entry(
+    result: "OverrideResult",
+    scenario_id: str,
+    run_id: Optional[str],
+) -> Optional[dict]:
+    """Project a user_override OverrideResult into an audit log entry.
+
+    Returns None for framework defaults — only real overrides get logged.
+    Entries are appended to the top-level ``override_audit`` array in the
+    output payload so they outlive the override YAML file.
+    """
+    if result.impact_source != "user_override":
+        return None
+    return {
+        "run_id": run_id,
+        "scenario_id": scenario_id,
+        "original_tier": result.impact_default,
+        "applied_tier": result.impact_tier_applied,
+        "assigned_by": result.override_assigned_by,
+        "rationale": result.override_rationale,
+        "applied_at": result.applied_at,
+    }
 
 
 def load_override_config(path: str) -> list[OverrideRule]:
@@ -217,4 +247,5 @@ def resolve_override(scenario, rules: list[OverrideRule]) -> OverrideResult:
         impact_default=default_tier,
         override_assigned_by=best_rule.assigned_by,
         override_rationale=best_rule.rationale,
+        applied_at=datetime.now(timezone.utc).isoformat(),
     )
