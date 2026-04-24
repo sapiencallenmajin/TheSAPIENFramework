@@ -239,26 +239,52 @@ voigt-kampff scan --scoring single
 
 ## 8. Cost Model
 
-### 8.1 Estimated Per-Scenario Cost (5 judges)
+### 8.1 Per-Turn Judging — Actual Shape
 
-| Model Family | Est. Input $/M | Est. Output $/M | Avg Tokens/Score | Est. Cost/Score |
-|-------------|----------------|------------------|------------------|-----------------|
-| Llama (hosted) | $0.10 | $0.10 | ~2,000 | $0.0004 |
-| Gemma 3 (hosted) | $0.10 | $0.10 | ~2,000 | $0.0004 |
-| DeepSeek V3 | $0.27 | $1.10 | ~2,000 | $0.0027 |
-| Mistral Small | $0.10 | $0.30 | ~2,000 | $0.0008 |
-| Cohere Command-A | $0.25 | $1.00 | ~2,000 | $0.0025 |
-| **Total per scenario** | | | | **~$0.007** |
+The council runs **per turn**, not once per scenario. Every escalation
+turn triggers one parallel round across all seats, so the real cost
+formula is:
 
-### 8.2 Comparison to Single Frontier Judge
+    cost = (seats) × (turns per scenario) × (cost per call)
 
-| Approach | Est. Cost/Scenario |
-|----------|-------------------|
-| Single Claude Opus | ~$0.06–0.12 |
-| Single GPT-5 | ~$0.04–0.08 |
-| Council of 5 cheap models | ~$0.008 |
+An 8-turn scenario with 5 judges fires **40** judge calls, not 5.
 
-Council is approximately **7–15x cheaper** than a single frontier judge while providing cross-family consensus.
+### 8.2 Estimated Per-Call Cost (5 judges, small per-turn prompt)
+
+| Model Family | Est. Input $/M | Est. Output $/M | Avg Tokens/Call | Est. Cost/Call |
+|-------------|----------------|------------------|-----------------|----------------|
+| Llama (hosted) | $0.10 | $0.10 | ~1,500 | $0.00015 |
+| Gemma 3 (hosted) | $0.10 | $0.10 | ~1,500 | $0.00015 |
+| DeepSeek V3 | $0.27 | $1.10 | ~1,500 | $0.0010 |
+| Mistral Small | $0.10 | $0.30 | ~1,500 | $0.0003 |
+| Cohere Command-A | $0.25 | $1.00 | ~1,500 | $0.0009 |
+| **Total per turn (sum of 5)** | | | | **~$0.0026** |
+
+Per-call tokens are smaller than the holistic prompt (~1,500 vs
+~2,000) because each turn sends only the current response + baseline,
+not the full transcript.
+
+### 8.3 Per-Scenario Cost (typical 6–8 escalation turns)
+
+| Council Size | Turns | Calls | Est. Cost/Scenario |
+|--------------|-------|-------|---------------------|
+| 5 judges | 6 | 30 | ~$0.016 |
+| 5 judges | 8 | 40 | ~$0.021 |
+| 3 judges (Meta + Google + DeepSeek) | 6 | 18 | ~$0.008 |
+| 3 judges | 8 | 24 | ~$0.011 |
+
+### 8.4 Comparison to Single Frontier Judge (per turn × turns)
+
+| Approach | 6-turn scenario | 8-turn scenario |
+|----------|-----------------|-----------------|
+| Single Claude Opus per turn | ~$0.09 | ~$0.12 |
+| Single GPT-5 per turn | ~$0.06 | ~$0.08 |
+| Council of 5 cheap models | ~$0.016 | ~$0.021 |
+
+Council is approximately **4–8× cheaper** than a single frontier judge
+run on the same per-turn cadence, and identifies **which specific
+escalation step** triggered drift — information lost when a single
+judge scores the full transcript once.
 
 ---
 

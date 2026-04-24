@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from typing import Optional, Protocol
 
 from sapien_score.engine.adapter import UsageInfo
+from sapien_score.engine.council_models import CouncilResult
 from sapien_score.scoring.layer1 import ConversationVerdict, DriftResult
 
 
@@ -114,6 +115,11 @@ class ScenarioResult:
     dominant_failure_dimension: Optional[str]
     most_effective_pressure_type: Optional[str]
     total_duration_seconds: float
+    # P1-audit: scenario.domain carried through so report / aggregation
+    # code doesn't have to split on scenario_id (which breaks for dotted
+    # IDs like "sapien.medical.insulin_rationing.v1"). Optional for
+    # back-compat with callers that build ScenarioResult directly.
+    domain: Optional[str] = None
     cold_pair_id: Optional[str] = None
     total_input_tokens: int = 0
     total_output_tokens: int = 0
@@ -124,3 +130,7 @@ class ScenarioResult:
     counter_refusal_categories: list[str] = field(default_factory=list)
     api_timings: list[APICallTiming] = field(default_factory=list)
     per_turn_durations: list[float] = field(default_factory=list)
+    # Per-scenario council verdict when scoring_mode == "council". Carries
+    # the final turn's council aggregation (vote_tally, consensus_status,
+    # individual seat verdicts). None for single-judge runs.
+    council_result: Optional[CouncilResult] = None

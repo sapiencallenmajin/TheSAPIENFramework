@@ -20,8 +20,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import sys
-import tempfile
 from pathlib import Path
 from statistics import quantiles
 from typing import Optional
@@ -29,6 +27,8 @@ from typing import Optional
 import click
 from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
+
+from sapien_score.io import atomic_write_json
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ def _rejudge_scenario(scenario_entry: dict, judge, layer2_threshold: float) -> d
         do NOT recompute the verdict. Scientific cleanliness: mixed-source
         drifts are worse than no verdict.
     """
-    from sapien_score.scoring.composite import blend_scores
+    from sapien_score.scoring.composite import score_with_layer2
     from sapien_score.scoring.layer1 import get_verdict, score_turn as layer1_score_turn
 
     out = dict(scenario_entry)
@@ -133,32 +133,42 @@ def _rejudge_scenario(scenario_entry: dict, judge, layer2_threshold: float) -> d
         # Layer 1 is deterministic — recompute from stored transcripts.
         layer1 = layer1_score_turn(assistant_response, baseline_response)
 
-        # Only invoke judge when Layer 1 signal meets threshold (matches
-        # live scan behavior in engine/turn.py).
-        layer2 = None
-        judge_reasoning = None
-        final = layer1
-        if layer1.weighted_drift >= layer2_threshold:
-            layer2 = judge.score_turn(
-                scenario_context=scenario_context,
-                user_prompt=user_message,
-                assistant_response=assistant_response,
-                baseline_response=baseline_response,
-                turn_number=turn_number,
-                pressure_type=pressure_type,
-            )
-            if layer2 is None:
-                any_failure = True
-                failure_reason = failure_reason or "judge_call_failed"
-                turn_out["rejudge_error"] = "judge_call_failed"
-                rejudged_turns.append(turn_out)
-                continue
-            judge_reasoning = layer2.pop("reasoning", None)
-            final = blend_scores(layer1, layer2)
+        # Unified Layer 1 + Layer 2 fusion — mirrors engine/turn.py and
+        # adaptive/engine.py exactly. Returns L1-only when the threshold
+        # gate skips the judge.
+        fusion = score_with_layer2(
+            layer1=layer1,
+            judge=judge,
+            scenario_context=scenario_context,
+            user_prompt=user_message,
+            assistant_response=assistant_response,
+            baseline_response=baseline_response,
+            turn_number=turn_number,
+            pressure_type=pressure_type,
+            layer2_threshold=layer2_threshold,
+            log_context=f"rejudge {scenario_entry.get('scenario_id', '<unknown>')}",
+        )
+        # Rejudge's "partial scenario" contract: when the judge was
+        # invoked but returned None for this turn, mark the whole
+        # scenario partial and skip the turn.  score_with_layer2 does not
+        # distinguish "judge returned None" from "judge skipped by
+        # threshold" without inspecting layer2_raw + judge_invoked +
+        # weighted_drift, so we recheck here.
+        if (
+            fusion.judge_invoked
+            and fusion.layer2_raw is None
+        ):
+            any_failure = True
+            failure_reason = failure_reason or "judge_call_failed"
+            turn_out["rejudge_error"] = "judge_call_failed"
+            rejudged_turns.append(turn_out)
+            continue
 
+        final = fusion.final_score
         turn_out["drift"] = round(final.weighted_drift, 4)
         turn_out["health_score"] = final.health_score
-        turn_out["judge_reasoning"] = judge_reasoning
+        turn_out["judge_reasoning"] = fusion.judge_reasoning
+        turn_out["layer2_divergence_flag"] = fusion.divergence_flag
         turn_out["dimensions"] = [
             {
                 "dimension": d.dimension,
@@ -234,29 +244,6 @@ def _recompute_aggregates(entries: list[dict]) -> dict:
         "p10_health": round(p10),
         "dimension_averages": {k: round(v, 4) for k, v in dim_averages.items()},
     }
-
-
-# ---------------------------------------------------------------------------
-# Atomic write
-# ---------------------------------------------------------------------------
-
-def _atomic_write_json(path: str, payload: dict) -> None:
-    """Write JSON to a sibling tempfile, then rename into place."""
-    dest = Path(path)
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp = tempfile.mkstemp(
-        prefix=dest.name + ".", suffix=".tmp", dir=str(dest.parent)
-    )
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(payload, f, indent=2)
-        os.replace(tmp, dest)
-    except Exception:
-        try:
-            os.unlink(tmp)
-        except OSError:
-            pass
-        raise
 
 
 # ---------------------------------------------------------------------------
@@ -410,7 +397,7 @@ def rejudge(
         console=console,
     )
 
-    _atomic_write_json(output, out)
+    atomic_write_json(output, out)
 
     summary = out["rejudge_summary"]
     console.print(

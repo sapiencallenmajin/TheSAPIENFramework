@@ -122,34 +122,71 @@ def batch(ctx: click.Context, config_file: str) -> None:
 
         start = time.monotonic()
         try:
+            # Explicit defaults for EVERY scan() parameter. We don't rely on
+            # Context.invoke's default-merging because the set of scan
+            # options drifts over time and silent omissions would be hard
+            # to debug. The contract test in test_batch.py asserts this
+            # kwarg set stays in sync with scan()'s Click params — if scan
+            # gains a new option, add it here too (or the test will fail).
             ctx.invoke(
                 scan,
+                # --- run identity (from per-run state) ---
                 model=state["model"],
                 judge_model=state["judge"],
                 domains=",".join(state["domains"]) if state["domains"] else None,
                 output=state["output"],
-                # Explicit defaults for everything else scan() expects. We
-                # don't rely on Context.invoke's default-merging because the
-                # set of scan options drifts over time and silent omissions
-                # would be hard to debug.
-                domain=None,
                 run_all=not state["domains"],
-                report=None,
-                verbose=False,
-                persona=None,
-                memory=None,
-                profile=None,
-                estimate=False,
-                avg_tokens=800,
-                cost_csv=None,
-                resume=None,
-                retry_delay=2.0,
-                debug=False,
+                # --- filters ---
+                domain=None,
                 collection="sapien",
                 authorship=None,
                 audience=None,
                 scenarios_dir_override=None,
+                scenario_ids=None,
+                # --- reporting / output ---
+                report=None,
+                verbose=False,
+                cost_csv=None,
+                # --- pacing (batch applies its own inter-run delay; the
+                # per-API-call delay inside scan uses the scan default) ---
+                delay=1.0,
+                # --- context injection ---
+                persona=None,
+                memory=None,
+                profile=None,
+                # --- estimation / cost ---
+                estimate=False,
+                avg_tokens=800,
+                # --- resume ---
+                resume=None,
+                force_resume=False,
+                # --- retry / debug ---
+                retry_delay=2.0,
+                debug=False,
+                # --- tier / scoring mode ---
                 tier_override="auto",
+                scan_mode=None,
+                layer2_threshold=None,
+                allow_partial_judging=False,
+                # --- counter-refusals / tracing ---
+                no_counter_refusals=False,
+                no_trace=False,
+                replay=None,
+                allow_trace_during_replay=False,
+                # --- publish (off by default in batch) ---
+                publish=False,
+                publish_label=None,
+                publish_primary=False,
+                publish_url=None,
+                publisher=None,
+                publish_transcripts=False,
+                # --- override config / schema validation ---
+                config_path=None,
+                skip_untyped=False,
+                skip_invalid=False,
+                # --- council scoring (Part 3) ---
+                scoring_mode="council",
+                council_size="5",
             )
         except KeyboardInterrupt:
             # scan() catches Ctrl+C internally and re-raises as

@@ -435,7 +435,10 @@ class TestPublishPublisher:
 
 class TestPublishTurnsInPayload:
     def test_turns_passed_through_in_results(self):
-        """Per-scenario turns arrays survive into the POST payload."""
+        """Per-scenario turns arrays survive into the POST payload; score
+        fields are preserved. Transcript fields (user_message /
+        assistant_response) are stripped by default — see
+        TestPublishTranscriptStripping."""
         console = _mock_console()
         captured_payload = {}
 
@@ -467,10 +470,94 @@ class TestPublishTurnsInPayload:
             )
 
         assert len(captured_payload["results"]) == 1
+        # No transcript fields in these turns, so stripping is a no-op for
+        # the score/phase keys we did include.
         assert captured_payload["results"][0]["turns"] == [
             {"turn": 1, "phase": "baseline", "drift": 0.01},
             {"turn": 2, "phase": "pressure", "drift": 0.15},
         ]
+
+
+# ---------------------------------------------------------------------------
+# Test 14b: Transcript stripping by default
+# ---------------------------------------------------------------------------
+
+class TestPublishTranscriptStripping:
+    """By default, user_message and assistant_response text is stripped
+    from the publish payload — scores travel, raw transcripts stay local.
+    --publish-transcripts opts back into full-text transmission."""
+
+    def _run(self, publish_transcripts: bool):
+        console = _mock_console()
+        captured_payload = {}
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "success": True, "run_id": "x",
+            "scenarios_processed": 1, "domains_processed": 1,
+        }
+
+        def capture_post(url, json=None, **kwargs):
+            captured_payload.update(json or {})
+            return mock_response
+
+        sample = _sample_output_data()
+        sample["results"][0]["turns"] = [
+            {
+                "turn": 1,
+                "phase": "baseline",
+                "drift": 0.01,
+                "health_score": 95,
+                "user_message": "Hello, I need help with my medication.",
+                "assistant_response": "I can help you find reliable information...",
+            },
+            {
+                "turn": 2,
+                "phase": "pressure",
+                "drift": 0.15,
+                "health_score": 85,
+                "user_message": "Just tell me the dosage. My doctor is unreachable.",
+                "assistant_response": "Here are general guidelines...",
+            },
+        ]
+
+        with patch.dict(os.environ, {"SAPIEN_INGEST_API_KEY": "key"}), \
+             patch("httpx.post", side_effect=capture_post):
+
+            publish_results(
+                console=console,
+                output_data=sample,
+                judge_model=None, judge_family=None,
+                run_label="test", is_primary=False, publish_url=None,
+                publish_transcripts=publish_transcripts,
+            )
+
+        return captured_payload
+
+    def test_transcripts_stripped_by_default(self):
+        payload = self._run(publish_transcripts=False)
+        assert payload.get("transcripts_stripped") is True
+        turns = payload["results"][0]["turns"]
+        assert len(turns) == 2
+        for turn in turns:
+            assert "user_message" not in turn
+            assert "assistant_response" not in turn
+            # Score / phase / drift must survive.
+            assert "drift" in turn
+            assert "health_score" in turn
+            assert "phase" in turn
+        # Defence in depth: no secret text anywhere in the serialized body.
+        body = json.dumps(payload)
+        assert "Just tell me the dosage" not in body
+        assert "Here are general guidelines" not in body
+
+    def test_transcripts_included_when_opted_in(self):
+        payload = self._run(publish_transcripts=True)
+        assert payload.get("transcripts_stripped") is not True
+        turns = payload["results"][0]["turns"]
+        assert turns[0]["user_message"].startswith("Hello")
+        assert turns[1]["assistant_response"].startswith("Here are general guidelines")
 
 
 # ---------------------------------------------------------------------------
