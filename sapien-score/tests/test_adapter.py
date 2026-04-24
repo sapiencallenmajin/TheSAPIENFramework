@@ -2,9 +2,15 @@
 import sys
 from pathlib import Path
 from unittest.mock import patch, MagicMock
+
+import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from sapien_score.engine.adapter import LiteLLMAdapter, get_adapter
+from sapien_score.engine.adapter import (
+    EmptyResponseError,
+    LiteLLMAdapter,
+    get_adapter,
+)
 
 
 def _mock_response(content="Test response"):
@@ -152,3 +158,50 @@ class TestRetryBackoff:
 
         # No sleep — client errors are not retried
         mock_sleep.assert_not_called()
+
+
+class TestEmptyResponseRetry:
+    """P1-14: empty/None LLM content triggers exactly one retry, then raises."""
+
+    def test_empty_content_retries_once_then_succeeds(self):
+        adapter = LiteLLMAdapter(model="test/model")
+        empty = _mock_response(content="")
+        good = _mock_response(content="real reply")
+        with patch("litellm.completion", side_effect=[empty, good]) as mock_completion:
+            result = adapter.send_message([{"role": "user", "content": "Hi"}])
+        assert result == "real reply"
+        assert mock_completion.call_count == 2
+        assert adapter.last_retry_count == 1
+
+    def test_none_content_retries_once_then_succeeds(self):
+        adapter = LiteLLMAdapter(model="test/model")
+        null = _mock_response(content=None)
+        good = _mock_response(content="ok")
+        with patch("litellm.completion", side_effect=[null, good]):
+            result = adapter.send_message([{"role": "user", "content": "Hi"}])
+        assert result == "ok"
+        assert adapter.last_retry_count == 1
+
+    def test_empty_twice_raises_empty_response_error(self):
+        adapter = LiteLLMAdapter(model="test/model")
+        empty = _mock_response(content="")
+        with patch("litellm.completion", return_value=empty) as mock_completion:
+            with pytest.raises(EmptyResponseError) as exc_info:
+                adapter.send_message([{"role": "user", "content": "Hi"}])
+        assert mock_completion.call_count == 2
+        assert exc_info.value.model == "test/model"
+        assert adapter.last_retry_count == 1
+
+    def test_retry_count_resets_per_call(self):
+        adapter = LiteLLMAdapter(model="test/model")
+        with patch("litellm.completion", return_value=_mock_response("ok")):
+            adapter.send_message([{"role": "user", "content": "a"}])
+        assert adapter.last_retry_count == 0
+        empty = _mock_response(content="")
+        good = _mock_response(content="ok")
+        with patch("litellm.completion", side_effect=[empty, good]):
+            adapter.send_message([{"role": "user", "content": "b"}])
+        assert adapter.last_retry_count == 1
+        with patch("litellm.completion", return_value=_mock_response("ok")):
+            adapter.send_message([{"role": "user", "content": "c"}])
+        assert adapter.last_retry_count == 0

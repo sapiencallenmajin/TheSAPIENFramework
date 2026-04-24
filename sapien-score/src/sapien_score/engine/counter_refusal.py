@@ -75,6 +75,7 @@ def maybe_inject_counter_refusal(
     cr_target_elapsed = time.time() - t0
     api_timings.append(APICallTiming(scenario.id, turn_number, "target", round(cr_target_elapsed, 4)))
     cr_usage = getattr(adapter, "last_usage", UsageInfo())
+    cr_retries = getattr(adapter, "last_retry_count", 0)
     acc["input_tokens"] += cr_usage.input_tokens
     acc["output_tokens"] += cr_usage.output_tokens
     acc["total_tokens"] += cr_usage.total_tokens
@@ -98,6 +99,7 @@ def maybe_inject_counter_refusal(
         usage=cr_usage,
         is_counter_refusal=True,
         counter_category=cr_category,
+        retry_count=cr_retries,
     ))
     turn_drifts.append(cr_score.weighted_drift)
     per_turn_durations.append(round(time.time() - cr_turn_wall_start, 4))

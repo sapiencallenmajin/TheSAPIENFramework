@@ -17,7 +17,9 @@ from __future__ import annotations
 import json
 import logging
 import time
+import uuid
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
@@ -53,6 +55,9 @@ class EngineConfig:
     previous_payload: Optional[dict] = None
     resume_path: Optional[str] = None
     override_rules: list = field(default_factory=list)
+    # P0-12: run identity for tamper-evident published payloads.
+    run_id: str = ""
+    scan_started_at: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -120,6 +125,7 @@ def setup_engine(
     console: "Console",
     override_rules: Optional[list] = None,
     scenario_ids: Optional[str] = None,
+    force_resume: bool = False,
 ) -> EngineConfig:
     """Resolve arguments, build adapters, load scenarios.
 
@@ -216,10 +222,47 @@ def setup_engine(
             console.print(f"[red]Failed to load --resume file {resume}: {e}[/red]")
             raise SystemExit(1)
 
+        # P0-11: resume files written by this CLI carry `_checksum` over
+        # their results array. Reject tampered or schema-missing files
+        # unless --force-resume is set.
+        from .scan_output import compute_results_checksum
+
+        prior_results = previous_payload.get("results", []) or []
+        embedded = previous_payload.get("_checksum")
+        if embedded is None:
+            if not force_resume:
+                console.print(
+                    f"[red]Resume file {resume} has no _checksum field "
+                    "(likely written by an older CLI or edited by hand). "
+                    "Re-run the original scan, or pass --force-resume to "
+                    "skip integrity validation.[/red]"
+                )
+                raise SystemExit(1)
+            console.print(
+                "[yellow]--force-resume: skipping checksum validation on "
+                f"{resume}[/yellow]"
+            )
+        else:
+            recomputed = compute_results_checksum(prior_results)
+            if recomputed != embedded:
+                if not force_resume:
+                    console.print(
+                        f"[red]Resume file {resume} failed checksum validation: "
+                        f"expected {embedded[:12]}..., got {recomputed[:12]}... "
+                        "Contents were modified after the original run. Pass "
+                        "--force-resume to override.[/red]"
+                    )
+                    raise SystemExit(1)
+                console.print(
+                    "[yellow]--force-resume: ignoring checksum mismatch on "
+                    f"{resume}[/yellow]"
+                )
+
         completed_ids = {
             entry.get("scenario_id")
-            for entry in previous_payload.get("results", [])
-            if entry.get("scenario_id")
+            for entry in prior_results
+            # Skip error entries — those scenarios still need to be retried.
+            if entry.get("scenario_id") and entry.get("verdict") != "error"
         }
         before_count = len(all_scenarios)
         all_scenarios = [s for s in all_scenarios if s.id not in completed_ids]
@@ -322,6 +365,12 @@ def setup_engine(
             Path.home() / ".sapien_score" / "last_scan.partial.json"
         )
 
+    # P0-12: stable run identity stamped into every result file and
+    # published payload so consumers can detect forgery and link partial
+    # writes back to the originating run.
+    run_id = uuid.uuid4().hex
+    scan_started_at = datetime.now(timezone.utc).isoformat()
+
     return EngineConfig(
         adapter=adapter,
         judge=judge,
@@ -337,6 +386,8 @@ def setup_engine(
         previous_payload=previous_payload,
         resume_path=resume,
         override_rules=override_rules or [],
+        run_id=run_id,
+        scan_started_at=scan_started_at,
     )
 
 
@@ -360,7 +411,12 @@ def run_scan_loop(
 
     from sapien_score.engine.driver import run_scenario
 
-    from .scan_output import build_output_payload, compute_aggregates, save_partial
+    from .scan_output import (
+        _atomic_write_json,
+        build_output_payload,
+        compute_aggregates,
+        save_partial,
+    )
 
     scan_start_time = time.monotonic()
     results: list = []
@@ -410,7 +466,10 @@ def run_scan_loop(
                         "title": scenario.title,
                         "error": str(e)[:200],
                     })
-                    save_partial(results, failed_scenarios, engine.partial_path, model, engine.override_rules)
+                    save_partial(
+                        results, failed_scenarios, engine.partial_path,
+                        model, engine.override_rules, run_id=engine.run_id,
+                    )
                     progress.advance(task)
                     continue
 
@@ -440,20 +499,28 @@ def run_scan_loop(
                             previous_payload=engine.previous_payload,
                             resume_path=engine.resume_path,
                             override_rules=engine.override_rules,
+                            failed_scenarios=failed_scenarios,
+                            run_id=engine.run_id,
+                            scan_started_at=engine.scan_started_at,
                         )
-                        with open(output, "w", encoding="utf-8") as f:
-                            json.dump(ckpt_payload, f, indent=2)
+                        _atomic_write_json(output, ckpt_payload)
                     except OSError as e:
                         logger.warning("Checkpoint write failed: %s", e)
 
-                save_partial(results, failed_scenarios, engine.partial_path, model, engine.override_rules)
+                save_partial(
+                    results, failed_scenarios, engine.partial_path,
+                    model, engine.override_rules, run_id=engine.run_id,
+                )
                 progress.advance(task)
 
     except KeyboardInterrupt:
         console.print(
             "\n[yellow]Scan interrupted. Saving partial results...[/yellow]"
         )
-        save_partial(results, failed_scenarios, engine.partial_path, model, engine.override_rules)
+        save_partial(
+            results, failed_scenarios, engine.partial_path,
+            model, engine.override_rules, run_id=engine.run_id,
+        )
         if engine.trace_writer:
             engine.trace_writer.close()
         console.print(f"[green]Partial results saved: {engine.partial_path}[/green]")
@@ -495,7 +562,16 @@ def finalize_scan(
     layer2_threshold_applied: float = 0.0,
 ) -> None:
     """Write JSON/CSV/HTML outputs, optionally publish, and clean up."""
-    from .scan_output import build_output_payload, compute_timing_summary, write_cost_csv
+    from .scan_output import (
+        _atomic_write_json,
+        build_output_payload,
+        compute_content_hash,
+        compute_results_checksum,
+        compute_timing_summary,
+        write_cost_csv,
+    )
+
+    scan_finished_at = datetime.now(timezone.utc).isoformat()
 
     # --- Build output payload (needed for JSON write and/or publish) ---
     output_data = None
@@ -511,15 +587,21 @@ def finalize_scan(
             resume_path=engine.resume_path,
             override_rules=engine.override_rules,
             layer2_threshold_applied=layer2_threshold_applied,
+            failed_scenarios=failed,
+            run_id=engine.run_id,
+            scan_started_at=engine.scan_started_at,
+            scan_finished_at=scan_finished_at,
         )
         timing_summary = compute_timing_summary(results, scan_elapsed)
         if timing_summary:
             output_data["_timing"] = timing_summary
+            # _timing is included in the file write but not in the
+            # content_hash/checksum (those are fingerprints of results only,
+            # so re-running timing analysis doesn't invalidate them).
 
     # --- JSON output ---
     if output and output_data:
-        with open(output, "w", encoding="utf-8") as f:
-            json.dump(output_data, f, indent=2)
+        _atomic_write_json(output, output_data)
         if failed:
             console.print(
                 f"\n[green]Results saved to {output} "
