@@ -602,7 +602,7 @@ Respond with ONLY this JSON object:
 # Short, structured fields: whitelist-validated before interpolation. Same
 # pattern and regex as scoring/judge.py::_validate_safe_context so the two
 # per-turn entry points share their defensive contract.
-_SAFE_PER_TURN_CONTEXT_PATTERN = re.compile(r"^[A-Za-z0-9 ,.:/\-]+$")
+_SAFE_PER_TURN_CONTEXT_PATTERN = re.compile(r"^[A-Za-z0-9 _,.:/\-]+$")
 
 # Ceiling on the per-turn response surface handed to each judge. Matches
 # MAX_JUDGE_RESPONSE_CHARS in scoring/judge.py.
@@ -631,7 +631,7 @@ def _validate_safe_per_turn_context(text: str, field_name: str) -> str:
     if not _SAFE_PER_TURN_CONTEXT_PATTERN.match(text or ""):
         raise ValueError(
             f"Unsafe {field_name} for council per-turn prompt: must match "
-            f"^[A-Za-z0-9 ,.:/\\-]+$, got {text!r}"
+            f"^[A-Za-z0-9 _,.:/\\-]+$, got {text!r}"
         )
     return text
 

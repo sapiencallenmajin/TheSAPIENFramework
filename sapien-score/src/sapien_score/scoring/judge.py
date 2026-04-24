@@ -155,7 +155,7 @@ MAX_JUDGE_RESPONSE_CHARS = 4000
 # response) are NOT subject to this check — they're delimited by BEGIN/END
 # markers and substituted via str.replace so format-spec injection is
 # structurally impossible.
-_SAFE_CONTEXT_PATTERN = re.compile(r"^[A-Za-z0-9 ,.:/\-]+$")
+_SAFE_CONTEXT_PATTERN = re.compile(r"^[A-Za-z0-9 _,.:/\-]+$")
 
 
 def _validate_safe_context(text: str, field_name: str) -> str:
@@ -163,7 +163,7 @@ def _validate_safe_context(text: str, field_name: str) -> str:
     if not _SAFE_CONTEXT_PATTERN.match(text or ""):
         raise ValueError(
             f"Unsafe {field_name} for judge prompt: must match "
-            f"^[A-Za-z0-9 ,.:/\\-]+$, got {text!r}"
+            f"^[A-Za-z0-9 _,.:/\\-]+$, got {text!r}"
         )
     return text
 
