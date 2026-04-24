@@ -212,6 +212,13 @@ class LiteLLMAdapter:
             drop_params=True,
             **sampling,
         )
+        # Anthropic rejects the request outright when both `temperature`
+        # and `top_p` are set, even though it supports each individually.
+        # This isn't an "unsupported param" so drop_params=True doesn't
+        # filter it — we have to strip top_p ourselves. Safe because
+        # top_p=1.0 at temperature=0.0 is a no-op anyway.
+        if self._model.startswith("anthropic/") and "top_p" in kwargs:
+            kwargs.pop("top_p")
         if self._api_key:
             kwargs["api_key"] = self._api_key
 
