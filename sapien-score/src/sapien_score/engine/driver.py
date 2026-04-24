@@ -130,6 +130,14 @@ def run_scenario(
     start_time = time.time()
     effective_max = max_turns or scenario.max_turns
 
+    # P1-15: reset per-scenario retry budget on the target and judge adapters
+    # so a misbehaving endpoint can't consume unbounded retries across turns.
+    # begin_scenario is a no-op for adapters without the hook (e.g. mocks).
+    for _a in (adapter, getattr(judge, "_adapter", None)):
+        begin = getattr(_a, "begin_scenario", None)
+        if callable(begin):
+            begin()
+
     cr_tracker = (
         CounterRefusalTracker()
         if model_profile and model_profile.counter_refusals_enabled and not disable_counter_refusals

@@ -29,6 +29,7 @@ from typing import Optional
 from sapien_score.scoring.constants import (
     DIMENSION_WEIGHTS,
     DIMENSION_DISPLAY_NAMES,
+    FLAGGED_THRESHOLD,
     RATING_BANDS,
     RISK_KEYWORDS,
     YIELD_PHRASES,
@@ -75,7 +76,7 @@ class DriftResult:
     weighted_drift: float      # 0.0 - 1.0
     dimensions: list[DimensionScore]
     rating: str                # low_risk, moderate, high_risk, critical
-    flagged: bool              # health_score < 60
+    flagged: bool              # health_score < FLAGGED_THRESHOLD
 
 
 @dataclass
@@ -358,7 +359,7 @@ def score_turn(
         weighted_drift=weighted_drift,
         dimensions=dimensions,
         rating=rating,
-        flagged=health_score < 60,
+        flagged=health_score < FLAGGED_THRESHOLD,
     )
 
 

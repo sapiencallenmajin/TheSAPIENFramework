@@ -205,3 +205,73 @@ class TestEmptyResponseRetry:
         with patch("litellm.completion", return_value=_mock_response("ok")):
             adapter.send_message([{"role": "user", "content": "c"}])
         assert adapter.last_retry_count == 0
+
+
+class TestTypedRetryDispatch:
+    """P1-15: retries dispatch on exception type first, keywords as fallback."""
+
+    def test_timeout_error_typed_is_retryable(self):
+        adapter = LiteLLMAdapter(model="test/model", base_retry_delay=0.001)
+        adapter.begin_scenario(8)
+        with patch("litellm.completion", side_effect=[
+            TimeoutError("any message, no magic keywords here"),
+            _mock_response("ok"),
+        ]):
+            with patch("sapien_score.engine.adapter.time.sleep"):
+                result = adapter.send_message([{"role": "user", "content": "hi"}])
+        assert result == "ok"
+        assert adapter.last_retry_count == 1
+
+    def test_client_error_still_not_retried_via_fallback(self):
+        """A plain Exception with '401' in the message must NOT retry."""
+        adapter = LiteLLMAdapter(model="test/model", base_retry_delay=0.001)
+        adapter.begin_scenario(8)
+        with patch("litellm.completion", side_effect=Exception("Error: 401 Unauthorized")):
+            with patch("sapien_score.engine.adapter.time.sleep") as mock_sleep:
+                with pytest.raises(Exception):
+                    adapter.send_message([{"role": "user", "content": "hi"}])
+        mock_sleep.assert_not_called()
+
+
+class TestScenarioRetryBudget:
+    """P1-15: per-scenario retry budget caps total retries across calls."""
+
+    def test_budget_decrements_across_calls(self):
+        adapter = LiteLLMAdapter(model="test/model", base_retry_delay=0.001)
+        adapter.begin_scenario(2)  # only 2 retries for the entire scenario
+        # First call: one transient, then success — consumes 1 of budget.
+        with patch("litellm.completion", side_effect=[
+            Exception("429 rate limit"),
+            _mock_response("ok"),
+        ]):
+            with patch("sapien_score.engine.adapter.time.sleep"):
+                adapter.send_message([{"role": "user", "content": "a"}])
+        assert adapter.scenario_retry_budget == 1
+
+        # Second call: one transient, then success — consumes last retry.
+        with patch("litellm.completion", side_effect=[
+            Exception("429 rate limit"),
+            _mock_response("ok"),
+        ]):
+            with patch("sapien_score.engine.adapter.time.sleep"):
+                adapter.send_message([{"role": "user", "content": "b"}])
+        assert adapter.scenario_retry_budget == 0
+
+        # Third call: another transient — budget exhausted, error propagates.
+        with patch("litellm.completion", side_effect=Exception("429 rate limit")):
+            with patch("sapien_score.engine.adapter.time.sleep"):
+                with pytest.raises(Exception, match="429"):
+                    adapter.send_message([{"role": "user", "content": "c"}])
+
+    def test_begin_scenario_resets_budget(self):
+        adapter = LiteLLMAdapter(model="test/model", base_retry_delay=0.001)
+        adapter.begin_scenario(1)
+        with patch("litellm.completion", side_effect=[
+            Exception("429 rate limit"),
+            _mock_response("ok"),
+        ]):
+            with patch("sapien_score.engine.adapter.time.sleep"):
+                adapter.send_message([{"role": "user", "content": "a"}])
+        assert adapter.scenario_retry_budget == 0
+        adapter.begin_scenario()  # default budget
+        assert adapter.scenario_retry_budget == LiteLLMAdapter.DEFAULT_SCENARIO_RETRY_BUDGET

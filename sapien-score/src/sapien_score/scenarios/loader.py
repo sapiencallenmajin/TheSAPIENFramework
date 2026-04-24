@@ -18,6 +18,23 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 
+# P1-17: scenarios skipped by the most recent load, populated when
+# load_all_scenarios is invoked with skip_invalid=True. Scanner surfaces
+# this list in the output payload so reviewers can see which files were
+# dropped and why.
+_last_skipped_scenarios: list[dict] = []
+
+
+def get_last_skipped_scenarios() -> list[dict]:
+    """Return a copy of the skip list from the most recent load_all_scenarios.
+
+    Entries are ``{"path": str, "reason": str}``. Always a fresh list
+    reflecting the latest load, even if load_all_scenarios was called
+    without ``skip_invalid=True``.
+    """
+    return list(_last_skipped_scenarios)
+
+
 # ---- Data Classes ----
 
 @dataclass
@@ -308,10 +325,17 @@ def load_scenario_directory(
     dirpath: str,
     domain: Optional[str] = None,
     audience: Optional[str] = None,
+    skip_invalid: bool = False,
 ) -> list[Scenario]:
     """
     Load all scenarios from a directory tree.
     Optionally filter by domain and/or audience.
+
+    When ``skip_invalid`` is True, scenarios that fail schema validation
+    are logged + recorded in the module-level ``_last_skipped_scenarios``
+    list and skipped instead of aborting the load. Use the flag sparingly:
+    silent skipping can hide broken scenarios from measurement, which is
+    the failure mode SAPIEN exists to prevent.
     """
     scenarios = []
     path = Path(dirpath)
@@ -333,13 +357,27 @@ def load_scenario_directory(
         ) as e:
             # File-level I/O failures: malformed JSON, bad encoding, or
             # transient I/O problems. These are infrastructure issues —
-            # warn and skip.
-            #
-            # ScenarioValidationError is NOT caught here. A scenario
-            # that fails schema validation must abort the load — silent
-            # skipping would hide scenarios from measurement, which is
-            # the exact failure mode SAPIEN exists to prevent.
+            # warn and skip regardless of skip_invalid.
             logger.warning("skipping scenario %s: %s", scenario_file, e)
+            _last_skipped_scenarios.append({
+                "path": str(scenario_file),
+                "reason": f"io_error: {str(e)[:160]}",
+            })
+        except ScenarioValidationError as e:
+            # Schema validation failures. By default (skip_invalid=False)
+            # we re-raise so a broken scenario can't silently drop out of
+            # measurement. With --skip-invalid the operator has explicitly
+            # opted in to lenient mode.
+            if not skip_invalid:
+                raise
+            logger.warning(
+                "skipping scenario %s (validation): %s",
+                scenario_file, str(e).splitlines()[0],
+            )
+            _last_skipped_scenarios.append({
+                "path": str(scenario_file),
+                "reason": f"validation: {str(e).splitlines()[0][:160]}",
+            })
 
     return scenarios
 
@@ -352,7 +390,7 @@ VALID_COLLECTIONS = ["sapien", "community", "red-team", "custom", "all"]
 _DEFAULT_COLLECTIONS = ["sapien", "community", "red-team"]
 
 # Cache: maps frozenset of directory paths -> list[Scenario]
-_scenario_cache: dict[frozenset, list[Scenario]] = {}
+_scenario_cache: dict[tuple, list[Scenario]] = {}
 
 
 def _resolve_scenarios_root() -> Path:
@@ -374,6 +412,7 @@ def load_all_scenarios(
     authorship: Optional[str] = None,
     audience: Optional[str] = None,
     scenarios_dir: Optional[str] = None,
+    skip_invalid: bool = False,
 ) -> list[Scenario]:
     """Load scenarios with collection and metadata filters.
 
@@ -392,7 +431,11 @@ def load_all_scenarios(
         Override: load scenarios from this single directory instead of the
         standard collection layout.
     """
-    global _scenario_cache
+    global _scenario_cache, _last_skipped_scenarios
+
+    # Reset skip log for this load; callers inspect via
+    # get_last_skipped_scenarios().
+    _last_skipped_scenarios = []
 
     effective_collection = collection or "sapien"
 
@@ -413,12 +456,17 @@ def load_all_scenarios(
     if not dirs_to_scan:
         return []
 
-    # --- Cache lookup (keyed on the set of directories) ---
-    cache_key = frozenset(str(d) for d in dirs_to_scan)
+    # --- Cache lookup (keyed on the set of directories AND skip_invalid) ---
+    # skip_invalid participates in the key because a lenient load and a
+    # strict load legitimately produce different scenario sets; caching
+    # them under the same key would leak invalid scenarios into strict runs.
+    cache_key = (frozenset(str(d) for d in dirs_to_scan), bool(skip_invalid))
     if cache_key not in _scenario_cache:
         all_loaded: list[Scenario] = []
         for d in dirs_to_scan:
-            all_loaded.extend(load_scenario_directory(str(d)))
+            all_loaded.extend(
+                load_scenario_directory(str(d), skip_invalid=skip_invalid)
+            )
         _scenario_cache[cache_key] = all_loaded
 
     scenarios = list(_scenario_cache[cache_key])
