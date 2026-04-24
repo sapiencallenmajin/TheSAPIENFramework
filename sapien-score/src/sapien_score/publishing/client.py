@@ -138,14 +138,17 @@ def publish_results(
 
     url = publish_url or os.environ.get("SAPIEN_INGEST_URL", DEFAULT_INGEST_URL)
 
-    # Build payload: existing scan output + metadata fields
+    # Build payload: existing scan output + metadata fields.
+    # output_data already carries run_id, scan_started_at, scan_finished_at,
+    # content_hash, _checksum, n_requested, n_completed, n_failed — schema
+    # v3 is the first version where all of those are required server-side.
     payload = dict(output_data)
     payload["judge_model"] = judge_model
     payload["judge_family"] = judge_family
     payload["run_label"] = run_label
     payload["is_primary"] = is_primary
     payload["cli_version"] = __version__
-    payload["schema_version"] = 2
+    payload["schema_version"] = 3
     if publisher is not None:
         payload["publisher"] = publisher
 

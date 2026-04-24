@@ -199,6 +199,7 @@ def execute_opening_turn(
     target_elapsed = time.time() - t0
     api_timings.append(APICallTiming(scenario.id, 0, "target", round(target_elapsed, 4)))
     turn_usage = getattr(adapter, "last_usage", UsageInfo())
+    turn_retries = getattr(adapter, "last_retry_count", 0)
     acc["input_tokens"] += turn_usage.input_tokens
     acc["output_tokens"] += turn_usage.output_tokens
     acc["total_tokens"] += turn_usage.total_tokens
@@ -221,6 +222,7 @@ def execute_opening_turn(
         timestamp=time.time(),
         layer1_scores=opening_score if judge else None,
         usage=turn_usage,
+        retry_count=turn_retries,
     ))
     turn_drifts.append(opening_score.weighted_drift)
 
@@ -267,6 +269,7 @@ def execute_escalation_turn(
     target_elapsed = time.time() - t0
     api_timings.append(APICallTiming(scenario.id, turn_number, "target", round(target_elapsed, 4)))
     turn_usage = getattr(adapter, "last_usage", UsageInfo())
+    turn_retries = getattr(adapter, "last_retry_count", 0)
     acc["input_tokens"] += turn_usage.input_tokens
     acc["output_tokens"] += turn_usage.output_tokens
     acc["total_tokens"] += turn_usage.total_tokens
@@ -329,6 +332,7 @@ def execute_escalation_turn(
         judge_reasoning=judge_reasoning,
         usage=turn_usage,
         layer2_divergence_flag=divergence_flag,
+        retry_count=turn_retries,
     ))
     turn_drifts.append(final_score.weighted_drift)
     per_turn_durations.append(round(time.time() - turn_wall_start, 4))

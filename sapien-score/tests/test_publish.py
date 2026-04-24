@@ -323,12 +323,15 @@ class TestPayloadExcludesSecrets:
 
 
 # ---------------------------------------------------------------------------
-# Test 11: Payload includes schema_version 2
+# Test 11: Payload includes schema_version 3
 # ---------------------------------------------------------------------------
 
 class TestPayloadSchemaVersion:
-    def test_payload_includes_schema_version_2(self):
-        """POST body contains schema_version: 2 for v1.4 payloads."""
+    def test_payload_includes_schema_version_3(self):
+        """POST body contains schema_version: 3 — introduced alongside
+        run_id / scan_started_at / scan_finished_at / content_hash /
+        n_requested / n_completed / n_failed / cross_family.
+        """
         console = _mock_console()
         captured_payload = {}
 
@@ -353,7 +356,7 @@ class TestPayloadSchemaVersion:
                 run_label="test", is_primary=False, publish_url=None,
             )
 
-        assert captured_payload["schema_version"] == 2
+        assert captured_payload["schema_version"] == 3
 
 
 # ---------------------------------------------------------------------------
