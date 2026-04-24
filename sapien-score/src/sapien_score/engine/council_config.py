@@ -39,8 +39,8 @@ class CouncilSeat:
 #   MISTRAL_API_KEY     (seat 4)
 #   COHERE_API_KEY      (seat 5)
 DEFAULT_COUNCIL: tuple[CouncilSeat, ...] = (
-    CouncilSeat(family="meta",     model="openrouter/meta-llama/llama-3.3-70b-instruct:free"),
-    CouncilSeat(family="google",   model="openrouter/google/gemma-4-26b-a4b-it:free"),
+    CouncilSeat(family="meta",     model="openrouter/meta-llama/llama-3.3-70b-instruct"),
+    CouncilSeat(family="google",   model="openrouter/google/gemma-4-26b-a4b-it"),
     CouncilSeat(family="deepseek", model="deepseek/deepseek-chat"),
     CouncilSeat(family="mistral",  model="mistral/mistral-small-latest"),
     CouncilSeat(family="cohere",   model="cohere/command-a-03-2025"),
