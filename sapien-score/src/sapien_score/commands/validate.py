@@ -23,11 +23,13 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+import click
 from rich.console import Console
 from rich.panel import Panel
 
@@ -38,7 +40,10 @@ from sapien_score.validation.schema_check import (
     SchemaResult,
     check_schema,
 )
-from sapien_score.validation.structure_check import StructureReport
+from sapien_score.validation.structure_check import (
+    StructureReport,
+    check_structure,
+)
 from sapien_score.validation.voice_check import (
     CATEGORY_BLADER_CHATBOT,
     CATEGORY_BLADER_FILLER,
@@ -55,6 +60,7 @@ from sapien_score.validation.voice_check import (
     check_voice,
     match_patterns,
     scan_text_lmscan,
+    score_turn,
 )
 
 
@@ -668,3 +674,307 @@ def run_single(
     )
 
     return report
+
+
+# ─── CLI exit codes ─────────────────────────────────────────────────────────
+# POSIX-style: 0 success, 1 generic error. Lifted to constants so command
+# code never spells `sys.exit(1)` inline — callers (and tests) reference
+# the named code instead.
+
+EXIT_OK: int = 0
+EXIT_ERROR: int = 1
+
+
+# ─── CLI flag defaults ──────────────────────────────────────────────────────
+# Defaults Click hands to options when the user omits the flag. Lifted
+# so future config-file overrides have a single place to plug in.
+
+DEFAULT_SCENARIOS_DIR: str = "."
+
+# Reserved turn type for free-form text scored in interactive mode.
+# Distinct from TURN_TYPE_OPENING/ESCALATION/HOLD_VARIANT so any code
+# that filters on those three doesn't accidentally pick up pasted text.
+TURN_TYPE_PASTED: str = "pasted"
+
+
+# ─── Scenario loading ──────────────────────────────────────────────────────
+
+def load_scenario(path: str, console: Optional[Console] = None) -> dict:
+    """Load and parse a scenario JSON file.
+
+    On any I/O or parse error, prints a red error line and exits with
+    EXIT_ERROR. Matches the standalone's behavior — a missing file or
+    malformed JSON is unrecoverable from the validate command's view.
+    """
+    target = console or _default_console
+    p = Path(path)
+    if not p.exists():
+        target.print(f"[red]File not found: {path}[/]")
+        sys.exit(EXIT_ERROR)
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except json.JSONDecodeError as e:
+        target.print(f"[red]Invalid JSON in {path}: {e}[/]")
+        sys.exit(EXIT_ERROR)
+
+
+def find_scenarios(
+    base_dir: str,
+    domain: Optional[str] = None,
+    console: Optional[Console] = None,
+) -> list[tuple[str, Path]]:
+    """Find scenario JSON files under ``base_dir``.
+
+    Returns a list of ``(domain_name, file_path)`` tuples. When
+    ``domain`` is given, restricts to that single subdirectory; when
+    omitted, walks every direct subdirectory (each one treated as a
+    domain). On a missing base_dir or domain, prints a red error and
+    exits with EXIT_ERROR.
+    """
+    target = console or _default_console
+    base = Path(base_dir)
+    if not base.exists():
+        target.print(f"[red]Directory not found: {base_dir}[/]")
+        sys.exit(EXIT_ERROR)
+
+    results: list[tuple[str, Path]] = []
+    if domain:
+        domain_dir = base / domain
+        if not domain_dir.exists():
+            target.print(f"[red]Domain directory not found: {domain_dir}[/]")
+            sys.exit(EXIT_ERROR)
+        for f in sorted(domain_dir.glob("*.json")):
+            results.append((domain, f))
+    else:
+        for domain_dir in sorted(base.iterdir()):
+            if domain_dir.is_dir():
+                for f in sorted(domain_dir.glob("*.json")):
+                    results.append((domain_dir.name, f))
+    return results
+
+
+# ─── Interactive mode ──────────────────────────────────────────────────────
+
+def interactive_mode(
+    path: str,
+    threshold: float,
+    verbose: bool,
+    console: Optional[Console] = None,
+    input_fn=input,
+) -> None:
+    """Score → review → paste revised text → verify → save loop.
+
+    First runs a full single-scenario audit, then enters a paste-and-
+    rescore REPL. Commands inside the loop:
+
+      ``q``       — quit
+      ``report``  — re-run the full single-scenario audit
+      <text>      — first line of pasted turn; subsequent lines until
+                    a blank line are concatenated and scored as a
+                    single turn
+
+    ``input_fn`` is parameterized so tests can inject a queued response
+    sequence without touching real stdin.
+    """
+    target = console or _default_console
+    scenario = load_scenario(path, console=target)
+    run_single(scenario, path, threshold, verbose=verbose, console=target)
+
+    target.print("\n[bold]Interactive re-score mode[/]")
+    target.print("Paste revised turn text, then press Enter twice to score.")
+    target.print("Type 'q' to quit, 'report' to re-run full audit.\n")
+
+    while True:
+        try:
+            cmd = input_fn("> ").strip()
+        except (EOFError, KeyboardInterrupt):
+            target.print("\nDone.")
+            break
+
+        if cmd.lower() == "q":
+            break
+        if cmd.lower() == "report":
+            scenario = load_scenario(path, console=target)
+            run_single(scenario, path, threshold, verbose=verbose, console=target)
+            continue
+        if cmd == "":
+            continue
+
+        # Multi-line capture: accumulate until blank line / EOF.
+        lines = [cmd]
+        while True:
+            try:
+                line = input_fn("")
+                if line == "":
+                    break
+                lines.append(line)
+            except EOFError:
+                break
+
+        text = "\n".join(lines)
+        if not text.strip():
+            continue
+
+        ts = score_turn(text, turn_index=0, turn_type=TURN_TYPE_PASTED)
+        prob = f"{ts.ai_probability:.0%}" if ts.ai_probability >= 0 else "N/A"
+        color = ai_color(ts.ai_probability)
+
+        target.print(f"\n  AI Probability: [{color}]{prob}[/]  [{ts.confidence}]")
+        for flag in ts.lmscan_flags:
+            target.print(f"  [yellow]⚠ {flag}[/]")
+        for pm in ts.pattern_matches:
+            c = "red" if pm.category == CATEGORY_SAPIEN_CRITICAL else "yellow"
+            target.print(f"  [{c}]✗ {pm.pattern_name}: \"{pm.matched_text}\"[/]")
+        if ts.uniformity_warning:
+            target.print(f"  [yellow]⚠ {ts.uniformity_warning}[/]")
+        if not ts.pattern_matches and ts.ai_probability < threshold:
+            target.print("  [green]✓ Clean — this turn reads human.[/]")
+        target.print()
+
+
+# ─── Click command ─────────────────────────────────────────────────────────
+
+@click.command("validate")
+@click.option("--scenario", type=click.Path(), default=None,
+              help="Path to a single scenario JSON.")
+@click.option("--domain", type=str, default=None,
+              help="Validate every scenario in <scenarios-dir>/<domain>/.")
+@click.option("--all", "validate_all", is_flag=True,
+              help="Validate the entire corpus under <scenarios-dir>.")
+@click.option("--scenarios-dir", type=click.Path(), default=DEFAULT_SCENARIOS_DIR,
+              show_default=True,
+              help="Base directory holding domain subdirectories.")
+@click.option("--fix", is_flag=True,
+              help="Run the deterministic humanizer on flagged turns.")
+@click.option("--strict", is_flag=True,
+              help="Treat any above-threshold lmscan score as a FAIL.")
+@click.option("--threshold", type=float, default=DEFAULT_AI_THRESHOLD,
+              show_default=True,
+              help="AI probability threshold for WARN/FAIL.")
+@click.option("--verbose", is_flag=True,
+              help="Show per-sentence AI scores on every turn.")
+@click.option("--output", type=click.Path(), default=None,
+              help="Write the validation report to this JSON file.")
+@click.option("--batch", is_flag=True,
+              help="One-line-per-scenario output (skips full panels).")
+@click.option("--interactive", is_flag=True,
+              help="Score → edit → re-score loop (single scenario only).")
+def validate(
+    scenario: Optional[str],
+    domain: Optional[str],
+    validate_all: bool,
+    scenarios_dir: str,
+    fix: bool,
+    strict: bool,
+    threshold: float,
+    verbose: bool,
+    output: Optional[str],
+    batch: bool,
+    interactive: bool,
+) -> None:
+    """Three-layer scenario quality gate (schema + voice + structure)."""
+    console = _default_console
+
+    if not HAS_LMSCAN:
+        console.print(
+            "[dim]ℹ Install lmscan for AI detection scoring: "
+            "pip install lmscan[/]"
+        )
+
+    # ── Single scenario ──
+    if scenario:
+        if interactive:
+            interactive_mode(scenario, threshold, verbose, console=console)
+            return
+
+        data = load_scenario(scenario, console=console)
+        report = run_single(
+            data, scenario, threshold,
+            verbose=verbose, fix=fix, strict=strict,
+            console=console,
+        )
+
+        schema_fail = any(r.level == LEVEL_FAIL for r in report.schema)
+        if schema_fail or report.voice.pass_fail == LEVEL_FAIL:
+            overall = LEVEL_FAIL
+        else:
+            overall = report.voice.pass_fail
+        console.print(f"\n[bold]Result: {overall}[/]")
+
+        if output:
+            out = report_to_json([report], "single", threshold)
+            with open(output, "w", encoding="utf-8") as f:
+                json.dump(out, f, indent=2)
+            console.print(f"[dim]Report saved to {output}[/]")
+        return
+
+    # ── Domain or corpus ──
+    if domain or validate_all:
+        scenario_files = find_scenarios(
+            scenarios_dir,
+            domain if domain else None,
+            console=console,
+        )
+        if not scenario_files:
+            console.print("[red]No scenario files found.[/]")
+            sys.exit(EXIT_ERROR)
+
+        # Group by domain so Layer 3 can run on each domain bucket.
+        by_domain: dict[str, list[tuple[Path, dict]]] = {}
+        for d, p in scenario_files:
+            by_domain.setdefault(d, []).append(
+                (p, load_scenario(str(p), console=console))
+            )
+
+        all_reports: list[FullReport] = []
+        all_structures: list[StructureReport] = []
+
+        for d, items in sorted(by_domain.items()):
+            if not batch:
+                console.print(
+                    f"\n[bold]═══ Domain: {d} ({len(items)} scenarios) ═══[/]"
+                )
+
+            domain_reports: list[FullReport] = []
+            for p, sc in items:
+                if batch:
+                    rep = FullReport(
+                        file_path=str(p),
+                        scenario_id=sc.get("id", "unknown"),
+                    )
+                    rep.schema = check_schema(sc)
+                    rep.voice = check_voice(sc, threshold)
+                    render_batch_line(rep, console=console)
+                else:
+                    console.print(
+                        f"\n[bold]── {sc.get('id', p.name)} ──[/]"
+                    )
+                    rep = run_single(
+                        sc, str(p), threshold,
+                        verbose=verbose, fix=fix, strict=strict,
+                        console=console,
+                    )
+                domain_reports.append(rep)
+                all_reports.append(rep)
+
+            structure = check_structure([s for _, s in items], d)
+            all_structures.append(structure)
+            if not batch:
+                render_structure_panel(structure, console=console)
+
+            render_summary(domain_reports, d, console=console)
+
+        if output:
+            mode = "domain" if domain else "corpus"
+            out = report_to_json(
+                all_reports, mode, threshold, all_structures,
+            )
+            with open(output, "w", encoding="utf-8") as f:
+                json.dump(out, f, indent=2)
+            console.print(f"\n[dim]Report saved to {output}[/]")
+        return
+
+    # No mode selected — show help instead of silently exiting.
+    ctx = click.get_current_context()
+    click.echo(ctx.get_help())

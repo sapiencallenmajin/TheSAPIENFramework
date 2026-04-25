@@ -1575,6 +1575,19 @@ class TestPhase4EquivalenceWithStandalone:
             theirs = standalone.pressure_calibration_check(orig, fix)
             assert ours == theirs, (orig, fix)
 
+    def test_find_scenarios_matches(self, standalone, tmp_path):
+        # Build a tiny domain tree and run both implementations.
+        (tmp_path / "alpha").mkdir()
+        (tmp_path / "beta").mkdir()
+        (tmp_path / "alpha" / "one.json").write_text("{}", encoding="utf-8")
+        (tmp_path / "alpha" / "two.json").write_text("{}", encoding="utf-8")
+        (tmp_path / "beta" / "three.json").write_text("{}", encoding="utf-8")
+
+        from sapien_score.commands.validate import find_scenarios
+        ours = [(d, str(p)) for d, p in find_scenarios(str(tmp_path))]
+        theirs = [(d, str(p)) for d, p in standalone.find_scenarios(str(tmp_path))]
+        assert ours == theirs
+
     def test_report_to_json_matches(self, standalone):
         # Build a report using the package, and a parallel report using
         # the standalone, then diff the JSON minus the timestamp (which
@@ -1601,3 +1614,342 @@ class TestPhase4EquivalenceWithStandalone:
         ours_json.pop("validation_timestamp", None)
         theirs_json.pop("validation_timestamp", None)
         assert ours_json == theirs_json
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Phase 5 tests — CLI integration (find_scenarios, load_scenario,
+# interactive_mode, Click command via CliRunner)
+# ════════════════════════════════════════════════════════════════════════════
+
+from sapien_score.commands.validate import (
+    DEFAULT_SCENARIOS_DIR,
+    EXIT_ERROR,
+    EXIT_OK,
+    TURN_TYPE_PASTED,
+    find_scenarios,
+    interactive_mode,
+    load_scenario,
+    validate,
+)
+
+
+# ─── Phase 5 tunables ──────────────────────────────────────────────────────
+
+class TestPhase5Tunables:
+    def test_exit_codes(self):
+        assert EXIT_OK == 0
+        assert EXIT_ERROR == 1
+
+    def test_default_scenarios_dir(self):
+        assert DEFAULT_SCENARIOS_DIR == "."
+
+    def test_pasted_turn_type_distinct(self):
+        # Must not collide with the three real turn-type labels —
+        # downstream code that filters on those three (e.g. cross-turn
+        # uniformity) would otherwise pick up pasted REPL turns.
+        assert TURN_TYPE_PASTED not in (
+            TURN_TYPE_OPENING, TURN_TYPE_ESCALATION, TURN_TYPE_HOLD_VARIANT
+        )
+
+
+# ─── load_scenario ─────────────────────────────────────────────────────────
+
+class TestLoadScenario:
+    def test_happy_path(self, tmp_path):
+        path = tmp_path / "scenario.json"
+        payload = {"id": "test.x.v1", "domain": "medical"}
+        path.write_text(json.dumps(payload), encoding="utf-8")
+        assert load_scenario(str(path)) == payload
+
+    def test_missing_file_exits_error(self, tmp_path):
+        with pytest.raises(SystemExit) as exc:
+            load_scenario(str(tmp_path / "no_such_file.json"))
+        assert exc.value.code == EXIT_ERROR
+
+    def test_invalid_json_exits_error(self, tmp_path):
+        path = tmp_path / "bad.json"
+        path.write_text("{ this is not json", encoding="utf-8")
+        with pytest.raises(SystemExit) as exc:
+            load_scenario(str(path))
+        assert exc.value.code == EXIT_ERROR
+
+
+# ─── find_scenarios ────────────────────────────────────────────────────────
+
+class TestFindScenarios:
+    def _build_tree(self, root: Path) -> None:
+        (root / "medical").mkdir()
+        (root / "financial").mkdir()
+        (root / "medical" / "a.json").write_text("{}", encoding="utf-8")
+        (root / "medical" / "b.json").write_text("{}", encoding="utf-8")
+        (root / "financial" / "c.json").write_text("{}", encoding="utf-8")
+        # Non-JSON file that should be ignored
+        (root / "medical" / "README.md").write_text("notes", encoding="utf-8")
+        # Loose file at root that should be ignored (not under a domain)
+        (root / "loose.json").write_text("{}", encoding="utf-8")
+
+    def test_walks_all_domains(self, tmp_path):
+        self._build_tree(tmp_path)
+        results = find_scenarios(str(tmp_path))
+        domains = sorted({d for d, _ in results})
+        assert domains == ["financial", "medical"]
+        names = sorted(p.name for _, p in results)
+        assert names == ["a.json", "b.json", "c.json"]
+
+    def test_single_domain_filter(self, tmp_path):
+        self._build_tree(tmp_path)
+        results = find_scenarios(str(tmp_path), domain="financial")
+        assert [p.name for _, p in results] == ["c.json"]
+
+    def test_missing_base_dir_exits_error(self, tmp_path):
+        with pytest.raises(SystemExit) as exc:
+            find_scenarios(str(tmp_path / "no_such_dir"))
+        assert exc.value.code == EXIT_ERROR
+
+    def test_missing_domain_dir_exits_error(self, tmp_path):
+        with pytest.raises(SystemExit) as exc:
+            find_scenarios(str(tmp_path), domain="ghost_domain")
+        assert exc.value.code == EXIT_ERROR
+
+    def test_results_sorted(self, tmp_path):
+        # Sort order is part of the contract — renderers and the corpus
+        # loop rely on stable iteration so reports are reproducible.
+        self._build_tree(tmp_path)
+        results = find_scenarios(str(tmp_path))
+        # Per-domain results come back in lexicographic file order
+        med_files = [p.name for d, p in results if d == "medical"]
+        assert med_files == sorted(med_files)
+
+
+# ─── interactive_mode ──────────────────────────────────────────────────────
+
+def _queued_input(responses: list[str]):
+    """Return an input() replacement that pops from a queue.
+
+    Tests inject a sequence of REPL inputs without touching stdin.
+    Raises EOFError when the queue is empty so the loop exits cleanly.
+    """
+    it = iter(responses)
+    def _input(_prompt=""):
+        try:
+            return next(it)
+        except StopIteration:
+            raise EOFError
+    return _input
+
+
+class TestInteractiveMode:
+    def test_quit_immediately(self, tmp_path):
+        scenario = _good_scenario()
+        path = tmp_path / "scenario.json"
+        path.write_text(json.dumps(scenario), encoding="utf-8")
+
+        from io import StringIO
+        from rich.console import Console
+        c = Console(file=StringIO(), force_terminal=False, width=120)
+
+        # First command 'q' exits the loop after the initial audit.
+        interactive_mode(
+            str(path), threshold=0.40, verbose=False,
+            console=c, input_fn=_queued_input(["q"]),
+        )
+        # The initial audit ran: schema panel header was rendered.
+        assert "Schema" in c.file.getvalue()
+
+    def test_paste_then_quit(self, tmp_path):
+        scenario = _good_scenario()
+        path = tmp_path / "scenario.json"
+        path.write_text(json.dumps(scenario), encoding="utf-8")
+
+        from io import StringIO
+        from rich.console import Console
+        c = Console(file=StringIO(), force_terminal=False, width=120)
+
+        # Sequence: first turn text, blank line to commit, then 'q'.
+        interactive_mode(
+            str(path), threshold=0.40, verbose=False,
+            console=c,
+            input_fn=_queued_input([
+                "I have a headache and need help.",
+                "",
+                "q",
+            ]),
+        )
+        out = c.file.getvalue()
+        assert "AI Probability" in out
+
+    def test_report_command_reruns_audit(self, tmp_path):
+        scenario = _good_scenario()
+        path = tmp_path / "scenario.json"
+        path.write_text(json.dumps(scenario), encoding="utf-8")
+
+        from io import StringIO
+        from rich.console import Console
+        c = Console(file=StringIO(), force_terminal=False, width=120)
+
+        interactive_mode(
+            str(path), threshold=0.40, verbose=False,
+            console=c,
+            input_fn=_queued_input(["report", "q"]),
+        )
+        # "Schema" header should appear at least twice — once for the
+        # initial audit, once after the 'report' rerun.
+        assert c.file.getvalue().count("Schema") >= 2
+
+    def test_eof_breaks_cleanly(self, tmp_path):
+        # Empty input queue raises EOFError on first prompt → loop must
+        # print "Done." and exit, not propagate the exception.
+        scenario = _good_scenario()
+        path = tmp_path / "scenario.json"
+        path.write_text(json.dumps(scenario), encoding="utf-8")
+
+        from io import StringIO
+        from rich.console import Console
+        c = Console(file=StringIO(), force_terminal=False, width=120)
+
+        interactive_mode(
+            str(path), threshold=0.40, verbose=False,
+            console=c, input_fn=_queued_input([]),
+        )
+        assert "Done." in c.file.getvalue()
+
+
+# ─── Click command end-to-end ──────────────────────────────────────────────
+
+class TestValidateCliCommand:
+    def test_help_shown_when_no_mode(self):
+        from click.testing import CliRunner
+        runner = CliRunner()
+        result = runner.invoke(validate, [])
+        # No mode flag → command prints help and exits 0
+        assert result.exit_code == 0
+        assert "validate" in result.output.lower() or "Usage" in result.output
+
+    def test_single_scenario(self, tmp_path):
+        from click.testing import CliRunner
+        runner = CliRunner()
+
+        scenario = _good_scenario()
+        path = tmp_path / "scenario.json"
+        path.write_text(json.dumps(scenario), encoding="utf-8")
+
+        result = runner.invoke(validate, ["--scenario", str(path)])
+        assert result.exit_code == EXIT_OK, result.output
+        # Final summary line is always emitted
+        assert "Result:" in result.output
+
+    def test_single_scenario_with_output(self, tmp_path):
+        from click.testing import CliRunner
+        runner = CliRunner()
+
+        scenario = _good_scenario()
+        path = tmp_path / "scenario.json"
+        path.write_text(json.dumps(scenario), encoding="utf-8")
+        out_path = tmp_path / "report.json"
+
+        result = runner.invoke(validate, [
+            "--scenario", str(path),
+            "--output", str(out_path),
+        ])
+        assert result.exit_code == EXIT_OK, result.output
+        assert out_path.exists()
+        report = json.loads(out_path.read_text(encoding="utf-8"))
+        assert report["mode"] == "single"
+        assert report["scenarios_checked"] == 1
+
+    def test_missing_scenario_exits_error(self, tmp_path):
+        from click.testing import CliRunner
+        runner = CliRunner()
+        result = runner.invoke(validate, [
+            "--scenario", str(tmp_path / "no_such.json"),
+        ])
+        assert result.exit_code == EXIT_ERROR
+
+    def test_domain_mode(self, tmp_path):
+        from click.testing import CliRunner
+        runner = CliRunner()
+
+        # Build minimal domain tree
+        domain_dir = tmp_path / "medical"
+        domain_dir.mkdir()
+        scenario = _good_scenario()
+        (domain_dir / "a.json").write_text(json.dumps(scenario), encoding="utf-8")
+
+        result = runner.invoke(validate, [
+            "--domain", "medical",
+            "--scenarios-dir", str(tmp_path),
+            "--batch",
+        ])
+        assert result.exit_code == EXIT_OK, result.output
+        # Batch mode: per-scenario one-liners + domain summary
+        assert "PASS" in result.output or "WARN" in result.output or "FAIL" in result.output
+
+    def test_batch_mode_skips_full_panels(self, tmp_path):
+        from click.testing import CliRunner
+        runner = CliRunner()
+
+        domain_dir = tmp_path / "medical"
+        domain_dir.mkdir()
+        (domain_dir / "a.json").write_text(
+            json.dumps(_good_scenario()), encoding="utf-8",
+        )
+
+        result = runner.invoke(validate, [
+            "--all",
+            "--scenarios-dir", str(tmp_path),
+            "--batch",
+        ])
+        assert result.exit_code == EXIT_OK, result.output
+        # Batch mode should NOT render the "Schema" panel
+        assert "Schema" not in result.output
+
+    def test_corpus_with_output(self, tmp_path):
+        from click.testing import CliRunner
+        runner = CliRunner()
+
+        for d in ("medical", "financial"):
+            domain_dir = tmp_path / d
+            domain_dir.mkdir()
+            (domain_dir / "a.json").write_text(
+                json.dumps(_good_scenario()), encoding="utf-8",
+            )
+
+        out_path = tmp_path / "report.json"
+        result = runner.invoke(validate, [
+            "--all",
+            "--scenarios-dir", str(tmp_path),
+            "--batch",
+            "--output", str(out_path),
+        ])
+        assert result.exit_code == EXIT_OK, result.output
+        assert out_path.exists()
+        report = json.loads(out_path.read_text(encoding="utf-8"))
+        assert report["mode"] == "corpus"
+        assert report["scenarios_checked"] == 2
+        assert "domain_structure" in report
+
+    def test_threshold_flag_accepted(self, tmp_path):
+        from click.testing import CliRunner
+        runner = CliRunner()
+
+        scenario = _good_scenario()
+        path = tmp_path / "scenario.json"
+        path.write_text(json.dumps(scenario), encoding="utf-8")
+
+        result = runner.invoke(validate, [
+            "--scenario", str(path),
+            "--threshold", "0.25",
+        ])
+        assert result.exit_code == EXIT_OK, result.output
+
+
+# ─── CLI registration sanity ───────────────────────────────────────────────
+
+class TestCliRegistration:
+    def test_validate_registered_in_main_cli(self):
+        # Ensure cli.py wired the command. If a future refactor drops the
+        # registration, the CLI silently loses the validate subcommand —
+        # this catches that.
+        from sapien_score.cli import main as cli_main
+        # main is a click.Group — its commands dict is the registry
+        assert "validate" in cli_main.commands
