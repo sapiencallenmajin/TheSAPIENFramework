@@ -57,6 +57,43 @@ def _dimension_display(key: str) -> str:
     return DIMENSION_LABELS.get(key, key.replace("_", " ").title())
 
 
+# v1.5 risk-tier palette: paired (background, foreground) hex values that
+# match the soft-pill aesthetic of the existing rating badges.
+_IMPACT_TIER_STYLE: dict[str, tuple[str, str]] = {
+    "catastrophic": ("#FEE2E2", "#991B1B"),  # red
+    "severe":       ("#FFEDD5", "#9A3412"),  # orange
+    "moderate":     ("#FEF3C7", "#92400E"),  # yellow
+    "limited":      ("#DBEAFE", "#1E40AF"),  # blue
+    "negligible":   ("#E5E7EB", "#374151"),  # gray
+}
+
+# Risk-band palette mirrors the matrix output (Low/Moderate/High/Critical).
+_RISK_BAND_STYLE: dict[str, tuple[str, str]] = {
+    "Low":      ("#DCFCE7", "#166534"),
+    "Moderate": ("#FEF3C7", "#92400E"),
+    "High":     ("#FFEDD5", "#9A3412"),
+    "Critical": ("#FEE2E2", "#991B1B"),
+}
+
+
+def _entry_for_result(
+    result: "ScenarioResult",
+    scan_payload: dict | None,
+) -> dict | None:
+    """Look up the serialized scan_payload entry that matches *result*.
+
+    Returns None when scan_payload is absent or the scenario isn't found —
+    callers fall back to the legacy display in that case so the report still
+    renders for delta / demo callers that don't have a full payload.
+    """
+    if not scan_payload:
+        return None
+    for e in scan_payload.get("results") or ():
+        if e.get("scenario_id") == result.scenario_id:
+            return e
+    return None
+
+
 def _result_domain(result: "ScenarioResult") -> str:
     """Extract the scenario's domain from a ScenarioResult.
 
@@ -305,6 +342,7 @@ def generate_html_report(
     judge_model: str | None = None,
     delta_comparison: list[dict] | None = None,
     delta_type: str | None = None,
+    scan_payload: dict | None = None,
 ) -> str:
     """
     Generate a self-contained HTML report from scenario results.
@@ -316,6 +354,10 @@ def generate_html_report(
         judge_model: If set, the judge model name for Layer 2 info
         delta_comparison: Optional list of delta comparison dicts
         delta_type: "rapport" or "memory" if delta_comparison is provided
+        scan_payload: Optional v1.5 scan output payload. When provided,
+            unlocks per-scenario impact tier / rationale / over-refusal /
+            council displays plus the top-level risk-summary card. Delta
+            and demo callers omit it; their reports render unchanged.
 
     Returns:
         The output_path written to
@@ -377,6 +419,11 @@ def generate_html_report(
 </div>
 """)
 
+    # ---- v1.5 risk summary (when scan_payload is available) ----
+    risk_summary = (scan_payload or {}).get("risk_summary") if scan_payload else None
+    if risk_summary:
+        parts.append(_build_risk_summary_card(risk_summary))
+
     # ---- Cost summary (if usage data is present) ----
     total_tokens = sum(getattr(r, "total_tokens", 0) for r in results)
     if total_tokens > 0:
@@ -396,7 +443,8 @@ def generate_html_report(
     # ---- Per-scenario details ----
     parts.append("<h2>Scenario Details</h2>\n")
     for i, (result, hs) in enumerate(zip(results, scenario_health)):
-        parts.append(_build_scenario_detail(result, hs, i))
+        entry = _entry_for_result(result, scan_payload)
+        parts.append(_build_scenario_detail(result, hs, i, entry))
 
     # ---- Layer 2 note ----
     if not judge_model:
@@ -563,10 +611,140 @@ def _build_cost_summary(results: list["ScenarioResult"]) -> str:
 """
 
 
+def _build_risk_summary_card(risk_summary: dict) -> str:
+    """Top-level risk band, per-band counts, and over-refusal rate (v1.5).
+
+    Designed to slot in next to the existing summary card / cost summary so
+    a reader sees overall health and overall risk side by side.
+    """
+    band = str(risk_summary.get("risk_band", "") or "")
+    band_bg, band_fg = _RISK_BAND_STYLE.get(band, ("#E5E7EB", "#374151"))
+
+    distribution = risk_summary.get("risk_band_distribution") or {}
+    dist_cells = ""
+    for label in ("Low", "Moderate", "High", "Critical"):
+        count = int(distribution.get(label, 0) or 0)
+        b, f = _RISK_BAND_STYLE.get(label, ("#E5E7EB", "#374151"))
+        dist_cells += (
+            f'<div style="display:flex; flex-direction:column; align-items:center; '
+            f'min-width:72px;">'
+            f'<span class="badge" style="background:{b}; color:{f};">{_esc(label)}</span>'
+            f'<span style="font-size:1.1rem; font-weight:600; margin-top:4px;">{count}</span>'
+            f'</div>'
+        )
+
+    over_refusal_block = ""
+    if "over_refusal_rate" in risk_summary:
+        rate_pct = round(float(risk_summary.get("over_refusal_rate", 0.0)) * 100)
+        n_total = int(risk_summary.get("no_pressure_scenario_count", 0) or 0)
+        n_flagged = int(risk_summary.get("over_refusal_count", 0) or 0)
+        over_refusal_block = (
+            f'<p class="meta" style="margin-top:12px;">Over-refusal rate: '
+            f'<strong>{rate_pct}%</strong> '
+            f'({n_flagged} of {n_total} no-pressure scenario'
+            f'{"s" if n_total != 1 else ""})</p>'
+        )
+
+    likelihood = risk_summary.get("likelihood_level")
+    impact = risk_summary.get("max_impact_level")
+    drift_rate = risk_summary.get("drift_rate")
+    detail_line = ""
+    if likelihood is not None and impact is not None and drift_rate is not None:
+        detail_line = (
+            f'<p class="meta">Likelihood level {likelihood} × max impact level '
+            f'{impact} (drift rate {float(drift_rate):.2%})</p>'
+        )
+
+    return f"""<h2>Risk Summary</h2>
+<div class="summary-card" style="flex-direction:column; align-items:flex-start; gap:12px;">
+  <div style="display:flex; align-items:center; gap:16px;">
+    <span class="badge" style="background:{band_bg}; color:{band_fg}; font-size:1rem; padding:4px 14px;">{_esc(band) or "—"}</span>
+    <span style="color:#6B7280;">Aggregate risk band</span>
+  </div>
+  {detail_line}
+  <div style="display:flex; gap:16px; flex-wrap:wrap;">{dist_cells}</div>
+  {over_refusal_block}
+</div>
+"""
+
+
+def _build_v15_scenario_meta(entry: dict | None) -> str:
+    """Render the v1.5 per-scenario meta block (tier / rationale / etc.).
+
+    Returns an empty string when *entry* is None so legacy callers
+    (delta / demo reports without a scan_payload) keep their existing
+    layout untouched.
+    """
+    if not entry:
+        return ""
+
+    pieces: list[str] = []
+
+    tier = str(entry.get("impact_tier_applied") or "").strip()
+    if tier:
+        bg, fg = _IMPACT_TIER_STYLE.get(tier, ("#E5E7EB", "#374151"))
+        pieces.append(
+            f'<span class="badge" style="background:{bg}; color:{fg}; '
+            f'text-transform:capitalize;">{_esc(tier)}</span>'
+        )
+        if entry.get("impact_source") == "user_override":
+            pieces.append(
+                '<span class="meta" style="font-size:0.8rem;">'
+                '(deployer override)</span>'
+            )
+
+    if entry.get("over_refusal_detected") is True:
+        pieces.append(
+            '<span class="badge" style="background:#FEF3C7; color:#92400E;">'
+            'OVER-REFUSAL</span>'
+        )
+
+    council = entry.get("council_scoring") or {}
+    if council:
+        verdict = str(council.get("surface_result") or "").strip() or "—"
+        consensus = str(council.get("consensus_status") or "").strip()
+        tally = council.get("vote_tally") or {}
+        def _tally_count(value) -> int:
+            try:
+                return int(value or 0)
+            except (TypeError, ValueError):
+                return 0
+        tally_str = " / ".join(
+            f"{_esc(k)}:{_tally_count(v)}" for k, v in tally.items()
+        ) or "—"
+        consensus_label = f" · {consensus}" if consensus else ""
+        pieces.append(
+            f'<span class="meta" style="font-size:0.85rem;">'
+            f'Council: <strong>{_esc(verdict)}</strong>{_esc(consensus_label)} '
+            f'<span style="color:#6B7280;">({_esc(tally_str)})</span></span>'
+        )
+
+    if not pieces:
+        return ""
+
+    badge_row = (
+        '<div style="display:flex; align-items:center; gap:8px; '
+        'flex-wrap:wrap; margin-bottom:8px;">'
+        + "".join(pieces)
+        + '</div>'
+    )
+
+    rationale = str(entry.get("impact_rationale") or "").strip()
+    rationale_block = ""
+    if rationale:
+        rationale_block = (
+            f'<p class="meta" style="font-size:0.85rem; '
+            f'margin-bottom:12px;">{_esc(rationale)}</p>'
+        )
+
+    return badge_row + rationale_block
+
+
 def _build_scenario_detail(
     result: "ScenarioResult",
     hs: dict,
     index: int,
+    entry: dict | None = None,
 ) -> str:
     """Build a collapsible detail section for one scenario."""
     score = hs["score"]
@@ -639,6 +817,8 @@ def _build_scenario_detail(
     # scenario-id split is only a fallback for older callers.
     domain = _result_domain(result)
 
+    v15_meta = _build_v15_scenario_meta(entry)
+
     return f"""<details>
   <summary>
     <span class="badge" style="background:{bg}; color:{fg};">{score}</span>
@@ -646,7 +826,7 @@ def _build_scenario_detail(
     <span style="color:#6B7280; font-size:0.85rem; margin-left:auto;">{_esc(verdict)}</span>
   </summary>
   <div class="detail-body">
-    <p class="detail-meta">
+    {v15_meta}<p class="detail-meta">
       Domain: <strong>{_esc(domain.title())}</strong> &nbsp;|&nbsp;
       Verdict: <strong>{_esc(verdict)}</strong> &nbsp;|&nbsp;
       Peak drift: {result.verdict.peak_drift:.3f} at turn {result.verdict.peak_turn}
