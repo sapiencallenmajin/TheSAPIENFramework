@@ -37,6 +37,7 @@ litellm.set_verbose = False
 
 if TYPE_CHECKING:
     from rich.console import Console
+    from sapien_score.display.events import EventBus
     from sapien_score.engine.council_config import CouncilConfig
     from sapien_score.webhooks import WebhookNotifier
 
@@ -90,6 +91,11 @@ class EngineConfig:
     # Carries its own state (alerts_sent counter) so finalize_scan can
     # surface a one-line summary at the end of the run.
     webhook_notifier: Optional["WebhookNotifier"] = None
+    # Optional pub/sub for live-display subscribers. None when
+    # --display plain is in effect (the default for non-interactive
+    # contexts) — emissions are guarded so the scan loop runs
+    # byte-identically without a bus attached.
+    event_bus: Optional["EventBus"] = None
 
 
 # ---------------------------------------------------------------------------
@@ -169,6 +175,7 @@ def setup_engine(
     council_size: int = 5,
     webhook_notifier: Optional["WebhookNotifier"] = None,
     divergence_strategy: Optional[str] = None,
+    event_bus: Optional["EventBus"] = None,
 ) -> EngineConfig:
     """Resolve arguments, build adapters, load scenarios.
 
@@ -516,6 +523,7 @@ def setup_engine(
         scoring_mode=scoring_mode,
         council=council,
         webhook_notifier=webhook_notifier,
+        event_bus=event_bus,
     )
 
 
@@ -537,6 +545,11 @@ def run_scan_loop(
     """
     from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
+    from sapien_score.display.events import (
+        ScanStarted,
+        ScenarioCompleted,
+        ScenarioStarted,
+    )
     from sapien_score.engine.driver import run_scenario
 
     from .scan_output import (
@@ -547,6 +560,25 @@ def run_scan_loop(
     )
 
     scan_start_time = time.monotonic()
+    # ScanStarted fires once at the top of the loop. Domain hint is best-
+    # effort: orchestration doesn't track the original --domain flag,
+    # so we infer "single domain" when every scenario shares one.
+    if engine.event_bus is not None:
+        unique_domains = {s.domain for s in engine.scenarios}
+        domain_hint = (
+            next(iter(unique_domains)) if len(unique_domains) == 1 else None
+        )
+        engine.event_bus.emit(ScanStarted(
+            model=model,
+            domain=domain_hint,
+            scenario_count=len(engine.scenarios),
+            scoring_mode=engine.scoring_mode,
+            council_size=(
+                engine.council.size
+                if engine.council is not None
+                else None
+            ),
+        ))
     results: list = []
     failed_scenarios: list[dict] = []
     running_tokens = 0
@@ -573,6 +605,16 @@ def run_scan_loop(
                     description=f"[{idx}/{len(engine.scenarios)}] {scenario.domain}: {scenario.title}",
                 )
 
+                if engine.event_bus is not None:
+                    engine.event_bus.emit(ScenarioStarted(
+                        scenario_id=scenario.id,
+                        title=scenario.title,
+                        domain=scenario.domain,
+                        turn_count=len(scenario.escalations) + 1,
+                        scenario_number=idx,
+                        total_scenarios=len(engine.scenarios),
+                    ))
+
                 try:
                     result = run_scenario(
                         scenario=scenario,
@@ -585,6 +627,12 @@ def run_scan_loop(
                         disable_counter_refusals=engine.no_counter_refusals,
                         layer2_threshold=engine.layer2_threshold,
                         divergence_strategy=engine.divergence_strategy,
+                        event_bus=engine.event_bus,
+                        council_size_hint=(
+                            engine.council.size
+                            if engine.council is not None
+                            else None
+                        ),
                     )
                 except Exception as e:
                     logger.warning(
@@ -608,6 +656,16 @@ def run_scan_loop(
                     continue
 
                 results.append((scenario, result))
+
+                if engine.event_bus is not None:
+                    engine.event_bus.emit(ScenarioCompleted(
+                        scenario_id=scenario.id,
+                        title=scenario.title,
+                        verdict=str(result.verdict).upper(),
+                        health_score=float(result.health_score),
+                        scenario_number=idx,
+                        total_scenarios=len(engine.scenarios),
+                    ))
 
                 # Drift webhook (fire-and-forget) — runs after the scenario
                 # is appended so callers reading engine.webhook_notifier
@@ -727,6 +785,7 @@ def finalize_scan(
     layer2_threshold_applied: float = 0.0,
 ) -> None:
     """Write JSON/CSV/HTML outputs, optionally publish, and clean up."""
+    from sapien_score.display.events import ScanCompleted
     from .scan_output import (
         _atomic_write_json,
         build_output_payload,
@@ -735,6 +794,35 @@ def finalize_scan(
         compute_timing_summary,
         write_cost_csv,
     )
+
+    # Emit ScanCompleted before any I/O so a slow JSON-write doesn't
+    # delay the live display's terminal cleanup. The risk_band lookup
+    # below covers the case where mean_score is unset (no scenarios
+    # completed); the display falls back to a sane default string.
+    if engine.event_bus is not None:
+        if mean_score >= 80:
+            risk_band = "Low"
+        elif mean_score >= 60:
+            risk_band = "Moderate"
+        elif mean_score >= 40:
+            risk_band = "High"
+        else:
+            risk_band = "Critical"
+        total_cost = None
+        if results:
+            total_cost = sum(
+                r.total_cost_usd for _, r in results
+                if hasattr(r, "total_cost_usd")
+            ) or None
+        engine.event_bus.emit(ScanCompleted(
+            total_scenarios=len(results) + len(failed),
+            completed=len(results),
+            failed=len(failed),
+            mean_health=float(mean_score),
+            risk_band=risk_band,
+            total_cost=total_cost,
+            elapsed_seconds=float(scan_elapsed),
+        ))
 
     scan_finished_at = datetime.now(timezone.utc).isoformat()
 

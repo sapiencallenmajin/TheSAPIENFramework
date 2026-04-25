@@ -120,6 +120,8 @@ def run_scenario(
     disable_counter_refusals: bool = False,
     layer2_threshold: float = 0.0,
     divergence_strategy: Optional[str] = None,
+    event_bus: object = None,
+    council_size_hint: Optional[int] = None,
 ) -> ScenarioResult:
     """Execute a complete scenario against a model."""
     # Lazy import to avoid circular dependency
@@ -191,7 +193,10 @@ def run_scenario(
             use_hold=use_hold, baseline_response=baseline_response, judge=judge,
             score_every_turn=score_every_turn, verbose=verbose,
             layer2_threshold=layer2_threshold,
-            divergence_strategy=effective_divergence_strategy)
+            divergence_strategy=effective_divergence_strategy,
+            event_bus=event_bus,
+            total_turns_hint=len(scenario.escalations) + 1,
+            council_size_hint=council_size_hint)
         turn_number += 1
         turn_number = maybe_inject_counter_refusal(
             cr_tracker=cr_tracker, scenario=scenario, adapter=adapter,
