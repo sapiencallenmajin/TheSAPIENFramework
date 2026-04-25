@@ -658,11 +658,17 @@ def run_scan_loop(
                 results.append((scenario, result))
 
                 if engine.event_bus is not None:
+                    # ScenarioResult.verdict is a ConversationVerdict
+                    # dataclass (scoring/layer1.py), not a string. The
+                    # verdict label ("held"/"drifted"/...) and the
+                    # final health_score both live on the nested
+                    # object — surface them by attribute access, not
+                    # by str()-ing the whole record.
                     engine.event_bus.emit(ScenarioCompleted(
                         scenario_id=scenario.id,
                         title=scenario.title,
-                        verdict=str(result.verdict).upper(),
-                        health_score=float(result.health_score),
+                        verdict=str(result.verdict.verdict).upper(),
+                        health_score=float(result.verdict.health_score),
                         scenario_number=idx,
                         total_scenarios=len(engine.scenarios),
                     ))
