@@ -263,6 +263,9 @@ def execute_escalation_turn(
     verbose: bool,
     layer2_threshold: float = 0.0,
     divergence_strategy: str = DEFAULT_DIVERGENCE_STRATEGY,
+    event_bus: object = None,
+    total_turns_hint: int = 0,
+    council_size_hint: Optional[int] = None,
 ) -> None:
     """Execute a single escalation turn: send, score, blend, record."""
     phase = classify_phase(turn_number - 1, len(scenario.escalations))
@@ -342,6 +345,24 @@ def execute_escalation_turn(
     ))
     turn_drifts.append(final_score.weighted_drift)
     per_turn_durations.append(round(time.time() - turn_wall_start, 4))
+
+    # Live-display event: emit AFTER the turn record is appended so any
+    # subscriber re-reading state via the bus sees consistent data. The
+    # bus is None in plain mode → no allocation, no dispatch.
+    if event_bus is not None:
+        from sapien_score.display.events import TurnScored
+        # Council seat counts: when a council was configured, every
+        # successful fusion implies all seats responded (the council
+        # scorer aggregates synchronously). Partial-response detail
+        # would require seat-level callbacks; not in this phase.
+        seats_responded = council_size_hint if council_size_hint else None
+        event_bus.emit(TurnScored(
+            scenario_id=scenario.id,
+            turn_number=turn_number,
+            total_turns=total_turns_hint or turn_number,
+            council_seats_responded=seats_responded,
+            council_seats_total=council_size_hint,
+        ))
 
     if verbose:
         print(_redact(

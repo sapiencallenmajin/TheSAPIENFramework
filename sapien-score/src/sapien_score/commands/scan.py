@@ -30,6 +30,21 @@ from .scan_output import (  # noqa: F401
 # strategy names live in exactly one place (scoring/composite.py).
 from sapien_score.scoring.composite import DIVERGENCE_STRATEGIES
 
+# Sourced for the --theme click.Choice — theme names live once in
+# display/themes.py. Same pattern as DIVERGENCE_STRATEGIES.
+from sapien_score.display.themes import DEFAULT_THEME, THEME_NAMES
+
+# Display-mode literals. Lifted to constants so a typo in the body
+# below ("plian", "ricjh") is a NameError at import time, not a silent
+# fallthrough at runtime.
+DISPLAY_MODE_RICH: str = "rich"
+DISPLAY_MODE_PLAIN: str = "plain"
+DISPLAY_MODE_MINIMAL: str = "minimal"
+DISPLAY_MODES: tuple[str, ...] = (
+    DISPLAY_MODE_RICH, DISPLAY_MODE_PLAIN, DISPLAY_MODE_MINIMAL,
+)
+DEFAULT_DISPLAY_MODE: str = DISPLAY_MODE_RICH
+
 
 @click.command()
 @click.option("--model", required=True, help="Model in LiteLLM format (e.g. anthropic/claude-sonnet-4-20250514)")
@@ -71,6 +86,16 @@ from sapien_score.scoring.composite import DIVERGENCE_STRATEGIES
 @click.option("--layer2-threshold", "layer2_threshold", type=float, default=None,
               help="Skip Layer 2 judge on turns with weighted_drift below this (0.0=always judge). "
                    "Any value >0.0 requires --allow-partial-judging.")
+@click.option("--display", "display_mode",
+              type=click.Choice(list(DISPLAY_MODES)),
+              default=DEFAULT_DISPLAY_MODE, show_default=True,
+              help="Display mode: rich (animated live UI with boot sequence), "
+                   "plain (legacy line output, no Live UI), "
+                   "minimal (progress bar only, no panels).")
+@click.option("--theme",
+              type=click.Choice(list(THEME_NAMES)),
+              default=DEFAULT_THEME, show_default=True,
+              help="Color theme for --display rich.")
 @click.option("--divergence-strategy", "divergence_strategy",
               type=click.Choice(list(DIVERGENCE_STRATEGIES)),
               default=None,
@@ -134,7 +159,8 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
          delay, persona, memory, profile, estimate, avg_tokens, cost_csv, resume,
          force_resume, retry_delay, debug, collection, authorship, audience,
          scenarios_dir_override,
-         tier_override, scan_mode, layer2_threshold, divergence_strategy,
+         tier_override, scan_mode, display_mode, theme,
+         layer2_threshold, divergence_strategy,
          allow_partial_judging,
          no_counter_refusals, no_trace,
          replay, allow_trace_during_replay, publish, publish_label, publish_primary,
@@ -227,6 +253,37 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
 
     console = Console()
 
+    # --- Display mode wiring ---
+    # rich   → live UI + boot sequence + event bus subscribed to display
+    # plain  → no event bus, no live UI, current behavior unchanged
+    # minimal → event bus subscribed to a barebones progress-only display
+    #
+    # The bus is only constructed for non-plain modes so the orchestration
+    # layer's `if engine.event_bus is not None:` guards continue to make
+    # plain mode byte-identical to pre-display behavior.
+    event_bus = None
+    live_display = None
+    if display_mode != DISPLAY_MODE_PLAIN:
+        from sapien_score.display.events import EventBus
+        from sapien_score.display.live_display import LiveScanDisplay
+        event_bus = EventBus()
+        # Minimal mode reuses LiveScanDisplay — it already renders a
+        # progress-only header when no scenario is active. A future
+        # phase can split out a leaner Minimal class if needed.
+        live_display = LiveScanDisplay(event_bus, theme=theme, console=console)
+
+        if display_mode == DISPLAY_MODE_RICH:
+            from sapien_score.__version__ import __version__
+            from sapien_score.display.boot import play_boot_sequence
+            from sapien_score.display.themes import get_theme
+            play_boot_sequence(
+                console=console,
+                theme=get_theme(theme),
+                version=__version__,
+                scoring_mode=scoring_mode,
+                council_size=int(council_size),
+            )
+
     # --- Override config resolution ---
     from .scan_orchestration import load_risk_overrides
     override_rules = load_risk_overrides(console, config_path)
@@ -262,6 +319,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
         council_size=int(council_size),
         webhook_notifier=webhook_notifier,
         divergence_strategy=divergence_strategy,
+        event_bus=event_bus,
     )
 
     if not engine.scenarios:
@@ -274,9 +332,21 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
         )
         return
 
-    render_scan_header(console, engine, model, judge_model, collection, verbose)
+    if live_display is None:
+        render_scan_header(console, engine, model, judge_model, collection, verbose)
 
-    results, failed, scan_elapsed = run_scan_loop(console, engine, model, verbose, output)
+    # When a live display is attached, its rich.Live context owns the
+    # terminal for the duration of the loop. The legacy `Progress` bar
+    # inside run_scan_loop is still rendered but to the same Console —
+    # Rich serializes them safely. On exit, stop() draws the final
+    # frame and yields control back so subsequent panels print cleanly.
+    if live_display is not None:
+        live_display.start()
+    try:
+        results, failed, scan_elapsed = run_scan_loop(console, engine, model, verbose, output)
+    finally:
+        if live_display is not None:
+            live_display.stop()
 
     if verbose:
         render_per_turn_detail(console, results)
