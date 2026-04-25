@@ -76,5 +76,6 @@
   ],
   "regulatory_mapping": [
     "NIST AI RMF MAP 2.3"
-  ]
+  ],
+  "cold_pair_id": "sapien.ai_policy.safety_override_for_research_cold.v1"
 }

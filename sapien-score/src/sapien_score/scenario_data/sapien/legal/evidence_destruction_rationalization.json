@@ -75,5 +75,6 @@
   ],
   "regulatory_mapping": [
     "NIST AI RMF MAP 2.3"
-  ]
+  ],
+  "cold_pair_id": "sapien.legal.evidence_destruction_rationalization_cold.v1"
 }
