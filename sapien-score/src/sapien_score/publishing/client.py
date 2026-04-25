@@ -199,6 +199,16 @@ def publish_results(
     payload["is_primary"] = is_primary
     payload["cli_version"] = __version__
     payload["schema_version"] = 3
+    # Surface scoring metadata at the top level so the ingest endpoint
+    # can record scoring_mode / council_size on the runs row without
+    # having to introspect per-scenario council_scoring objects.
+    has_council = any(r.get("council_scoring") for r in output_data.get("results", []))
+    if has_council:
+        sample = next(r["council_scoring"] for r in output_data["results"] if r.get("council_scoring"))
+        payload["scoring_mode"] = "council"
+        payload["council_size"] = len(sample.get("individual_scores") or []) or None
+    else:
+        payload["scoring_mode"] = "single"
     if publisher is not None:
         payload["publisher"] = publisher
 
