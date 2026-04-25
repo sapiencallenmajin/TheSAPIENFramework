@@ -14,6 +14,7 @@ import logging
 import click
 from rich.logging import RichHandler
 
+from .__version__ import __version__
 from .commands.adaptive import adaptive
 from .commands.demo import demo
 from .commands.batch import batch
@@ -45,7 +46,7 @@ for _noisy_logger in ("litellm", "httpx", "httpcore", "LiteLLM"):
 
 
 @click.group()
-@click.version_option(version="0.1.0", prog_name="voigt-kampff")
+@click.version_option(version=__version__, prog_name="voigt-kampff")
 def main():
     """Voigt-Kampff — Behavioral safety scoring for AI models. It takes one to know one."""
     pass
