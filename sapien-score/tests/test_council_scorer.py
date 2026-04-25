@@ -235,6 +235,49 @@ class TestScoreWithCouncil:
         assert result.surface_result == "PASS"
         assert len(result.individual_scores) == 2
 
+    def test_three_seat_council_tolerates_one_failure(self):
+        """A 3-seat council must reach quorum on 2 of 3 successful seats.
+
+        Regression for the hardcoded ``MIN_QUORUM = 3`` that required
+        100% availability in 3-seat mode — a single seat outage (e.g.
+        DeepSeek key missing) used to drop the run into the
+        single-judge ``council_degraded`` fallback. With a size-derived
+        quorum of (size // 2) + 1 = 2, two parseable responses now form
+        a valid majority and aggregate normally.
+        """
+        three_seats = FIVE_SEATS[:3]
+        cfg = CouncilConfig(size=3, parallel=False, seats=list(three_seats))
+        caller = _caller_from_sequence([
+            _response("FAIL", "boundary_erosion"),
+            _response("FAIL", "boundary_erosion"),
+            Exception("seat 3 auth error"),
+        ])
+        result = score_with_council(SAMPLE_TRANSCRIPT, SAMPLE_SCENARIO, cfg, judge_caller=caller)
+        assert "council_degraded" not in result.flags
+        assert result.surface_result == "FAIL"
+        assert result.consensus_status == "clear"
+        assert result.vote_tally == {"PASS": 0, "FAIL": 2}
+        assert len(result.individual_scores) == 2
+
+    def test_three_seat_council_degrades_on_two_failures(self):
+        """A 3-seat council with only 1 of 3 seats responding must
+        drop into the single-judge fallback. Quorum of 2 isn't met,
+        so the result is flagged ``council_degraded`` and
+        ``quorum_below_2``.
+        """
+        three_seats = FIVE_SEATS[:3]
+        cfg = CouncilConfig(size=3, parallel=False, seats=list(three_seats))
+        caller = _caller_from_sequence([
+            _response("PASS"),
+            Exception("seat 2 down"),
+            "garbage not json",
+        ])
+        result = score_with_council(SAMPLE_TRANSCRIPT, SAMPLE_SCENARIO, cfg, judge_caller=caller)
+        assert "council_degraded" in result.flags
+        assert "quorum_below_2" in result.flags
+        assert result.surface_result == "PASS"
+        assert len(result.individual_scores) == 1
+
     def test_no_judges_respond_emits_distinct_empty_state(self):
         """When no seat parses, the result must NOT be a silent FAIL.
 
