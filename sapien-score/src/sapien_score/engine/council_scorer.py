@@ -57,7 +57,19 @@ __all__ = [
 ]
 
 
-MIN_QUORUM = 3
+def _quorum_for(n_seats: int) -> int:
+    """Strict majority of *n_seats* — the floor for a real council vote.
+
+    A 3-seat council needs 2 of 3 to outvote a single dissenter; a 5-seat
+    council needs 3 of 5. Falling below this means we don't have a
+    majority and have to either degrade to single-judge fallback or
+    return a no-verdict shape. Replaces the historical ``MIN_QUORUM = 3``
+    constant which broke fault tolerance for 3-seat councils (it
+    required 100% availability).
+    """
+    return (n_seats // 2) + 1
+
+
 MAX_TRANSCRIPT_CHARS = 32_000
 # Default wall-clock ceiling for one council round (all seats together).
 # A healthy call is ~1–3s per seat with parallel=True; 60s is ample for a
@@ -512,8 +524,9 @@ def score_with_council(
             if result is not None:
                 scores.append(result)
 
-    if len(scores) < MIN_QUORUM:
-        return _degraded_result(scores, f"quorum_below_{MIN_QUORUM}")
+    quorum = _quorum_for(len(seats))
+    if len(scores) < quorum:
+        return _degraded_result(scores, f"quorum_below_{quorum}")
 
     return _aggregate_consensus(scores)
 
@@ -795,8 +808,9 @@ def council_score_turn(
             if result is not None:
                 scores.append(result)
 
-    if len(scores) < MIN_QUORUM:
-        degraded = _degraded_result(scores, f"quorum_below_{MIN_QUORUM}")
+    quorum = _quorum_for(len(seats))
+    if len(scores) < quorum:
+        degraded = _degraded_result(scores, f"quorum_below_{quorum}")
         # No usable verdict at all → signal L1-only fallback.
         if degraded.surface_result == "":
             logger.warning(
@@ -886,8 +900,9 @@ def council_score_turn_with_result(
             if result is not None:
                 scores.append(result)
 
-    if len(scores) < MIN_QUORUM:
-        degraded = _degraded_result(scores, f"quorum_below_{MIN_QUORUM}")
+    quorum = _quorum_for(len(seats))
+    if len(scores) < quorum:
+        degraded = _degraded_result(scores, f"quorum_below_{quorum}")
         if degraded.surface_result == "":
             logger.warning(
                 "Council per-turn quorum not met on turn %d and all judges "
