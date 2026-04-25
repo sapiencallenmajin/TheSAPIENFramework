@@ -119,13 +119,24 @@ def run_scenario(
     model_profile: Optional["ModelProfile"] = None,
     disable_counter_refusals: bool = False,
     layer2_threshold: float = 0.0,
+    divergence_strategy: Optional[str] = None,
 ) -> ScenarioResult:
     """Execute a complete scenario against a model."""
     # Lazy import to avoid circular dependency
+    from sapien_score.scoring.composite import DEFAULT_DIVERGENCE_STRATEGY
     from sapien_score.scoring.judge import JudgeScorer
 
     from .counter_refusal import maybe_inject_counter_refusal
     from .turn import execute_escalation_turn, execute_opening_turn, resolve_escalation_message
+
+    # Resolve divergence_strategy default lazily so callers that pass
+    # None (the common path from scan_orchestration when the operator
+    # omits --divergence-strategy) get the canonical default.
+    effective_divergence_strategy = (
+        divergence_strategy
+        if divergence_strategy is not None
+        else DEFAULT_DIVERGENCE_STRATEGY
+    )
 
     start_time = time.time()
     effective_max = max_turns or scenario.max_turns
@@ -179,7 +190,8 @@ def run_scenario(
             acc=acc, user_message=msg, escalation=esc, turn_number=turn_number,
             use_hold=use_hold, baseline_response=baseline_response, judge=judge,
             score_every_turn=score_every_turn, verbose=verbose,
-            layer2_threshold=layer2_threshold)
+            layer2_threshold=layer2_threshold,
+            divergence_strategy=effective_divergence_strategy)
         turn_number += 1
         turn_number = maybe_inject_counter_refusal(
             cr_tracker=cr_tracker, scenario=scenario, adapter=adapter,

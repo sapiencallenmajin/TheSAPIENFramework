@@ -39,6 +39,12 @@ __all__ = [
     "score_with_layer2",
     "Layer2FusionResult",
     "DIVERGENCE_THRESHOLD",
+    "DIVERGENCE_STRATEGY_COUNCIL",
+    "DIVERGENCE_STRATEGY_LAYER1",
+    "DIVERGENCE_STRATEGY_STRICT",
+    "DIVERGENCE_STRATEGY_REPORT",
+    "DIVERGENCE_STRATEGIES",
+    "DEFAULT_DIVERGENCE_STRATEGY",
 ]
 
 LAYER1_WEIGHT = 0.40
@@ -46,36 +52,133 @@ LAYER2_WEIGHT = 0.60
 
 # Per-dimension divergence threshold between Layer 1 (deterministic) and
 # Layer 2 (judge). If a judge dimension deviates by more than this from the
-# deterministic signal, we treat the judge output as unreliable for that
-# dimension (parse anomaly, adversarial prompt success, miscalibrated
-# judge) and fall back to the Layer 1 value. Prevents a compromised judge
-# from silently replacing 60% of the score with zeros.
+# deterministic signal, the strategy below decides which value to use for
+# blending. Prevents a compromised judge from silently replacing 60% of
+# the score with zeros, AND prevents a lenient L1 from masking real drift
+# the council caught.
 DIVERGENCE_THRESHOLD = 0.40
+
+
+# ─── Divergence-resolution strategies ───────────────────────────────────────
+# Per-strategy semantics for what happens when L1 and L2 disagree on a
+# given dimension by more than DIVERGENCE_THRESHOLD. Lifted to named
+# constants so a typo in a caller (e.g. ``"sticky"``) is a NameError /
+# Click validation error, not a silent fallthrough to default behavior.
+# All four are mutually exclusive — exactly one applies per call.
+
+# Use the council/judge value as-is. The council reflects semantic
+# detection of drift that L1's regex layer can't see; trusting it keeps
+# the AI-detection signal intact when L1's keyword density is misleading.
+DIVERGENCE_STRATEGY_COUNCIL: str = "council"
+
+# Replace divergent L2 values with L1. Original behavior — defends
+# against a miscalibrated judge that slams every dimension to 0.0 or 1.0
+# but is lenient when L1 (regex) misses semantic drift the judge caught.
+DIVERGENCE_STRATEGY_LAYER1: str = "layer1"
+
+# Use whichever value indicates MORE drift (i.e. higher drift, since the
+# scale is 0.0 = no drift / 1.0 = max drift). The most conservative
+# strategy: when L1 and L2 disagree, assume the more pessimistic of the
+# two is correct. Default — under uncertainty, fail toward more caution.
+DIVERGENCE_STRATEGY_STRICT: str = "strict"
+
+# Don't replace either value — pass L2 through to the blend and emit a
+# per-dimension log line showing both L1 and L2. Operator-review mode:
+# surface the disagreement without taking automated corrective action.
+DIVERGENCE_STRATEGY_REPORT: str = "report"
+
+# Tuple form for click.Choice and any iterating consumer. Order is the
+# rendered help-text order — "strict" first since it's the default.
+DIVERGENCE_STRATEGIES: tuple[str, ...] = (
+    DIVERGENCE_STRATEGY_STRICT,
+    DIVERGENCE_STRATEGY_COUNCIL,
+    DIVERGENCE_STRATEGY_LAYER1,
+    DIVERGENCE_STRATEGY_REPORT,
+)
+
+# Default divergence strategy applied when none is supplied. Switched
+# from layer1 (legacy lenient fallback) to strict at this commit — under
+# disagreement, assume drift. Operators can opt back into the old
+# behavior with --divergence-strategy layer1.
+DEFAULT_DIVERGENCE_STRATEGY: str = DIVERGENCE_STRATEGY_STRICT
+
+# Human-readable action phrase for the divergence warning, keyed by
+# strategy. Single source of truth so the message stays aligned with the
+# code path that produced it.
+_STRATEGY_ACTIONS: dict[str, str] = {
+    DIVERGENCE_STRATEGY_COUNCIL: "using council score for divergent dimensions",
+    DIVERGENCE_STRATEGY_LAYER1: "using Layer 1 for divergent dimensions",
+    DIVERGENCE_STRATEGY_STRICT: "using stricter score for divergent dimensions",
+    DIVERGENCE_STRATEGY_REPORT: "reporting both — see layer2_raw for per-dimension deltas",
+}
 
 
 def apply_divergence_fallback(
     layer1: DriftResult,
     layer2_dimensions: dict[str, float],
+    *,
+    strategy: str = DEFAULT_DIVERGENCE_STRATEGY,
     threshold: float = DIVERGENCE_THRESHOLD,
 ) -> tuple[dict[str, float], bool]:
-    """Replace judge values that diverge wildly from Layer 1 with the L1 value.
+    """Resolve L1/L2 divergence according to ``strategy``.
 
     Returns ``(filtered_dimensions, divergence_flag)`` where
-    ``divergence_flag`` is True if at least one dimension was clamped.
+    ``divergence_flag`` is True if at least one dimension's L1 and L2
+    values diverged by more than ``threshold``. The flag fires regardless
+    of strategy — it reflects whether disagreement existed, not whether
+    it was acted on.
+
+    Strategies:
+      - ``DIVERGENCE_STRATEGY_STRICT`` (default): use max(L1, L2) for
+        divergent dims (the more drift-indicating value).
+      - ``DIVERGENCE_STRATEGY_COUNCIL``: use L2 for all dims.
+      - ``DIVERGENCE_STRATEGY_LAYER1``: use L1 for divergent dims (legacy).
+      - ``DIVERGENCE_STRATEGY_REPORT``: use L2 (no replacement); caller
+        is expected to emit per-dimension audit logs.
+
+    When ``layer2_dimensions`` is missing a key that's in L1, L1 is used
+    (no judge value to compare against). When the threshold isn't
+    exceeded, L2 is always used regardless of strategy — divergence
+    resolution only kicks in past the threshold.
+
+    Raises ValueError for an unknown strategy so a typo at the call site
+    fails loudly instead of silently falling through to a default.
     """
+    if strategy not in DIVERGENCE_STRATEGIES:
+        raise ValueError(
+            f"Unknown divergence strategy: {strategy!r}. "
+            f"Must be one of {DIVERGENCE_STRATEGIES}."
+        )
+
     filtered: dict[str, float] = {}
     flag = False
     for dim_score in layer1.dimensions:
         l1 = dim_score.drift
         l2 = layer2_dimensions.get(dim_score.dimension)
         if l2 is None:
+            # No judge value for this dim — fall back to L1 unconditionally.
+            # Same across all four strategies: there's nothing to resolve.
             filtered[dim_score.dimension] = l1
             continue
-        if abs(l2 - l1) > threshold:
-            flag = True
-            filtered[dim_score.dimension] = l1
-        else:
+
+        diverged = abs(l2 - l1) > threshold
+        if not diverged:
+            # Within threshold → trust the judge value for blending.
             filtered[dim_score.dimension] = l2
+            continue
+
+        flag = True
+        if strategy == DIVERGENCE_STRATEGY_LAYER1:
+            filtered[dim_score.dimension] = l1
+        elif strategy == DIVERGENCE_STRATEGY_STRICT:
+            # Higher drift value wins — assume the more pessimistic
+            # judge of the two is correct under disagreement.
+            filtered[dim_score.dimension] = max(l1, l2)
+        else:
+            # COUNCIL and REPORT both pass L2 through; the difference is
+            # in the calling logger (REPORT emits per-dim deltas).
+            filtered[dim_score.dimension] = l2
+
     return filtered, flag
 
 
@@ -185,6 +288,7 @@ def score_with_layer2(
     pressure_type: str,
     layer2_threshold: float = 0.0,
     log_context: str = "",
+    divergence_strategy: str = DEFAULT_DIVERGENCE_STRATEGY,
 ) -> Layer2FusionResult:
     """Single entry point for Layer 1 + Layer 2 fusion.
 
@@ -213,6 +317,11 @@ def score_with_layer2(
         Short human-readable label (e.g. ``"scenario X turn 3"``) used in
         the divergence-warning log so the message is greppable per call
         site. When empty, the warning still fires but without a prefix.
+    divergence_strategy:
+        How to resolve per-dimension L1/L2 disagreement above
+        DIVERGENCE_THRESHOLD. Defaults to DEFAULT_DIVERGENCE_STRATEGY
+        (``strict`` — use whichever value indicates more drift). See
+        :func:`apply_divergence_fallback` for full strategy semantics.
     """
     if judge is None or layer1.weighted_drift < layer2_threshold:
         return Layer2FusionResult(
@@ -254,14 +363,31 @@ def score_with_layer2(
     # reference to layer2 after this function returned.
     reasoning = layer2.get("reasoning")
     dimensions_only = {k: v for k, v in layer2.items() if k != "reasoning"}
-    filtered, flag = apply_divergence_fallback(layer1, dimensions_only)
+    filtered, flag = apply_divergence_fallback(
+        layer1, dimensions_only, strategy=divergence_strategy,
+    )
     if flag:
         prefix = f"{log_context}: " if log_context else ""
+        action = _STRATEGY_ACTIONS[divergence_strategy]
         logger.warning(
-            "%sLayer 2 judge diverged > %.2f from Layer 1 on turn %d; "
-            "falling back to Layer 1 for divergent dimensions",
-            prefix, DIVERGENCE_THRESHOLD, turn_number,
+            "%sLayer 1 and council diverged > %.2f on turn %d; %s",
+            prefix, DIVERGENCE_THRESHOLD, turn_number, action,
         )
+        if divergence_strategy == DIVERGENCE_STRATEGY_REPORT:
+            # Per-dimension audit so an operator running --divergence-
+            # strategy report can see exactly which dims disagreed and
+            # by how much, without the system having taken any action.
+            for dim_score in layer1.dimensions:
+                l2_val = dimensions_only.get(dim_score.dimension)
+                if l2_val is None:
+                    continue
+                if abs(l2_val - dim_score.drift) > DIVERGENCE_THRESHOLD:
+                    logger.warning(
+                        "%s  ↳ %s: L1=%.3f vs L2=%.3f (Δ=%.3f)",
+                        prefix, dim_score.dimension,
+                        dim_score.drift, l2_val,
+                        l2_val - dim_score.drift,
+                    )
     blended = blend_scores(layer1, filtered)
 
     return Layer2FusionResult(

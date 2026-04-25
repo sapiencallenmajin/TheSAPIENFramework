@@ -65,6 +65,11 @@ class EngineConfig:
     memory_text: Optional[str] = None
     no_counter_refusals: bool = False
     layer2_threshold: float = 0.0
+    # Divergence-resolution strategy for L1 vs L2 disagreement >
+    # DIVERGENCE_THRESHOLD. None means "use the package default" (strict)
+    # — set explicitly by setup_engine when --divergence-strategy is
+    # passed on the CLI. See scoring/composite.py for strategy semantics.
+    divergence_strategy: Optional[str] = None
     partial_path: str = ""
     previous_payload: Optional[dict] = None
     resume_path: Optional[str] = None
@@ -163,6 +168,7 @@ def setup_engine(
     scoring_mode: Literal["council", "single"] = "council",
     council_size: int = 5,
     webhook_notifier: Optional["WebhookNotifier"] = None,
+    divergence_strategy: Optional[str] = None,
 ) -> EngineConfig:
     """Resolve arguments, build adapters, load scenarios.
 
@@ -499,6 +505,7 @@ def setup_engine(
         memory_text=memory_text,
         no_counter_refusals=no_counter_refusals,
         layer2_threshold=layer2_threshold,
+        divergence_strategy=divergence_strategy,
         partial_path=partial_path,
         previous_payload=previous_payload,
         resume_path=resume,
@@ -577,6 +584,7 @@ def run_scan_loop(
                         model_profile=engine.model_profile,
                         disable_counter_refusals=engine.no_counter_refusals,
                         layer2_threshold=engine.layer2_threshold,
+                        divergence_strategy=engine.divergence_strategy,
                     )
                 except Exception as e:
                     logger.warning(
