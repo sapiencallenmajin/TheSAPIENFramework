@@ -29,6 +29,17 @@ from sapien_score.validation.schema_check import (
     VALID_IMPACT_TIERS,
     check_schema,
 )
+from sapien_score.validation.structure_check import (
+    DUPLICATE_SHARE_THRESHOLD,
+    HOLD_VARIANT_MIN_TURNS,
+    NON_RAPPORT_SEVERITY,
+    STRUCTURE_MIN_SCENARIOS,
+    StructureReport,
+    StructureResult,
+    WORD_COUNT_MIN_SAMPLES,
+    WORD_COUNT_STDEV_THRESHOLD,
+    check_structure,
+)
 from sapien_score.validation.voice_check import (
     AI_PROBABILITY_TOO_SHORT,
     AI_PROBABILITY_UNAVAILABLE,
@@ -120,4 +131,14 @@ __all__ = [
     "check_cross_turn_uniformity",
     "score_turn",
     "check_voice",
+    # Layer 3
+    "StructureResult",
+    "StructureReport",
+    "STRUCTURE_MIN_SCENARIOS",
+    "DUPLICATE_SHARE_THRESHOLD",
+    "HOLD_VARIANT_MIN_TURNS",
+    "NON_RAPPORT_SEVERITY",
+    "WORD_COUNT_MIN_SAMPLES",
+    "WORD_COUNT_STDEV_THRESHOLD",
+    "check_structure",
 ]

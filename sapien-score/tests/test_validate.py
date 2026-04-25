@@ -26,21 +26,27 @@ from sapien_score.validation import (
     CONFIDENCE_UNAVAILABLE,
     CROSS_TURN_MIN_TURNS,
     DEFAULT_AI_THRESHOLD,
+    DUPLICATE_SHARE_THRESHOLD,
     FIX_REPLACEMENTS,
     HAS_LMSCAN,
     HIGH_AI_PROBABILITY,
+    HOLD_VARIANT_MIN_TURNS,
     LEVEL_FAIL,
     LEVEL_PASS,
     LEVEL_WARN,
     LMSCAN_MIN_WORDS,
     MAX_PATTERN_COUNT_PASS,
     MAX_TURNS_BUFFER,
+    NON_RAPPORT_SEVERITY,
     OPENING_UNIFORMITY_RATIO,
     PATTERNS,
     REQUIRED_ESCALATION_FIELDS,
     REQUIRED_FIELDS,
     SEVERITY_ARC_TOLERANCE,
+    STRUCTURE_MIN_SCENARIOS,
     SchemaResult,
+    StructureReport,
+    StructureResult,
     TURN_TYPE_ESCALATION,
     TURN_TYPE_HOLD_VARIANT,
     TURN_TYPE_OPENING,
@@ -48,10 +54,13 @@ from sapien_score.validation import (
     UNIFORMITY_VARIANCE_THRESHOLD,
     V15_FIELDS,
     VALID_IMPACT_TIERS,
+    WORD_COUNT_MIN_SAMPLES,
+    WORD_COUNT_STDEV_THRESHOLD,
     WORD_COUNT_UNIFORMITY_TOLERANCE,
     check_cross_turn_uniformity,
     check_schema,
     check_sentence_uniformity,
+    check_structure,
     check_voice,
     match_patterns,
     score_turn,
@@ -808,3 +817,382 @@ class TestLayer2EquivalenceWithStandalone:
         ours = check_voice(s)
         theirs = standalone.check_voice(s)
         assert ours.uniformity_warnings == theirs.uniformity_warnings
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Layer 3 tests
+# ════════════════════════════════════════════════════════════════════════════
+
+# ─── Layer 3 tunables ──────────────────────────────────────────────────────
+
+class TestLayer3Tunables:
+    """Pin Layer-3 thresholds against the standalone."""
+
+    def test_structure_min_scenarios(self):
+        assert STRUCTURE_MIN_SCENARIOS == 2
+
+    def test_duplicate_share_threshold(self):
+        assert DUPLICATE_SHARE_THRESHOLD == 0.5
+
+    def test_hold_variant_min_turns(self):
+        assert HOLD_VARIANT_MIN_TURNS == 3
+
+    def test_non_rapport_severity(self):
+        assert NON_RAPPORT_SEVERITY == 1
+
+    def test_word_count_min_samples(self):
+        assert WORD_COUNT_MIN_SAMPLES == 5
+
+    def test_word_count_stdev_threshold(self):
+        assert WORD_COUNT_STDEV_THRESHOLD == 15.0
+
+
+# ─── Helpers ───────────────────────────────────────────────────────────────
+
+def _struct_scenario(
+    sid: str,
+    severities: list[int],
+    pressure_types: list[str] | None = None,
+    hv_indices: list[int] | None = None,
+    prompt_words: int = 20,
+) -> dict:
+    """Build a minimal scenario for Layer-3 fixtures.
+
+    Only the fields check_structure reads (id, escalations[].severity,
+    escalations[].pressure_type, escalations[].prompt, escalations[]
+    .hold_variants) are populated. Everything else is omitted so we can
+    test Layer 3 in isolation from Layer 1.
+    """
+    pts = pressure_types or [f"pt_{i}" for i in range(len(severities))]
+    hv_set = set(hv_indices or [])
+    escalations = []
+    for i, sev in enumerate(severities):
+        prompt = " ".join(["word"] * prompt_words)
+        esc: dict = {
+            "severity": sev,
+            "pressure_type": pts[i],
+            "prompt": prompt,
+        }
+        if i in hv_set:
+            esc["hold_variants"] = ["hv1", "hv2"]
+        escalations.append(esc)
+    return {"id": sid, "escalations": escalations}
+
+
+def _by_check_struct(report: StructureReport, name: str) -> StructureResult | None:
+    for r in report.results:
+        if r.check_name == name:
+            return r
+    return None
+
+
+# ─── Minimum scenarios short-circuit ──────────────────────────────────────
+
+class TestStructureMinimum:
+    def test_zero_scenarios_passes(self):
+        report = check_structure([], "medical")
+        assert report.pass_fail == LEVEL_PASS
+        assert _by_check_struct(report, "minimum_scenarios") is not None
+
+    def test_one_scenario_passes(self):
+        report = check_structure(
+            [_struct_scenario("sapien.x.a.v1", [1, 2, 3, 4])],
+            "medical",
+        )
+        assert report.pass_fail == LEVEL_PASS
+        assert len(report.results) == 1
+        assert report.results[0].check_name == "minimum_scenarios"
+
+
+# ─── 3a. Escalation count variance ─────────────────────────────────────────
+
+class TestEscalationCountVariance:
+    def test_uniform_counts_warns(self):
+        scenarios = [
+            _struct_scenario(f"id.{i}", [1, 2, 3, 4], hv_indices=[1, 2, 3])
+            for i in range(3)
+        ]
+        report = check_structure(scenarios, "medical")
+        row = _by_check_struct(report, "escalation_count_variance")
+        assert row.level == LEVEL_WARN
+        assert "Template stamping" in row.message
+
+    def test_varied_counts_pass(self):
+        scenarios = [
+            _struct_scenario("a", [1, 2, 3, 4], hv_indices=[1, 2, 3]),
+            _struct_scenario("b", [1, 2, 3], hv_indices=[1, 2]),
+            _struct_scenario("c", [1, 2, 3, 4, 5], hv_indices=[1, 2, 3]),
+        ]
+        report = check_structure(scenarios, "medical")
+        row = _by_check_struct(report, "escalation_count_variance")
+        assert row.level == LEVEL_PASS
+        assert "Range" in row.message
+
+
+# ─── 3b. Severity arc uniqueness ───────────────────────────────────────────
+
+class TestSeverityArcUniqueness:
+    def test_majority_share_arc_warns(self):
+        # 3 of 4 share arc [1,2,3,4]; 3/4 = 0.75 > 0.5 → WARN
+        scenarios = [
+            _struct_scenario("a", [1, 2, 3, 4], hv_indices=[1, 2, 3]),
+            _struct_scenario("b", [1, 2, 3, 4], hv_indices=[1, 2, 3]),
+            _struct_scenario("c", [1, 2, 3, 4], hv_indices=[1, 2, 3]),
+            _struct_scenario("d", [1, 3, 5], hv_indices=[1, 2]),
+        ]
+        report = check_structure(scenarios, "medical")
+        row = _by_check_struct(report, "severity_arc_uniqueness")
+        assert row.level == LEVEL_WARN
+
+    def test_varied_arcs_pass(self):
+        scenarios = [
+            _struct_scenario("a", [1, 2, 3, 4], hv_indices=[1, 2, 3]),
+            _struct_scenario("b", [1, 3, 4], hv_indices=[1, 2]),
+            _struct_scenario("c", [2, 3, 5], hv_indices=[1, 2]),
+            _struct_scenario("d", [1, 2, 4, 5], hv_indices=[1, 2, 3]),
+        ]
+        report = check_structure(scenarios, "medical")
+        row = _by_check_struct(report, "severity_arc_uniqueness")
+        assert row.level == LEVEL_PASS
+
+
+# ─── 3c. Hold variant placement ────────────────────────────────────────────
+
+class TestHoldVariantPlacement:
+    def test_uniform_placement_warns(self):
+        # All four scenarios place HVs at indices (1,2,3) — same shape
+        scenarios = [
+            _struct_scenario(f"id.{i}", [1, 2, 3, 4], hv_indices=[1, 2, 3])
+            for i in range(4)
+        ]
+        report = check_structure(scenarios, "medical")
+        row = _by_check_struct(report, "hold_variant_placement")
+        assert row.level == LEVEL_WARN
+
+    def test_varied_placement_pass(self):
+        scenarios = [
+            _struct_scenario("a", [1, 2, 3, 4], hv_indices=[1, 2, 3]),
+            _struct_scenario("b", [1, 2, 3, 4], hv_indices=[2, 3]),
+            _struct_scenario("c", [1, 2, 3, 4], hv_indices=[0, 1, 2]),
+            _struct_scenario("d", [1, 2, 3, 4], hv_indices=[1, 3]),
+        ]
+        report = check_structure(scenarios, "medical")
+        row = _by_check_struct(report, "hold_variant_placement")
+        assert row.level == LEVEL_PASS
+
+
+# ─── 3d. Hold variant minimum ──────────────────────────────────────────────
+
+class TestHoldVariantMinimum:
+    def test_meets_minimum_passes(self):
+        # 3 non-rapport (severity > 1) turns each carry hold_variants
+        scenarios = [
+            _struct_scenario("a", [1, 2, 3, 4], hv_indices=[1, 2, 3]),
+            _struct_scenario("b", [1, 3, 4, 5], hv_indices=[1, 2, 3]),
+        ]
+        report = check_structure(scenarios, "medical")
+        row = _by_check_struct(report, "hold_variant_minimum")
+        assert row.level == LEVEL_PASS
+
+    def test_below_minimum_fails(self):
+        # Only 2 non-rapport HV turns — needs 3
+        scenarios = [
+            _struct_scenario("a", [1, 2, 3, 4], hv_indices=[1, 2]),
+            _struct_scenario("b", [1, 2, 3, 4], hv_indices=[1, 2, 3]),
+        ]
+        report = check_structure(scenarios, "medical")
+        rows = [r for r in report.results if r.check_name == "hold_variant_minimum"]
+        fails = [r for r in rows if r.level == LEVEL_FAIL]
+        assert len(fails) == 1
+        assert "a:" in fails[0].message
+        assert report.pass_fail == LEVEL_FAIL
+
+    def test_rapport_hv_does_not_count(self):
+        # Severity-1 turn with HV doesn't satisfy the minimum.
+        scenarios = [
+            _struct_scenario("a", [1, 2, 3], hv_indices=[0, 1, 2]),
+            _struct_scenario("b", [1, 2, 3, 4], hv_indices=[1, 2, 3]),
+        ]
+        report = check_structure(scenarios, "medical")
+        rows = [r for r in report.results if r.check_name == "hold_variant_minimum"]
+        fails = [r for r in rows if r.level == LEVEL_FAIL]
+        assert any("a:" in r.message for r in fails)
+
+
+# ─── 3e. Pressure type sequence ────────────────────────────────────────────
+
+class TestPressureTypeSequence:
+    def test_uniform_sequence_warns(self):
+        # 3 of 4 share the exact same pressure_type tuple
+        scenarios = [
+            _struct_scenario("a", [1, 2, 3, 4], pressure_types=["sp", "sp", "sp", "sp"], hv_indices=[1, 2, 3]),
+            _struct_scenario("b", [1, 2, 3, 4], pressure_types=["sp", "sp", "sp", "sp"], hv_indices=[1, 2, 3]),
+            _struct_scenario("c", [1, 2, 3, 4], pressure_types=["sp", "sp", "sp", "sp"], hv_indices=[1, 2, 3]),
+            _struct_scenario("d", [1, 2, 3, 4], pressure_types=["a", "b", "c", "d"], hv_indices=[1, 2, 3]),
+        ]
+        report = check_structure(scenarios, "medical")
+        row = _by_check_struct(report, "pressure_type_sequence")
+        assert row.level == LEVEL_WARN
+
+    def test_varied_sequences_pass(self):
+        scenarios = [
+            _struct_scenario("a", [1, 2, 3, 4], pressure_types=["a", "b", "c", "d"], hv_indices=[1, 2, 3]),
+            _struct_scenario("b", [1, 2, 3, 4], pressure_types=["b", "c", "d", "e"], hv_indices=[1, 2, 3]),
+            _struct_scenario("c", [1, 2, 3, 4], pressure_types=["c", "d", "e", "f"], hv_indices=[1, 2, 3]),
+        ]
+        report = check_structure(scenarios, "medical")
+        row = _by_check_struct(report, "pressure_type_sequence")
+        assert row.level == LEVEL_PASS
+
+
+# ─── 3f. Word count distribution ───────────────────────────────────────────
+
+class TestWordCountDistribution:
+    def test_uniform_word_counts_warn(self):
+        # Every escalation prompt is exactly 20 words → stdev is 0 → WARN
+        scenarios = [
+            _struct_scenario("a", [1, 2, 3, 4], hv_indices=[1, 2, 3], prompt_words=20),
+            _struct_scenario("b", [1, 2, 3, 4], hv_indices=[1, 2, 3], prompt_words=20),
+        ]
+        report = check_structure(scenarios, "medical")
+        row = _by_check_struct(report, "word_count_distribution")
+        assert row.level == LEVEL_WARN
+        assert "uniform" in row.message.lower()
+
+    def test_varied_word_counts_pass(self):
+        # Mix of 5, 30, 50, 80, 100 word prompts → stdev well above 15
+        scenarios = [
+            _struct_scenario("a", [1, 2, 3, 4], hv_indices=[1, 2, 3], prompt_words=5),
+            _struct_scenario("b", [1, 2, 3, 4], hv_indices=[1, 2, 3], prompt_words=80),
+        ]
+        # Override prompt lengths so we get spread within the same scenario set
+        scenarios[0]["escalations"][0]["prompt"] = " ".join(["w"] * 3)
+        scenarios[0]["escalations"][1]["prompt"] = " ".join(["w"] * 60)
+        scenarios[0]["escalations"][2]["prompt"] = " ".join(["w"] * 90)
+        scenarios[0]["escalations"][3]["prompt"] = " ".join(["w"] * 15)
+        scenarios[1]["escalations"][0]["prompt"] = " ".join(["w"] * 100)
+        scenarios[1]["escalations"][1]["prompt"] = " ".join(["w"] * 1)
+        scenarios[1]["escalations"][2]["prompt"] = " ".join(["w"] * 50)
+        scenarios[1]["escalations"][3]["prompt"] = " ".join(["w"] * 25)
+        report = check_structure(scenarios, "medical")
+        row = _by_check_struct(report, "word_count_distribution")
+        assert row.level == LEVEL_PASS
+
+    def test_below_min_samples_skipped(self):
+        # Only 2 escalation prompts — below WORD_COUNT_MIN_SAMPLES, so
+        # the row should be absent from the report entirely.
+        scenarios = [
+            {
+                "id": "a",
+                "escalations": [
+                    {"severity": 2, "pressure_type": "x", "prompt": "one two three", "hold_variants": ["hv1"]},
+                ],
+            },
+            {
+                "id": "b",
+                "escalations": [
+                    {"severity": 2, "pressure_type": "x", "prompt": "four five six", "hold_variants": ["hv1"]},
+                ],
+            },
+        ]
+        report = check_structure(scenarios, "medical")
+        assert _by_check_struct(report, "word_count_distribution") is None
+
+
+# ─── Roll-up logic ────────────────────────────────────────────────────────
+
+class TestStructureRollup:
+    def test_all_pass_rolls_up_pass(self):
+        # Three scenarios, varied counts (4/5/5), varied severity arcs,
+        # varied HV placements, each with ≥3 non-rapport HV turns,
+        # varied pressure-type sequences, and varied prompt lengths so
+        # all six structural checks resolve to PASS.
+        scenarios = [
+            _struct_scenario("a", [1, 2, 3, 4],         pressure_types=["a", "b", "c", "d"],           hv_indices=[1, 2, 3]),
+            _struct_scenario("b", [1, 2, 3, 4, 5],      pressure_types=["b", "c", "d", "e", "f"],      hv_indices=[2, 3, 4]),
+            _struct_scenario("c", [2, 3, 4, 5, 6],      pressure_types=["c", "d", "e", "f", "g"],      hv_indices=[0, 1, 2, 3]),
+        ]
+        # Override prompts for high stdev across all 14 escalations.
+        word_lens = [5, 35, 60, 12, 80, 22, 40, 95, 8, 50, 28, 70, 18, 45]
+        idx = 0
+        for s in scenarios:
+            for e in s["escalations"]:
+                e["prompt"] = " ".join(["w"] * word_lens[idx])
+                idx += 1
+        report = check_structure(scenarios, "medical")
+        non_passes = [(r.check_name, r.level, r.message) for r in report.results if r.level != LEVEL_PASS]
+        assert report.pass_fail == LEVEL_PASS, non_passes
+        assert all(r.level == LEVEL_PASS for r in report.results), non_passes
+
+    def test_warn_only_rolls_up_warn(self):
+        # All scenarios share the same severity arc but each has ≥3 non-
+        # rapport HVs so no FAIL fires — should resolve to WARN.
+        scenarios = [
+            _struct_scenario(f"id.{i}", [1, 2, 3, 4, 5], hv_indices=[1, 2, 3, 4])
+            for i in range(3)
+        ]
+        report = check_structure(scenarios, "medical")
+        assert report.pass_fail == LEVEL_WARN
+        assert not any(r.level == LEVEL_FAIL for r in report.results)
+
+    def test_fail_dominates_warn(self):
+        # Scenarios with too few HV turns AND uniform arcs → both FAIL
+        # and WARN rows present, pass_fail must be FAIL.
+        scenarios = [
+            _struct_scenario(f"id.{i}", [1, 2, 3, 4], hv_indices=[1])
+            for i in range(3)
+        ]
+        report = check_structure(scenarios, "medical")
+        assert report.pass_fail == LEVEL_FAIL
+
+
+# ─── Equivalence with standalone (Layer 3) ─────────────────────────────────
+
+class TestLayer3EquivalenceWithStandalone:
+    @pytest.fixture
+    def standalone(self):
+        repo_root = Path(__file__).resolve().parent.parent
+        humanizer = repo_root / "sapien_humanizer.py"
+        if not humanizer.exists():
+            pytest.skip("standalone sapien_humanizer.py not present")
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("_sh_l3", humanizer)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def test_clean_domain_matches(self, standalone):
+        scenarios = [
+            _struct_scenario("a", [1, 2, 3, 4], pressure_types=["a", "b", "c", "d"], hv_indices=[1, 2, 3]),
+            _struct_scenario("b", [1, 2, 3, 4], pressure_types=["b", "c", "d", "e"], hv_indices=[1, 2, 3]),
+            _struct_scenario("c", [1, 2, 3, 4, 5], pressure_types=["c", "d", "e", "f", "g"], hv_indices=[1, 2, 3, 4]),
+        ]
+        # Vary prompt lengths so word_count_distribution doesn't fire
+        for i, s in enumerate(scenarios):
+            for j, e in enumerate(s["escalations"]):
+                e["prompt"] = " ".join(["w"] * (5 + i * 30 + j * 7))
+        ours = check_structure(scenarios, "medical")
+        theirs = standalone.check_structure(scenarios, "medical")
+        assert ours.pass_fail == theirs.pass_fail
+        assert ours.scenario_count == theirs.scenario_count
+        assert [(r.level, r.check_name, r.message) for r in ours.results] == \
+               [(r.level, r.check_name, r.message) for r in theirs.results]
+
+    def test_template_stamped_domain_matches(self, standalone):
+        scenarios = [
+            _struct_scenario(f"id.{i}", [1, 2, 3, 4], pressure_types=["sp"] * 4, hv_indices=[1, 2, 3])
+            for i in range(4)
+        ]
+        ours = check_structure(scenarios, "medical")
+        theirs = standalone.check_structure(scenarios, "medical")
+        assert ours.pass_fail == theirs.pass_fail
+        assert [(r.level, r.check_name, r.message) for r in ours.results] == \
+               [(r.level, r.check_name, r.message) for r in theirs.results]
+
+    def test_minimum_scenarios_short_circuit_matches(self, standalone):
+        scenarios = [_struct_scenario("a", [1, 2, 3, 4], hv_indices=[1, 2, 3])]
+        ours = check_structure(scenarios, "medical")
+        theirs = standalone.check_structure(scenarios, "medical")
+        assert ours.pass_fail == theirs.pass_fail
+        assert [(r.level, r.check_name, r.message) for r in ours.results] == \
+               [(r.level, r.check_name, r.message) for r in theirs.results]
