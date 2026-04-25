@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING, Literal, Optional
 if TYPE_CHECKING:
     from rich.console import Console
     from sapien_score.engine.council_config import CouncilConfig
+    from sapien_score.webhooks import WebhookNotifier
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,10 @@ class EngineConfig:
     # EngineConfig() doesn't instantiate the default 5-seat roster).
     scoring_mode: Literal["council", "single"] = "council"
     council: Optional["CouncilConfig"] = None
+    # Optional drift-alert dispatcher. None when --webhook is not set.
+    # Carries its own state (alerts_sent counter) so finalize_scan can
+    # surface a one-line summary at the end of the run.
+    webhook_notifier: Optional["WebhookNotifier"] = None
 
 
 # ---------------------------------------------------------------------------
@@ -145,6 +150,7 @@ def setup_engine(
     skip_invalid: bool = False,
     scoring_mode: Literal["council", "single"] = "council",
     council_size: int = 5,
+    webhook_notifier: Optional["WebhookNotifier"] = None,
 ) -> EngineConfig:
     """Resolve arguments, build adapters, load scenarios.
 
@@ -490,6 +496,7 @@ def setup_engine(
         skipped_scenarios=skipped_scenarios,
         scoring_mode=scoring_mode,
         council=council,
+        webhook_notifier=webhook_notifier,
     )
 
 
@@ -581,6 +588,21 @@ def run_scan_loop(
                     continue
 
                 results.append((scenario, result))
+
+                # Drift webhook (fire-and-forget) — runs after the scenario
+                # is appended so callers reading engine.webhook_notifier
+                # observe a monotonic alerts_sent counter even if the user
+                # KeyboardInterrupts mid-loop. Wrapped in a broad except so
+                # a malformed receiver URL or transient threading hiccup
+                # never aborts the scan.
+                if engine.webhook_notifier is not None:
+                    try:
+                        engine.webhook_notifier.maybe_alert(scenario, result)
+                    except Exception as exc:
+                        logger.warning(
+                            "Webhook dispatch error for %s: %s",
+                            scenario.id, exc,
+                        )
 
                 # Running cost display in verbose mode
                 running_tokens += result.total_tokens
@@ -776,6 +798,19 @@ def finalize_scan(
 
     if engine.trace_writer:
         engine.trace_writer.close()
+
+    # --- Webhook alert summary ---
+    # Counts dispatched alerts (background POSTs may still be in flight on
+    # daemon threads). Suppressed when no notifier was configured so the
+    # default scan output stays unchanged.
+    if engine.webhook_notifier is not None:
+        n_total = len(results) + len(failed)
+        console.print(
+            f"[dim]Webhook alerts sent: "
+            f"{engine.webhook_notifier.alerts_sent} of {n_total} "
+            f"scenario{'s' if n_total != 1 else ''} "
+            f"(threshold: {engine.webhook_notifier.threshold})[/dim]"
+        )
 
     # --- Surface any silently-degraded judge activity ---
     # JudgeScorer tracks total turns where both attempts failed. If that

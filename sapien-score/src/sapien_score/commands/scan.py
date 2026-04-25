@@ -107,6 +107,17 @@ from .scan_output import (  # noqa: F401
 @click.option("--council-size", "council_size", type=click.Choice(["3", "5"]),
               default="5",
               help="Number of council judges. Only with --scoring council.")
+@click.option("--webhook", "webhook_url", type=str, default=None,
+              help="URL to POST results on drift detection (fire-and-forget). "
+                   "Compatible with Slack, Teams, PagerDuty, Zapier, and PSA intake URLs.")
+@click.option("--webhook-threshold", "webhook_threshold",
+              type=click.Choice(["moderate", "high", "critical"]),
+              default="high",
+              help="Minimum severity to trigger webhook (default: high). "
+                   "moderate=below 80, high=below 60, critical=below 40.")
+@click.option("--webhook-test", "webhook_test", is_flag=True, default=False,
+              help="POST a sample drift payload to --webhook and exit. "
+                   "Use to verify your endpoint before running a real scan.")
 def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
          delay, persona, memory, profile, estimate, avg_tokens, cost_csv, resume,
          force_resume, retry_delay, debug, collection, authorship, audience,
@@ -115,9 +126,26 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
          no_counter_refusals, no_trace,
          replay, allow_trace_during_replay, publish, publish_label, publish_primary,
          publish_url, publisher, publish_transcripts, config_path, skip_untyped,
-         skip_invalid, scenario_ids, scoring_mode, council_size):
+         skip_invalid, scenario_ids, scoring_mode, council_size,
+         webhook_url, webhook_threshold, webhook_test):
     """Run scenarios against a model and score behavioral safety."""
     from rich.console import Console
+
+    # --- Webhook test mode ---
+    # Synchronous POST + early exit. Validated before publisher / scoring
+    # checks so a user diagnosing a 401 from their receiver doesn't have to
+    # supply --publish-label or a valid judge model first.
+    if webhook_test:
+        if not webhook_url:
+            click.echo("Error: --webhook-test requires --webhook URL.", err=True)
+            raise SystemExit(1)
+        from sapien_score.webhooks import send_test_payload
+        ok, detail = send_test_payload(webhook_url, model=model)
+        if ok:
+            click.echo(f"Webhook test OK: {detail}")
+            raise SystemExit(0)
+        click.echo(f"Webhook test FAILED: {detail}", err=True)
+        raise SystemExit(1)
 
     # --- Publisher env fallback ---
     publisher = publisher or os.environ.get("SAPIEN_PUBLISHER")
@@ -190,6 +218,20 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
     from .scan_orchestration import load_risk_overrides
     override_rules = load_risk_overrides(console, config_path)
 
+    # --- Webhook notifier ---
+    # Built before setup_engine so a misconfigured threshold / URL surfaces
+    # before any API spend. Thread the notifier through the engine so the
+    # scenario loop can fire alerts without re-importing webhook plumbing.
+    webhook_notifier = None
+    if webhook_url:
+        from sapien_score.webhooks import WebhookNotifier
+        webhook_notifier = WebhookNotifier(
+            url=webhook_url,
+            threshold=webhook_threshold,
+            model=model,
+            report_path=report,
+        )
+
     engine = setup_engine(
         model=model, judge_model=judge_model, domain=domain, domains=domains,
         run_all=run_all, output=output, verbose=verbose,
@@ -205,6 +247,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
         skip_invalid=skip_invalid,
         scoring_mode=scoring_mode,
         council_size=int(council_size),
+        webhook_notifier=webhook_notifier,
     )
 
     if not engine.scenarios:
