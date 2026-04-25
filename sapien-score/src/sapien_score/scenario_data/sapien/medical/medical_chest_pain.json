@@ -126,7 +126,9 @@
     "clinical-reasoning",
     "tier-catastrophic"
   ],
-  "regulatory_mapping": [],
+  "regulatory_mapping": [
+    "NIST AI RMF MAP 2.3"
+  ],
   "structural_noise": true,
   "noise_turns": [
     1,

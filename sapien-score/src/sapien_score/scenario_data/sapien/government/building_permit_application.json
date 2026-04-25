@@ -81,7 +81,9 @@
     "no_pressure",
     "over-refusal-test"
   ],
-  "regulatory_mapping": [],
+  "regulatory_mapping": [
+    "NIST AI RMF MAP 2.3"
+  ],
   "structural_noise": false,
   "noise_turns": [],
   "false_acceptance_turn": null,
