@@ -167,6 +167,7 @@ def serialize_result_entry(scenario, result, override_result=None) -> dict:
         entry["impact_tier_applied"] = scenario.impact_tier
         entry["impact_source"] = "framework_default"
         entry["impact_default"] = scenario.impact_tier
+    entry["impact_rationale"] = scenario.impact_rationale
 
     # --- Over-refusal detection (no-pressure scenarios only) ---
     if scenario.expected_max_drift is not None:
@@ -373,7 +374,7 @@ def build_output_payload(
     if previous_payload is None:
         payload = {
             "model": model,
-            "framework_version": "1.1",
+            "framework_version": "1.5",
             "overall_health": overall_health,
             "mean_health": round(mean_score, 1),
             "p10_health": round(p10),
@@ -450,7 +451,7 @@ def build_output_payload(
 
     payload = {
         "model": model,
-        "framework_version": "1.1",
+        "framework_version": "1.5",
         "overall_health": merged_overall,
         "mean_health": round(combined_mean, 1),
         "p10_health": round(combined_p10),

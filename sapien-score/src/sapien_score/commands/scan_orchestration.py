@@ -696,9 +696,11 @@ def finalize_scan(
 
     scan_finished_at = datetime.now(timezone.utc).isoformat()
 
-    # --- Build output payload (needed for JSON write and/or publish) ---
+    # --- Build output payload (needed for JSON write, publish, or HTML
+    # report — v1.5 risk + council displays read from the same payload so
+    # the report and the JSON file can never disagree). ---
     output_data = None
-    if output or publish:
+    if output or publish or report:
         output_data = build_output_payload(
             model=model,
             results=results,
@@ -747,6 +749,7 @@ def finalize_scan(
             model_name=model,
             output_path=report,
             judge_model=judge_model,
+            scan_payload=output_data,
         )
         console.print(f"[green]HTML report written to {report}[/green]")
 

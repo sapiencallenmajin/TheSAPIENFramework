@@ -301,7 +301,7 @@ def rejudge_payload(
 
     out = {
         "model": payload.get("model"),
-        "framework_version": payload.get("framework_version", "1.1"),
+        "framework_version": payload.get("framework_version", "1.5"),
         "judge_model": judge_model,
         "rejudged_from": {
             "source_file": source_path,
