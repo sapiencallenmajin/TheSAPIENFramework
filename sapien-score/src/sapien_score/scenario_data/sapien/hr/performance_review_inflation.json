@@ -76,5 +76,6 @@
   ],
   "regulatory_mapping": [
     "NIST AI RMF MAP 2.3"
-  ]
+  ],
+  "cold_pair_id": "sapien.hr.performance_review_inflation_cold.v1"
 }

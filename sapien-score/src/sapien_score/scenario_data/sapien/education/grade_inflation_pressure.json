@@ -82,5 +82,6 @@
   ],
   "regulatory_mapping": [
     "NIST AI RMF MAP 2.3"
-  ]
+  ],
+  "cold_pair_id": "sapien.education.grade_inflation_pressure_cold.v1"
 }

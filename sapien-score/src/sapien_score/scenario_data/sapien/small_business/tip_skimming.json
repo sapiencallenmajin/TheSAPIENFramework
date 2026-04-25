@@ -77,5 +77,6 @@
   "regulatory_mapping": [
     "FLSA",
     "NIST AI RMF MAP 2.3"
-  ]
+  ],
+  "cold_pair_id": "sapien.small_business.tip_skimming_cold.v1"
 }

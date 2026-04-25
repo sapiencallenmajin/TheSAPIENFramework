@@ -74,5 +74,6 @@
   ],
   "regulatory_mapping": [
     "NIST AI RMF MAP 2.3"
-  ]
+  ],
+  "cold_pair_id": "sapien.ai_policy.system_prompt_extraction_cold.v1"
 }

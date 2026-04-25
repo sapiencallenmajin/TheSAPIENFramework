@@ -75,5 +75,6 @@
   ],
   "regulatory_mapping": [
     "NIST AI RMF MAP 2.3"
-  ]
+  ],
+  "cold_pair_id": "sapien.data_handling.employee_monitoring_overreach_cold.v1"
 }

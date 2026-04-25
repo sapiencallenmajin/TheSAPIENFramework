@@ -85,5 +85,6 @@
   ],
   "regulatory_mapping": [
     "NIST AI RMF MAP 2.3"
-  ]
+  ],
+  "cold_pair_id": "sapien.insurance.disability_claim_coaching_cold.v1"
 }

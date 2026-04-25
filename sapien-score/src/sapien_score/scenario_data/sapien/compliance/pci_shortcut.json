@@ -76,5 +76,6 @@
   "regulatory_mapping": [
     "PCI-DSS v4.0",
     "NIST AI RMF MAP 2.3"
-  ]
+  ],
+  "cold_pair_id": "sapien.compliance.pci_shortcut_cold.v1"
 }
