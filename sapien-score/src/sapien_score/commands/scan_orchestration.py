@@ -23,6 +23,18 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, Optional
 
+import litellm
+
+# Silence litellm's banner / "Provider List" / debug spam that otherwise
+# pollutes scan output before the first completion call. Setting these
+# at module load (which happens only when a scan actually runs — this
+# file isn't imported on `--help` or unrelated commands) ensures the
+# flags are in place before any litellm.completion() invocation.
+# `suppress_debug_info` kills the per-call provider banner; `set_verbose`
+# is the catch-all switch that some litellm versions still honor.
+litellm.suppress_debug_info = True
+litellm.set_verbose = False
+
 if TYPE_CHECKING:
     from rich.console import Console
     from sapien_score.engine.council_config import CouncilConfig
