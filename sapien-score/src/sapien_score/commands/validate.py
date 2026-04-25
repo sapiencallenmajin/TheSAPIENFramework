@@ -3,20 +3,24 @@
 # Licensed under the Apache License, Version 2.0
 """voigt-kampff validate — orchestration layer.
 
-Composes the three layers from sapien_score.validation into a single
-command pipeline. Ports run_single, apply_fixes, pressure_calibration_
-check, run_fix_mode, render_*, and report_to_json from sapien_humanizer
-.py (lines 705-1156) into the package. Phase 5 wires this into a Click
-command and adds find_scenarios + interactive_mode + main().
+Composes the three layers from ``sapien_score.validation`` into a
+single command pipeline. Ports ``run_single``, ``apply_fixes``,
+``pressure_calibration_check``, ``run_fix_mode``, the five
+``render_*`` functions, and ``report_to_json`` from the original
+``sapien_humanizer.py`` standalone (lines 705-1156). Also adds the
+CLI surface: ``load_scenario``, ``find_scenarios``, ``interactive_mode``,
+and the ``@click.command("validate")`` entry point registered in
+``cli.py``.
 
 Per the standing rule: every numeric threshold, string label, and
 category list is a module-level named constant with a WHY docstring.
 The package's existing constants (LEVEL_*, CATEGORY_*, HIGH_AI_PROBABILITY,
 DEFAULT_AI_THRESHOLD, FIX_REPLACEMENTS) are imported, never redeclared.
 
-The render functions take an optional ``console`` parameter so tests
-can inject a non-rich Console and so Phase 5's CLI can pass through
-the click context's console.
+Render functions accept an optional ``console`` parameter so tests
+can inject a captured-buffer Console without depending on Rich's TTY
+behavior, and so a future config-driven multi-console mode can plug
+in without touching the renderers.
 """
 
 from __future__ import annotations
@@ -64,10 +68,11 @@ from sapien_score.validation.voice_check import (
 )
 
 
-# ─── Tunables (Phase 4) ─────────────────────────────────────────────────────
+# ─── Orchestration tunables ─────────────────────────────────────────────────
 # Single source of truth for orchestration thresholds. Each comment
-# explains the choice so a config-driven override (Phase 5) lands
-# cleanly.
+# explains the choice so a future config-driven override path (CLI
+# flag or ~/.voigt-kampff.toml) lands cleanly without re-implementing
+# the call sites.
 
 # Pressure-calibration max word-count drop. The fixer must not gut more
 # than this fraction of a turn's words — beyond this the pressure
@@ -138,7 +143,8 @@ PANEL_BORDER_FIX: str = "cyan"
 
 
 # Default module-level console. Render functions accept an optional
-# console kwarg so tests and Phase 5's Click command can override.
+# console kwarg so tests inject a captured-buffer Console and the
+# Click command can pass through its own Console instance.
 _default_console: Console = Console()
 
 
@@ -146,18 +152,18 @@ _default_console: Console = Console()
 
 @dataclass
 class FullReport:
-    """Aggregated three-layer report for a single scenario.
+    """Aggregated per-scenario report.
 
-    Composes :class:`SchemaResult` rows (Layer 1), a :class:`VoiceReport`
-    (Layer 2), and an optional :class:`StructureReport` (Layer 3 lives
-    at domain scope, not per-scenario, but we attach it here when
-    available for downstream renderers).
+    Composes :class:`SchemaResult` rows (Layer 1) with a
+    :class:`VoiceReport` (Layer 2). Layer 3 is domain-scoped, not
+    per-scenario — see ``StructureReport`` returned separately by
+    ``check_structure`` and rendered alongside the per-scenario
+    reports in the corpus loop.
     """
     file_path: str = ""
     scenario_id: str = ""
     schema: list = field(default_factory=list)
     voice: VoiceReport = field(default_factory=VoiceReport)
-    structure: Optional[StructureReport] = None
 
 
 # ─── Fix mode: deterministic humanizer ─────────────────────────────────────
@@ -638,8 +644,8 @@ def run_single(
          above-threshold turn to FAIL after the fact.
 
     Returns the populated :class:`FullReport`. Layer 3 isn't run here —
-    structural checks are domain-scoped and live in the corpus loop
-    (Phase 5's CLI wiring).
+    structural checks are domain-scoped and live in the ``validate()``
+    Click command's corpus loop.
     """
     target = console or _default_console
 

@@ -3,17 +3,19 @@
 # Licensed under the Apache License, Version 2.0
 """Three-layer scenario quality gate.
 
-This package is the CLI-integrated home of the standalone
-``sapien_humanizer.py`` validator. Each layer lives in its own module
-and is composed by ``commands/validate.py``:
+This package is the CLI-integrated home of the original standalone
+``sapien_humanizer.py`` validator. Each layer lives in its own module;
+orchestration (fix mode, render, JSON output, Click command) lives in
+``sapien_score.commands.validate``.
 
   Layer 1 (schema_check)    — JSON structure & required fields
-  Layer 2 (voice_check)     — voice quality + AI detection (planned)
-  Layer 3 (structure_check) — cross-scenario structural variety (planned)
+  Layer 2 (voice_check)     — voice quality + AI detection
+  Layer 3 (structure_check) — cross-scenario structural variety
 
-Phase 1 ships Layer 1 only. Layers 2 and 3 land in subsequent phases.
-The standalone ``sapien_humanizer.py`` remains in repo root as the
-authoritative spec until all phases are green; it is deleted in Phase 6.
+Behavior parity with the original standalone is verified by the
+equivalence tests in ``tests/test_validate.py`` — they import the
+standalone (when present in repo root) and diff every layer's output
+row-for-row against this package.
 """
 
 from sapien_score.validation.schema_check import (
