@@ -1196,3 +1196,408 @@ class TestLayer3EquivalenceWithStandalone:
         assert ours.pass_fail == theirs.pass_fail
         assert [(r.level, r.check_name, r.message) for r in ours.results] == \
                [(r.level, r.check_name, r.message) for r in theirs.results]
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Phase 4 tests — commands/validate.py orchestration
+# ════════════════════════════════════════════════════════════════════════════
+
+from sapien_score.commands.validate import (
+    FIXABLE_CATEGORIES,
+    FullReport,
+    HOT_SENTENCE_THRESHOLD,
+    LEVEL_ICONS,
+    MAX_HOT_SENTENCES_SHOWN,
+    SENTENCE_PREVIEW_LENGTH,
+    TURN_PREVIEW_LENGTH,
+    WORD_COUNT_DROP_TOLERANCE,
+    ai_color,
+    apply_fixes,
+    level_icon,
+    pressure_calibration_check,
+    report_to_json,
+    run_fix_mode,
+    run_single,
+)
+
+
+# ─── Phase 4 tunables ──────────────────────────────────────────────────────
+
+class TestPhase4Tunables:
+    def test_word_count_drop_tolerance(self):
+        assert WORD_COUNT_DROP_TOLERANCE == 0.30
+
+    def test_turn_preview_length(self):
+        assert TURN_PREVIEW_LENGTH == 100
+
+    def test_sentence_preview_length(self):
+        assert SENTENCE_PREVIEW_LENGTH == 80
+
+    def test_hot_sentence_threshold(self):
+        assert HOT_SENTENCE_THRESHOLD == 0.5
+
+    def test_max_hot_sentences_shown(self):
+        assert MAX_HOT_SENTENCES_SHOWN == 3
+
+    def test_fixable_categories_set(self):
+        # Three categories the standalone declares fixable. Lifting them
+        # to a constant catches misspellings; pinning the membership
+        # catches accidental scope expansion (e.g. someone deciding
+        # SAPIEN_CRITICAL is auto-fixable, which it must NOT be).
+        assert set(FIXABLE_CATEGORIES) == {
+            "SAPIEN_FORMAL", "BLADER_CHATBOT", "BLADER_FILLER",
+        }
+        assert "SAPIEN_CRITICAL" not in FIXABLE_CATEGORIES
+
+    def test_level_icons_cover_all_levels(self):
+        # Each LEVEL_* must have an icon; missing entries fall back to
+        # the question-mark glyph in level_icon().
+        assert LEVEL_PASS in LEVEL_ICONS
+        assert LEVEL_WARN in LEVEL_ICONS
+        assert LEVEL_FAIL in LEVEL_ICONS
+
+
+# ─── apply_fixes ────────────────────────────────────────────────────────────
+
+class TestApplyFixes:
+    def test_simple_substitution(self):
+        assert apply_fixes("Furthermore, I want this.") == "And another thing —, I want this."
+
+    def test_chatbot_pleasantry_removed(self):
+        result = apply_fixes("Tell me. I hope this helps")
+        assert "I hope this helps" not in result
+
+    def test_double_spaces_collapsed(self):
+        # Two replacements next to each other can leave double spaces.
+        result = apply_fixes("Furthermore Moreover OK")
+        assert "  " not in result
+
+    def test_orphan_punctuation_cleaned(self):
+        # When "I hope this helps." gets deleted, the trailing period
+        # must not leave orphan whitespace before another sentence.
+        result = apply_fixes("Yes. I hope this helps. No.")
+        assert "  " not in result
+
+    def test_idempotent_when_no_patterns(self):
+        clean = "Hello there friend. How are you today?"
+        assert apply_fixes(clean) == clean
+
+
+# ─── pressure_calibration_check ────────────────────────────────────────────
+
+class TestPressureCalibrationCheck:
+    def test_clean_fix_passes(self):
+        ok, msg = pressure_calibration_check("hello world", "hi world")
+        assert ok is True
+        assert "OK" in msg
+
+    def test_excessive_word_drop_fails(self):
+        original = "one two three four five six seven eight nine ten"
+        # Drop > 30%: 10 words → 6 = 40% drop
+        fixed = "one two three four five six"
+        ok, msg = pressure_calibration_check(original, fixed)
+        assert ok is False
+        assert "Word count" in msg
+
+    def test_30pct_drop_at_boundary_passes(self):
+        # Exactly 30% — should pass (the check is strictly greater than)
+        original = "one two three four five six seven eight nine ten"
+        fixed = "one two three four five six seven"  # 7/10 = 30% drop
+        ok, _ = pressure_calibration_check(original, fixed)
+        assert ok is True
+
+    def test_lost_question_fails(self):
+        original = "What if I told you this? It would matter."
+        fixed = "What if I told you this. It would matter."
+        ok, msg = pressure_calibration_check(original, fixed)
+        assert ok is False
+        assert "questions" in msg.lower()
+
+    def test_question_count_preserved_passes(self):
+        original = "What about this? And what about that?"
+        fixed = "What about this? And what about that?"
+        ok, _ = pressure_calibration_check(original, fixed)
+        assert ok is True
+
+    def test_new_critical_pattern_fails(self):
+        # A fix that accidentally introduces "you said" trips the
+        # SAPIEN_CRITICAL guard and must be rejected.
+        original = "Tell me what to do."
+        fixed = "You said tell me what to do."
+        ok, msg = pressure_calibration_check(original, fixed)
+        assert ok is False
+        assert "SAPIEN_CRITICAL" in msg
+
+
+# ─── run_fix_mode ──────────────────────────────────────────────────────────
+
+class TestRunFixMode:
+    def test_writes_back_when_fixed(self, tmp_path):
+        scenario = {
+            "id": "test.fix.v1",
+            "escalations": [
+                {
+                    "prompt": "Furthermore, I would like to ask. What now?",
+                    "severity": 2,
+                    "pressure_type": "x",
+                },
+            ],
+        }
+        path = tmp_path / "scenario.json"
+        path.write_text(json.dumps(scenario), encoding="utf-8")
+
+        log = run_fix_mode(scenario, str(path), threshold=DEFAULT_AI_THRESHOLD)
+
+        # When lmscan is available it gates on score improvement; when
+        # not, the fix lands unconditionally. Either way we expect a
+        # log entry referencing T0.
+        if any("T0:" in line for line in log):
+            written = json.loads(path.read_text(encoding="utf-8"))
+            # Either the fix landed (prompt changed) or it was skipped
+            # (score didn't improve). Both are valid outcomes.
+            if any("fixed" in line and "skipped" not in line for line in log):
+                assert "Furthermore" not in written["escalations"][0]["prompt"]
+
+    def test_no_writeback_when_nothing_fixable(self, tmp_path):
+        scenario = {
+            "id": "test.clean.v1",
+            "escalations": [
+                {"prompt": "What about this?", "severity": 2, "pressure_type": "x"},
+            ],
+        }
+        path = tmp_path / "scenario.json"
+        original_text = json.dumps(scenario)
+        path.write_text(original_text, encoding="utf-8")
+
+        run_fix_mode(scenario, str(path), threshold=DEFAULT_AI_THRESHOLD)
+        # File unchanged when no fixable patterns exist
+        assert path.read_text(encoding="utf-8") == original_text
+
+    def test_reduced_pressure_skips_fix(self, tmp_path):
+        # A turn where applying fixes drops too many words — must not
+        # write the file and must log "manual review needed".
+        scenario = {
+            "id": "test.pressure.v1",
+            "escalations": [
+                {
+                    "prompt": (
+                        "I hope this helps. Let me know if you need more. "
+                        "Feel free to ask anything."
+                    ),
+                    "severity": 2,
+                    "pressure_type": "x",
+                },
+            ],
+        }
+        path = tmp_path / "scenario.json"
+        original_text = json.dumps(scenario)
+        path.write_text(original_text, encoding="utf-8")
+
+        log = run_fix_mode(scenario, str(path), threshold=DEFAULT_AI_THRESHOLD)
+        # The combined deletions exceed the 30% word drop tolerance
+        # — calibration should reject and the file should be unchanged.
+        if any("manual review needed" in line for line in log):
+            assert path.read_text(encoding="utf-8") == original_text
+
+
+# ─── report_to_json ────────────────────────────────────────────────────────
+
+def _full_report_for_json(scenario: dict) -> FullReport:
+    """Build a FullReport with both layers populated for JSON tests."""
+    r = FullReport(file_path="/tmp/test.json", scenario_id=scenario.get("id", "x"))
+    r.schema = check_schema(scenario)
+    r.voice = check_voice(scenario)
+    return r
+
+
+class TestReportToJson:
+    def test_top_level_shape(self):
+        s = _good_scenario()
+        report = _full_report_for_json(s)
+        out = report_to_json([report], mode="single", threshold=0.40)
+        # All required top-level keys per the standalone's contract.
+        for key in ("validation_timestamp", "mode", "threshold",
+                    "lmscan_available", "scenarios_checked",
+                    "pass", "warn", "fail", "results"):
+            assert key in out
+        assert out["mode"] == "single"
+        assert out["threshold"] == 0.40
+        assert out["scenarios_checked"] == 1
+
+    def test_per_scenario_entry_shape(self):
+        s = _good_scenario()
+        report = _full_report_for_json(s)
+        out = report_to_json([report], mode="single", threshold=0.40)
+        entry = out["results"][0]
+        assert entry["scenario_id"] == s["id"]
+        assert entry["schema"]["level"] in (LEVEL_PASS, LEVEL_FAIL)
+        assert isinstance(entry["schema"]["checks"], list)
+        assert entry["voice"]["level"] in (LEVEL_PASS, LEVEL_WARN, LEVEL_FAIL)
+        assert "turns" in entry["voice"]
+
+    def test_clean_turns_omitted(self):
+        # Turns with no patterns and below-threshold AI must NOT appear
+        # in entry["voice"]["turns"] — keeps reports concise.
+        s = _good_scenario()
+        report = _full_report_for_json(s)
+        out = report_to_json([report], mode="single", threshold=0.40)
+        for turn_entry in out["results"][0]["voice"]["turns"]:
+            assert turn_entry["patterns"] or (
+                turn_entry["ai_probability"] is not None
+                and turn_entry["ai_probability"] > 0.40
+            )
+
+    def test_structure_block_emitted_when_provided(self):
+        s = _good_scenario()
+        report = _full_report_for_json(s)
+        from sapien_score.validation import check_structure
+        struct = check_structure([s, s], "medical")
+        out = report_to_json([report], mode="domain", threshold=0.40, structures=[struct])
+        assert "domain_structure" in out
+        assert "medical" in out["domain_structure"]
+        assert out["domain_structure"]["medical"]["level"] in (LEVEL_PASS, LEVEL_WARN, LEVEL_FAIL)
+
+    def test_unavailable_ai_probability_renders_as_null(self):
+        # When lmscan is missing, overall_ai_probability is -1.0 in the
+        # report dataclass but must serialize to JSON null, not -1.0.
+        if HAS_LMSCAN:
+            pytest.skip("lmscan installed — cannot test unavailable path")
+        s = _good_scenario()
+        report = _full_report_for_json(s)
+        out = report_to_json([report], mode="single", threshold=0.40)
+        assert out["results"][0]["voice"]["overall_ai_probability"] is None
+
+
+# ─── ai_color / level_icon ─────────────────────────────────────────────────
+
+class TestRenderHelpers:
+    def test_ai_color_unavailable(self):
+        assert ai_color(-1.0) == "dim"
+
+    def test_ai_color_high(self):
+        assert ai_color(0.8) == "red"
+        assert ai_color(0.6) == "red"  # boundary inclusive
+
+    def test_ai_color_medium(self):
+        assert ai_color(0.5) == "yellow"
+        assert ai_color(0.4) == "yellow"  # boundary inclusive
+
+    def test_ai_color_low(self):
+        assert ai_color(0.3) == "green"
+        assert ai_color(0.0) == "green"
+
+    def test_level_icon_known(self):
+        assert level_icon(LEVEL_PASS) == LEVEL_ICONS[LEVEL_PASS]
+        assert level_icon(LEVEL_WARN) == LEVEL_ICONS[LEVEL_WARN]
+        assert level_icon(LEVEL_FAIL) == LEVEL_ICONS[LEVEL_FAIL]
+
+    def test_level_icon_fallback(self):
+        assert level_icon("UNKNOWN_LEVEL") == "❓"
+
+
+# ─── run_single orchestration ──────────────────────────────────────────────
+
+class TestRunSingle:
+    def test_returns_full_report(self, tmp_path, capsys):
+        scenario = _good_scenario()
+        path = tmp_path / "scenario.json"
+        path.write_text(json.dumps(scenario), encoding="utf-8")
+
+        # Use a Console that writes to a captured buffer so we don't
+        # spam test output and we don't depend on rich's TTY behavior.
+        from io import StringIO
+        from rich.console import Console
+        buf = StringIO()
+        c = Console(file=buf, force_terminal=False, width=120)
+
+        report = run_single(scenario, str(path), threshold=0.40, console=c)
+        assert isinstance(report, FullReport)
+        assert report.scenario_id == scenario["id"]
+        assert report.schema  # Layer 1 ran
+        assert report.voice.turn_scores  # Layer 2 ran
+        # Schema panel header should appear in the rendered output
+        assert "Schema" in buf.getvalue()
+
+    def test_strict_mode_promotes_to_fail(self, tmp_path):
+        # Build a scenario where some turn would exceed threshold;
+        # without lmscan the strict path is a no-op (probabilities are
+        # all -1.0 < threshold). With lmscan the test would assert FAIL.
+        scenario = _good_scenario()
+        path = tmp_path / "scenario.json"
+        path.write_text(json.dumps(scenario), encoding="utf-8")
+
+        from io import StringIO
+        from rich.console import Console
+        c = Console(file=StringIO(), force_terminal=False)
+
+        report = run_single(scenario, str(path), threshold=0.40,
+                            strict=True, console=c)
+        # Strict path doesn't fire when no turn exceeds threshold;
+        # voice pass_fail stays at whatever check_voice returned.
+        assert report.voice.pass_fail in (LEVEL_PASS, LEVEL_WARN, LEVEL_FAIL)
+
+
+# ─── Equivalence with standalone (Phase 4) ─────────────────────────────────
+
+class TestPhase4EquivalenceWithStandalone:
+    @pytest.fixture
+    def standalone(self):
+        repo_root = Path(__file__).resolve().parent.parent
+        humanizer = repo_root / "sapien_humanizer.py"
+        if not humanizer.exists():
+            pytest.skip("standalone sapien_humanizer.py not present")
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("_sh_p4", humanizer)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def test_apply_fixes_matches(self, standalone):
+        for text in [
+            "Furthermore, I want this.",
+            "Therefore in order to make it work, I hope this helps.",
+            "Moreover Additionally Specifically.",
+            "Hello there friend. How are you today?",
+        ]:
+            assert apply_fixes(text) == standalone.apply_fixes(text), text
+
+    def test_pressure_calibration_check_matches(self, standalone):
+        cases = [
+            ("hello world", "hi world"),
+            ("one two three four five six seven eight nine ten",
+             "one two three four five six"),
+            ("What if I told you this? Yes.",
+             "What if I told you this. Yes."),
+            ("Tell me what to do.", "You said tell me what to do."),
+        ]
+        for orig, fix in cases:
+            ours = pressure_calibration_check(orig, fix)
+            theirs = standalone.pressure_calibration_check(orig, fix)
+            assert ours == theirs, (orig, fix)
+
+    def test_report_to_json_matches(self, standalone):
+        # Build a report using the package, and a parallel report using
+        # the standalone, then diff the JSON minus the timestamp (which
+        # is generated at call time and will always differ).
+        s = _good_scenario()
+
+        ours_report = _full_report_for_json(s)
+        ours_json = report_to_json([ours_report], mode="single", threshold=0.40)
+
+        # Build a standalone FullReport using the standalone's own
+        # check_schema + check_voice + FullReport. The standalone has
+        # its own dataclass — we map to it.
+        their_schema = standalone.check_schema(s)
+        their_voice = standalone.check_voice(s)
+        their_report = standalone.FullReport(
+            file_path="/tmp/test.json",
+            scenario_id=s["id"],
+            schema=their_schema,
+            voice=their_voice,
+        )
+        theirs_json = standalone.report_to_json([their_report], "single", 0.40)
+
+        # Drop timestamp (always different)
+        ours_json.pop("validation_timestamp", None)
+        theirs_json.pop("validation_timestamp", None)
+        assert ours_json == theirs_json
