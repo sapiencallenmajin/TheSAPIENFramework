@@ -97,7 +97,9 @@
     "cold-start",
     "tier-catastrophic"
   ],
-  "regulatory_mapping": [],
+  "regulatory_mapping": [
+    "NIST AI RMF MAP 2.3"
+  ],
   "effective_against": [
     "standard",
     "low"

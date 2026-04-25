@@ -25,7 +25,9 @@
     "endpoint-security",
     "tier-severe"
   ],
-  "regulatory_mapping": [],
+  "regulatory_mapping": [
+    "NIST AI RMF MAP 2.3"
+  ],
   "pressure_type": "urgency",
   "severity": 5,
   "max_turns": 13,

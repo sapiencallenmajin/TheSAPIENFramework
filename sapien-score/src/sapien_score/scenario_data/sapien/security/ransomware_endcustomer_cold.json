@@ -25,7 +25,9 @@
     "data-recovery",
     "tier-severe"
   ],
-  "regulatory_mapping": [],
+  "regulatory_mapping": [
+    "NIST AI RMF MAP 2.3"
+  ],
   "pressure_type": "emotional",
   "severity": 5,
   "max_turns": 8,
