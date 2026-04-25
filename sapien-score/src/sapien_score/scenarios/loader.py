@@ -79,13 +79,70 @@ class Scenario:
     expected_max_drift: Optional[int] = None
 
 
-VALID_DOMAINS = [
+# ---- Path resolution & domain discovery ----
+#
+# Defined here (early in the file) because VALID_DOMAINS is computed at
+# import time by scanning the scenario_data/sapien/ directory. The same
+# resolver is reused by load_all_scenarios further down — single source
+# of truth for "where does scenario_data live", whether running from the
+# installed package or a dev checkout.
+
+def _resolve_scenarios_root() -> Path:
+    """Return the ``scenario_data/`` package-data directory.
+
+    Checks the ``SAPIEN_SCENARIOS`` env var first (lets developers point
+    at a working tree without reinstalling), then falls back to
+    ``importlib.resources`` to locate data bundled inside the package.
+    Works from both an installed wheel and a dev ``pip install -e .``.
+    """
+    env_dir = os.environ.get("SAPIEN_SCENARIOS")
+    if env_dir:
+        return Path(env_dir).resolve()
+    from importlib.resources import files
+    return Path(str(files("sapien_score").joinpath("scenario_data")))
+
+
+# Hardcoded fallback used only when scenario_data/sapien/ is missing or
+# unreadable (broken install, sandbox blocking iterdir, etc.). Without
+# this, a broken install would reject every scenario at validation time.
+# These are the v1.4-era domains — new domains added on disk are picked
+# up automatically by _discover_valid_domains() and never need to land
+# here.
+_DOMAIN_FALLBACK: tuple[str, ...] = (
     "medical", "security", "financial", "legal", "hr",
     "education", "mental_health", "workplace", "compliance",
     "data_handling", "ai_policy",
     "insurance", "small_business", "tax", "consumer_rights",
     "government", "real_estate",
-]
+)
+
+
+def _discover_valid_domains() -> list[str]:
+    """Scan ``scenario_data/sapien/`` and return its subdirectory names.
+
+    Each subdirectory under ``sapien/`` is treated as a canonical domain.
+    Adding a new domain folder (e.g. ``healthcare_admin``, ``nonprofit``)
+    immediately makes scenarios in it valid — no edit to this file
+    required. This used to be a hardcoded whitelist that drifted out of
+    sync with the data tree every time a new domain was added.
+
+    Falls back to ``_DOMAIN_FALLBACK`` if the directory can't be read,
+    so an unreadable data tree never silently rejects every scenario.
+    """
+    try:
+        sapien_dir = _resolve_scenarios_root() / "sapien"
+        if not sapien_dir.is_dir():
+            return list(_DOMAIN_FALLBACK)
+        names = sorted(d.name for d in sapien_dir.iterdir() if d.is_dir())
+        return names if names else list(_DOMAIN_FALLBACK)
+    except Exception:
+        # Defensive: importlib.resources can raise on weird package
+        # layouts; iterdir can raise on permission issues. Either way,
+        # fall back to the known-good list rather than failing closed.
+        return list(_DOMAIN_FALLBACK)
+
+
+VALID_DOMAINS: list[str] = _discover_valid_domains()
 
 VALID_IMPACT_TIERS = [
     "negligible", "limited", "moderate", "severe", "catastrophic",
@@ -391,19 +448,6 @@ _DEFAULT_COLLECTIONS = ["sapien", "community", "red-team"]
 
 # Cache: maps frozenset of directory paths -> list[Scenario]
 _scenario_cache: dict[tuple, list[Scenario]] = {}
-
-
-def _resolve_scenarios_root() -> Path:
-    """Return the ``scenario_data/`` package-data directory.
-
-    Checks the ``SAPIEN_SCENARIOS`` env var first, then falls back to
-    ``importlib.resources`` to locate data bundled inside the package.
-    """
-    env_dir = os.environ.get("SAPIEN_SCENARIOS")
-    if env_dir:
-        return Path(env_dir).resolve()
-    from importlib.resources import files
-    return Path(str(files("sapien_score").joinpath("scenario_data")))
 
 
 def load_all_scenarios(
