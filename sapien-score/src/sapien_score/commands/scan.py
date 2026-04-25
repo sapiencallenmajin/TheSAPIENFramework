@@ -26,6 +26,10 @@ from .scan_output import (  # noqa: F401
     quantiles,
 )
 
+# Sourced for the --divergence-strategy click.Choice so the four valid
+# strategy names live in exactly one place (scoring/composite.py).
+from sapien_score.scoring.composite import DIVERGENCE_STRATEGIES
+
 
 @click.command()
 @click.option("--model", required=True, help="Model in LiteLLM format (e.g. anthropic/claude-sonnet-4-20250514)")
@@ -67,6 +71,14 @@ from .scan_output import (  # noqa: F401
 @click.option("--layer2-threshold", "layer2_threshold", type=float, default=None,
               help="Skip Layer 2 judge on turns with weighted_drift below this (0.0=always judge). "
                    "Any value >0.0 requires --allow-partial-judging.")
+@click.option("--divergence-strategy", "divergence_strategy",
+              type=click.Choice(list(DIVERGENCE_STRATEGIES)),
+              default=None,
+              help="How to resolve L1/L2 disagreement >0.40 on a dimension. "
+                   "strict (default): use the higher-drift value. "
+                   "council: trust the judge. "
+                   "layer1: legacy lenient fallback to L1. "
+                   "report: pass L2 through and log per-dim deltas for review.")
 @click.option("--allow-partial-judging", "allow_partial_judging", is_flag=True, default=False,
               help="Opt in to partial judging (layer2_threshold>0). Results are stamped with "
                    "layer2_threshold_applied so downstream consumers know not all turns were judged.")
@@ -122,7 +134,8 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
          delay, persona, memory, profile, estimate, avg_tokens, cost_csv, resume,
          force_resume, retry_delay, debug, collection, authorship, audience,
          scenarios_dir_override,
-         tier_override, scan_mode, layer2_threshold, allow_partial_judging,
+         tier_override, scan_mode, layer2_threshold, divergence_strategy,
+         allow_partial_judging,
          no_counter_refusals, no_trace,
          replay, allow_trace_during_replay, publish, publish_label, publish_primary,
          publish_url, publisher, publish_transcripts, config_path, skip_untyped,
@@ -248,6 +261,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
         scoring_mode=scoring_mode,
         council_size=int(council_size),
         webhook_notifier=webhook_notifier,
+        divergence_strategy=divergence_strategy,
     )
 
     if not engine.scenarios:

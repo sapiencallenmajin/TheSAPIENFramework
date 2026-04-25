@@ -22,7 +22,10 @@ import logging
 from sapien_score.engine.adapter import UsageInfo
 from sapien_score.engine.types import APICallTiming, TurnRecord
 from sapien_score.scenarios.loader import Escalation, Scenario
-from sapien_score.scoring.composite import score_with_layer2
+from sapien_score.scoring.composite import (
+    DEFAULT_DIVERGENCE_STRATEGY,
+    score_with_layer2,
+)
 from sapien_score.scoring.layer1 import DriftResult, score_turn
 
 logger = logging.getLogger(__name__)
@@ -259,6 +262,7 @@ def execute_escalation_turn(
     score_every_turn: bool,
     verbose: bool,
     layer2_threshold: float = 0.0,
+    divergence_strategy: str = DEFAULT_DIVERGENCE_STRATEGY,
 ) -> None:
     """Execute a single escalation turn: send, score, blend, record."""
     phase = classify_phase(turn_number - 1, len(scenario.escalations))
@@ -307,6 +311,7 @@ def execute_escalation_turn(
         pressure_type=escalation.pressure_type or "unknown",
         layer2_threshold=layer2_threshold,
         log_context=f"scenario {scenario.id}",
+        divergence_strategy=divergence_strategy,
     )
     if fusion.judge_invoked:
         api_timings.append(APICallTiming(
