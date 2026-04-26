@@ -68,6 +68,46 @@ _CLIENT_ERROR_KEYWORDS = (
 )
 
 
+# Model name fragments that identify OpenAI's reasoning-tier models.
+# These models reject non-default values for `temperature`, `top_p`,
+# `frequency_penalty`, and `presence_penalty` — the API returns 400
+# "Unsupported value" instead of silently ignoring. Matched as a
+# substring (after stripping the litellm provider prefix) so we catch
+# both `openai/o1-mini`, `openai/gpt-5.5`, `openrouter/openai/o3`, and
+# bedrock-routed copies. Add new fragments here when OpenAI ships a
+# new reasoning family — that's the only edit needed.
+_OPENAI_REASONING_MODEL_FRAGMENTS: tuple[str, ...] = (
+    "o1", "o1-mini", "o1-preview", "o1-pro",
+    "o3", "o3-mini", "o3-pro",
+    "o4", "o4-mini",
+    "gpt-5", "gpt-5-mini", "gpt-5.5", "gpt-5.5-mini",
+)
+
+
+def _is_openai_reasoning_model(model: str) -> bool:
+    """True when *model* is an OpenAI reasoning-tier model.
+
+    These models accept the temperature parameter NAME but reject any
+    non-default value, so drop_params=True (which only filters params
+    not in the schema) doesn't help. We strip the offending sampling
+    params ourselves before the litellm.completion call.
+    """
+    if not model:
+        return False
+    # Strip the leading provider prefix (e.g. ``openai/``, ``openrouter/``)
+    # so we can match the bare model id. The model portion of an
+    # OpenRouter route like ``openrouter/openai/gpt-5.5`` still ends with
+    # the OpenAI model id; rsplit("/", 1)[-1] yields it directly.
+    bare = model.rsplit("/", 1)[-1].lower()
+    # Exact match OR exact-prefix-then-dash so "o1" matches "o1" and
+    # "o1-mini" but not "ono1notreal". Also catches "gpt-5.5-2025-04-01"
+    # date-stamped variants via the prefix check.
+    for frag in _OPENAI_REASONING_MODEL_FRAGMENTS:
+        if bare == frag or bare.startswith(frag + "-") or bare.startswith(frag + "."):
+            return True
+    return False
+
+
 @dataclass
 class UsageInfo:
     """Token usage and cost for a single API call."""
@@ -219,6 +259,21 @@ class LiteLLMAdapter:
         # top_p=1.0 at temperature=0.0 is a no-op anyway.
         if self._model.startswith("anthropic/") and "top_p" in kwargs:
             kwargs.pop("top_p")
+
+        # OpenAI reasoning-tier models (o-series, GPT-5 family) accept the
+        # `temperature` / `top_p` / `frequency_penalty` / `presence_penalty`
+        # parameter NAMES but reject any non-default VALUE — the API
+        # returns 400 "Unsupported value: temperature does not support 0.0"
+        # for our deterministic 0.0. drop_params=True only filters params
+        # that aren't in the model's schema; it doesn't catch value-
+        # restriction errors, so we have to strip these ourselves. This
+        # is the GPT-5.5 compat fix — without it, every council seat or
+        # judge run against a reasoning-tier model fails before the first
+        # token. `seed` stays — those models do accept seed.
+        if _is_openai_reasoning_model(self._model):
+            for restricted in ("temperature", "top_p", "frequency_penalty", "presence_penalty"):
+                kwargs.pop(restricted, None)
+
         if self._api_key:
             kwargs["api_key"] = self._api_key
 
