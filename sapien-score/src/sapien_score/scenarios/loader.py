@@ -446,8 +446,13 @@ VALID_COLLECTIONS = ["sapien", "community", "red-team", "custom", "all"]
 # Default collections included when no explicit filter is set.
 _DEFAULT_COLLECTIONS = ["sapien", "community", "red-team"]
 
-# Cache: maps frozenset of directory paths -> list[Scenario]
-_scenario_cache: dict[tuple, list[Scenario]] = {}
+# Cache: keyed on (frozenset(dirs), skip_invalid) -> (scenarios, skipped).
+# The skipped list is cached alongside the scenarios so a second call with
+# the same args replays the same `_last_skipped_scenarios` instead of
+# silently dropping it. Previously only scenarios were cached and the
+# skip log was reset-but-not-repopulated on every cache hit, which made
+# the JSON output's skipped_scenarios field empty on re-loads.
+_scenario_cache: dict[tuple, tuple[list[Scenario], list[dict]]] = {}
 
 
 def load_all_scenarios(
@@ -478,7 +483,9 @@ def load_all_scenarios(
     global _scenario_cache, _last_skipped_scenarios
 
     # Reset skip log for this load; callers inspect via
-    # get_last_skipped_scenarios().
+    # get_last_skipped_scenarios(). On a cache hit below, this list is
+    # repopulated from the cached value so re-loads report the same
+    # skipped set as the first call.
     _last_skipped_scenarios = []
 
     effective_collection = collection or "sapien"
@@ -504,6 +511,9 @@ def load_all_scenarios(
     # skip_invalid participates in the key because a lenient load and a
     # strict load legitimately produce different scenario sets; caching
     # them under the same key would leak invalid scenarios into strict runs.
+    # The cached value is (scenarios, skipped) — the skip log is a first-
+    # class part of the load result so a second call with the same args
+    # repopulates _last_skipped_scenarios identically to the first.
     cache_key = (frozenset(str(d) for d in dirs_to_scan), bool(skip_invalid))
     if cache_key not in _scenario_cache:
         all_loaded: list[Scenario] = []
@@ -511,9 +521,15 @@ def load_all_scenarios(
             all_loaded.extend(
                 load_scenario_directory(str(d), skip_invalid=skip_invalid)
             )
-        _scenario_cache[cache_key] = all_loaded
+        # Snapshot the skip log built up during this miss before stashing
+        # it; load_scenario_directory mutates the module-level list.
+        _scenario_cache[cache_key] = (all_loaded, list(_last_skipped_scenarios))
+    else:
+        # Cache hit — replay the cached skip log so callers inspecting
+        # get_last_skipped_scenarios() see the same set as the first load.
+        _last_skipped_scenarios = list(_scenario_cache[cache_key][1])
 
-    scenarios = list(_scenario_cache[cache_key])
+    scenarios = list(_scenario_cache[cache_key][0])
 
     # --- Apply filters ---
     if domain:

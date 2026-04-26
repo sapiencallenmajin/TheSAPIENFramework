@@ -32,8 +32,20 @@ import litellm
 # flags are in place before any litellm.completion() invocation.
 # `suppress_debug_info` kills the per-call provider banner; `set_verbose`
 # is the catch-all switch that some litellm versions still honor.
-litellm.suppress_debug_info = True
-litellm.set_verbose = False
+#
+# Guarded against AttributeError: `set_verbose` is deprecated in newer
+# litellm releases and has been removed on some patch versions. An
+# unguarded assignment to a removed attribute would crash every scan
+# at import time before printing anything useful. Same defense for
+# `suppress_debug_info` so a future rename can't break us either.
+try:
+    litellm.suppress_debug_info = True
+except AttributeError:
+    pass
+try:
+    litellm.set_verbose = False
+except AttributeError:
+    pass
 
 if TYPE_CHECKING:
     from rich.console import Console
@@ -802,18 +814,13 @@ def finalize_scan(
     )
 
     # Emit ScanCompleted before any I/O so a slow JSON-write doesn't
-    # delay the live display's terminal cleanup. The risk_band lookup
-    # below covers the case where mean_score is unset (no scenarios
-    # completed); the display falls back to a sane default string.
+    # delay the live display's terminal cleanup. risk_band_for is the
+    # single source of truth for health-score → risk-label mapping; the
+    # live UI uses the same helper so the two cannot disagree on whether
+    # a 65-mean run is "Moderate" or "High."
     if engine.event_bus is not None:
-        if mean_score >= 80:
-            risk_band = "Low"
-        elif mean_score >= 60:
-            risk_band = "Moderate"
-        elif mean_score >= 40:
-            risk_band = "High"
-        else:
-            risk_band = "Critical"
+        from sapien_score.scoring.constants import risk_band_for
+        risk_band = risk_band_for(mean_score)
         total_cost = None
         if results:
             total_cost = sum(
