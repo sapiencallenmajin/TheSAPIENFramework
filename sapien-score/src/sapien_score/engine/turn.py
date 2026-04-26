@@ -13,11 +13,10 @@ and appending the result to the conversation record.  Called by
 
 from __future__ import annotations
 
+import logging
 import re
 import time
 from typing import Optional
-
-import logging
 
 from sapien_score.engine.adapter import UsageInfo
 from sapien_score.engine.types import APICallTiming, TurnRecord
@@ -28,6 +27,8 @@ from sapien_score.scoring.composite import (
 )
 from sapien_score.scoring.layer1 import DriftResult, score_turn
 
+# Used by the protected adapter.send_message wrapper to surface partial
+# turn state when a provider call fails mid-conversation.
 logger = logging.getLogger(__name__)
 
 # Judge is blinded to scenario identity to prevent domain/title bias in the
@@ -65,6 +66,47 @@ def _redact(text: str) -> str:
     for pattern in _CREDENTIAL_PATTERNS:
         text = pattern.sub("[REDACTED]", text)
     return text
+
+
+# ---------------------------------------------------------------------------
+# Protected adapter call
+# ---------------------------------------------------------------------------
+
+def _send_message_protected(
+    adapter,
+    messages: list[dict[str, str]],
+    *,
+    system_prompt: str,
+    scenario_id: str,
+    turn_number: int,
+    completed_turn_count: int,
+):
+    """Call ``adapter.send_message`` with a structured failure log.
+
+    Mid-conversation provider failures (auth flap, rate-limit overflow,
+    network drop) used to bubble out of ``execute_*_turn`` with no
+    indication of which turn died or how much partial state was lost.
+    The orchestration layer caught the exception per scenario but the
+    diagnostic was always "one of the N turns failed" — useless for
+    debugging an intermittent provider.
+
+    This wrapper logs the scenario id, the failing turn number, the
+    count of turns that already succeeded, and the exception type +
+    truncated message before re-raising. The exception type and value
+    are preserved so the upstream `except Exception` in
+    ``run_scan_loop`` continues to fail the scenario the same way —
+    we just don't lose the breadcrumbs anymore.
+    """
+    try:
+        return adapter.send_message(messages, system_prompt=system_prompt)
+    except Exception as exc:
+        logger.warning(
+            "scenario %s turn %d: adapter.send_message failed after "
+            "%d turn(s) had succeeded — %s: %s",
+            scenario_id, turn_number, completed_turn_count,
+            type(exc).__name__, str(exc)[:200],
+        )
+        raise
 
 
 # ---------------------------------------------------------------------------
@@ -204,7 +246,11 @@ def execute_opening_turn(
     turn_wall_start = time.time()
     messages.append({"role": "user", "content": scenario.opening_prompt})
     t0 = time.time()
-    response = adapter.send_message(messages, system_prompt=system_prompt)
+    response = _send_message_protected(
+        adapter, messages, system_prompt=system_prompt,
+        scenario_id=scenario.id, turn_number=0,
+        completed_turn_count=len(turns),
+    )
     target_elapsed = time.time() - t0
     api_timings.append(APICallTiming(scenario.id, 0, "target", round(target_elapsed, 4)))
     turn_usage = getattr(adapter, "last_usage", UsageInfo())
@@ -278,7 +324,11 @@ def execute_escalation_turn(
     turn_wall_start = time.time()
     messages.append({"role": "user", "content": user_message})
     t0 = time.time()
-    response = adapter.send_message(messages, system_prompt=system_prompt)
+    response = _send_message_protected(
+        adapter, messages, system_prompt=system_prompt,
+        scenario_id=scenario.id, turn_number=turn_number,
+        completed_turn_count=len(turns),
+    )
     target_elapsed = time.time() - t0
     api_timings.append(APICallTiming(scenario.id, turn_number, "target", round(target_elapsed, 4)))
     turn_usage = getattr(adapter, "last_usage", UsageInfo())

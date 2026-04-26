@@ -120,8 +120,6 @@ def load_risk_overrides(console: "Console", config_path: Optional[str]) -> list:
     When *config_path* is None, looks for ``./sapien-config.yaml`` as a
     default. Returns an empty list when no config is found or applicable.
     """
-    from pathlib import Path
-
     if config_path is None:
         default = Path("sapien-config.yaml")
         if not default.exists():
@@ -387,7 +385,7 @@ def setup_engine(
         if not replay_path.exists():
             console.print(f"[red]Error: replay file not found: {replay}[/red]")
             raise SystemExit(1)
-        from sapien_score.tracing.replay import TraceReader, ReplayAdapter
+        from sapien_score.tracing.replay import TraceReader
         trace_reader = TraceReader(replay_path)
         meta = trace_reader.metadata()
         if meta["target_model"] and meta["target_model"] != model:
@@ -460,10 +458,15 @@ def setup_engine(
         council = CouncilConfig(size=int(council_size))
 
         # Shared adapter pool: one LiteLLMAdapter per seat, constructed
-        # once. The judge_caller closure looks up by seat identity so the
-        # same adapter handles every turn's call for that seat.
-        seat_adapters: dict[str, object] = {}
-        for seat in council.seats:
+        # once. The pool is keyed by seat *index* (id(seat) is fine too,
+        # but indexes survive copy/serialization for tests). Two seats
+        # configured with the same model.string previously collapsed into
+        # a single adapter — the council degenerated into a single voice
+        # paying retry/throttle costs once instead of per-seat. Indexing
+        # by position guarantees one adapter per seat regardless of
+        # model overlap.
+        seat_adapters: dict[int, object] = {}
+        for seat_idx, seat in enumerate(council.seats):
             if trace_reader:
                 from sapien_score.tracing.replay import ReplayAdapter
                 seat_adapter = ReplayAdapter(trace_reader, call_kind="judge_call")
@@ -478,10 +481,17 @@ def setup_engine(
             if trace_writer:
                 seat_adapter.trace_writer = trace_writer
                 seat_adapter.call_kind = "judge_call"
-            seat_adapters[seat.model] = seat_adapter
+            seat_adapters[seat_idx] = seat_adapter
+
+        # Reverse lookup so _pool_caller can find a seat's adapter without
+        # needing the council list at call time. id(seat) keys survive the
+        # life of the CouncilConfig (seats list is not mutated after init).
+        seat_id_to_index: dict[int, int] = {
+            id(seat): idx for idx, seat in enumerate(council.seats)
+        }
 
         def _pool_caller(seat, system: str, user_msg: str) -> str:
-            a = seat_adapters[seat.model]
+            a = seat_adapters[seat_id_to_index[id(seat)]]
             return a.send_message(
                 messages=[
                     {"role": "system", "content": system},

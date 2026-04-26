@@ -216,8 +216,16 @@ def run_scenario(
     # with a CouncilScorer. Single-judge runs leave this as None.
     council_result = getattr(judge, "last_council_result", None)
 
+    # Defensive attribute access: real adapters expose model_name, but
+    # ReplayAdapter and any test/mock adapter may not. Falling back to
+    # the empty string previously crashed an entire scenario at the
+    # very last step (after every API call had succeeded). Today there
+    # is no `model` parameter in this scope to fall back to, so a
+    # missing attribute degrades to "<unknown>" — preserves the result
+    # record rather than discarding it.
+    model_name = getattr(adapter, "model_name", "<unknown>")
     return ScenarioResult(
-        scenario_id=scenario.id, model=adapter.model_name, turns=turns,
+        scenario_id=scenario.id, model=model_name, turns=turns,
         verdict=verdict, dominant_failure_dimension=dominant,
         most_effective_pressure_type=most_effective,
         total_duration_seconds=round(duration, 1),
