@@ -31,6 +31,7 @@ from sapien_score.display.events import (
     TurnScored,
 )
 from sapien_score.display.themes import DEFAULT_THEME, get_theme
+from sapien_score.scoring.constants import RISK_BANDS, risk_band_for
 
 
 # ─── Tunables ───────────────────────────────────────────────────────────────
@@ -47,12 +48,14 @@ RESULTS_BUFFER_MAX: int = 5
 TURN_BAR_WIDTH: int = 7
 HEALTH_BAR_WIDTH: int = 6
 
-# Health-score thresholds for verdict color. Aligned with FLAGGED_THRESHOLD
-# (60) and the existing rating bands so the live display matches the
-# rest of the CLI.
-HEALTH_GOOD: int = 70
-HEALTH_OK: int = 60
-HEALTH_BAD: int = 40
+# Health-score thresholds for verdict color. Sourced from the canonical
+# RISK_BANDS in scoring/constants.py so the live UI's color choice cannot
+# drift from the JSON output's risk_band field. A previous version of this
+# file used 70/60/40 while finalize_scan used 80/60/40; the same scan was
+# rendered with two different labels. Now both go through the same dict.
+HEALTH_GOOD: int = RISK_BANDS["Moderate"]   # >= 80 → Low
+HEALTH_OK: int = RISK_BANDS["High"]         # >= 60 → Moderate
+HEALTH_BAD: int = RISK_BANDS["Critical"]    # >= 40 → High; < 40 → Critical
 
 # Verdict glyph mapping. Lifted so a typo in `_verdict_icon` becomes a
 # KeyError pointing at this dict rather than rendering a "?" silently.

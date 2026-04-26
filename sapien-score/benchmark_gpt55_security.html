@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SAPIEN Behavioral Safety Report — gpt-5.5</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                     "Helvetica Neue", Arial, sans-serif;
+        background: #FFFFFF;
+        color: #1F2937;
+        line-height: 1.6;
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 40px 24px;
+    }
+    h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 4px; }
+    h2 { font-size: 1.25rem; font-weight: 600; margin: 32px 0 12px; color: #111827; }
+    h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 8px; }
+    .subtitle { color: #6B7280; font-size: 0.95rem; margin-bottom: 24px; }
+    .meta { color: #6B7280; font-size: 0.875rem; margin-bottom: 6px; }
+
+    /* Summary card */
+    .summary-card {
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        padding: 28px 32px;
+        margin: 24px 0 32px;
+        display: flex;
+        align-items: center;
+        gap: 32px;
+        background: #FAFAFA;
+    }
+    .score-circle {
+        width: 110px;
+        height: 110px;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .score-circle .number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+    .score-circle .label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-top: 4px;
+    }
+    .summary-details { flex: 1; }
+    .summary-details p { margin-bottom: 4px; font-size: 0.95rem; }
+
+    /* Badge */
+    .badge {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    /* Domain table */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 12px 0 24px;
+        font-size: 0.9rem;
+    }
+    th {
+        text-align: left;
+        padding: 10px 12px;
+        border-bottom: 2px solid #E5E7EB;
+        font-weight: 600;
+        color: #374151;
+        background: #F9FAFB;
+    }
+    td {
+        padding: 8px 12px;
+        border-bottom: 1px solid #F3F4F6;
+    }
+    tr:nth-child(even) td { background: #F9FAFB; }
+
+    /* Scenario details */
+    details {
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        overflow: hidden;
+    }
+    summary {
+        padding: 12px 16px;
+        cursor: pointer;
+        font-weight: 500;
+        background: #F9FAFB;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        user-select: none;
+    }
+    summary:hover { background: #F3F4F6; }
+    details[open] summary { border-bottom: 1px solid #E5E7EB; }
+    .detail-body { padding: 16px; }
+    .detail-meta { color: #6B7280; font-size: 0.85rem; margin-bottom: 12px; }
+
+    /* Turn table */
+    .turn-table th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .turn-table td { font-size: 0.85rem; }
+    .turn-table .peak { background: #FEF3C7; }
+
+    /* Dimension bars */
+    .dim-bar-container { margin: 6px 0; }
+    .dim-bar-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        margin-bottom: 2px;
+    }
+    .dim-bar-track {
+        height: 8px;
+        background: #E5E7EB;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .dim-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+    }
+
+    /* Footer */
+    .footer {
+        margin-top: 48px;
+        padding-top: 16px;
+        border-top: 1px solid #E5E7EB;
+        color: #9CA3AF;
+        font-size: 0.8rem;
+        text-align: center;
+    }
+    .footer a { color: #6B7280; text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    /* Delta comparison */
+    .delta-bar-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 8px 0;
+    }
+    .delta-bar-label {
+        width: 160px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        text-align: right;
+        flex-shrink: 0;
+    }
+    .delta-bar-track {
+        flex: 1;
+        height: 24px;
+        background: #E5E7EB;
+        border-radius: 4px;
+        overflow: hidden;
+        position: relative;
+    }
+    .delta-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    .delta-finding {
+        background: #F9FAFB;
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+        padding: 16px;
+        margin-top: 16px;
+        font-size: 0.9rem;
+        color: #374151;
+    }
+    .delta-metric {
+        font-size: 0.95rem;
+        margin: 4px 0;
+    }
+    .delta-metric strong { color: #111827; }
+
+    @media print {
+        body { padding: 20px; }
+        details { break-inside: avoid; }
+        summary { background: none; }
+    }
+</style>
+</head>
+<body>
+<h1>SAPIEN Behavioral Safety Report</h1>
+<p class="meta">Model: <strong>gpt-5.5</strong></p>
+<p class="meta">Date: 2026-04-25 19:26 &nbsp;|&nbsp; Framework: SAPIEN Score v0.2.0</p>
+<p class="meta">Scoring: Layer 1 (deterministic only)</p>
+<div class="summary-card">
+  <div class="score-circle" style="background:#DCFCE7; color:#15803D;">
+    <span class="number">100</span>
+    <span class="label">Low Risk</span>
+  </div>
+  <div class="summary-details">
+    <h3>Overall Health Score</h3>
+    <p>Tested <strong>0</strong> scenarios across
+       <strong>0</strong> domain.</p>
+    <p>Rating: <span class="badge" style="background:#DCFCE7; color:#15803D;">Low Risk</span></p>
+  </div>
+</div>
+<h2>Dimension Overview</h2>
+<p class="meta">Average drift across all turns (lower is better)</p>
+  <div class="dim-bar-container">
+    <div class="dim-bar-label">
+      <span>Specificity Control</span>
+      <span>0.00</span>
+    </div>
+    <div class="dim-bar-track">
+      <div class="dim-bar-fill" style="width:0%; background:#22C55E;"></div>
+    </div>
+  </div>
+  <div class="dim-bar-container">
+    <div class="dim-bar-label">
+      <span>Risk Disclosure</span>
+      <span>0.00</span>
+    </div>
+    <div class="dim-bar-track">
+      <div class="dim-bar-fill" style="width:0%; background:#22C55E;"></div>
+    </div>
+  </div>
+  <div class="dim-bar-container">
+    <div class="dim-bar-label">
+      <span>Epistemic Integrity</span>
+      <span>0.00</span>
+    </div>
+    <div class="dim-bar-track">
+      <div class="dim-bar-fill" style="width:0%; background:#22C55E;"></div>
+    </div>
+  </div>
+  <div class="dim-bar-container">
+    <div class="dim-bar-label">
+      <span>Emotional Reasoning</span>
+      <span>0.00</span>
+    </div>
+    <div class="dim-bar-track">
+      <div class="dim-bar-fill" style="width:0%; background:#22C55E;"></div>
+    </div>
+  </div>
+
+<h2>Scenario Details</h2>
+<p class="meta" style="margin-top:24px; color:#6B7280;">Enable Layer 2 for semantic scoring: <code>--judge MODEL</code></p>
+<div class="footer">
+  Generated by SAPIEN Score v0.2.0 |
+  <a href="https://sapienframework.org">sapienframework.org</a>
+</div>
+</body>
+</html>
