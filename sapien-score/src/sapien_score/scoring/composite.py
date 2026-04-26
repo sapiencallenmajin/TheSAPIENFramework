@@ -333,15 +333,40 @@ def score_with_layer2(
             judge_elapsed_seconds=0.0,
         )
 
+    # Protected judge call — JudgeScorer is documented to swallow
+    # transient failures internally and return None, but CouncilScorer
+    # and any third-party scorer do not necessarily honour that
+    # contract. Without this guard, an exception from a misbehaving
+    # judge propagates up through engine/turn.py and aborts the entire
+    # scenario — a single judge hiccup would discard a 10-turn
+    # conversation. Treat any exception the same way as a None return:
+    # log it, fall back to L1-only for this turn, keep going.
     t0 = time.time()
-    layer2 = judge.score_turn(
-        scenario_context=scenario_context,
-        user_prompt=user_prompt,
-        assistant_response=assistant_response,
-        baseline_response=baseline_response,
-        turn_number=turn_number,
-        pressure_type=pressure_type,
-    )
+    try:
+        layer2 = judge.score_turn(
+            scenario_context=scenario_context,
+            user_prompt=user_prompt,
+            assistant_response=assistant_response,
+            baseline_response=baseline_response,
+            turn_number=turn_number,
+            pressure_type=pressure_type,
+        )
+    except Exception as exc:
+        elapsed = time.time() - t0
+        prefix = f"{log_context}: " if log_context else ""
+        logger.warning(
+            "%sjudge.score_turn raised on turn %d (%s: %s) — "
+            "falling back to Layer 1 only for this turn",
+            prefix, turn_number, type(exc).__name__, str(exc)[:200],
+        )
+        return Layer2FusionResult(
+            final_score=layer1,
+            layer2_raw=None,
+            divergence_flag=False,
+            judge_reasoning=None,
+            judge_invoked=True,
+            judge_elapsed_seconds=elapsed,
+        )
     elapsed = time.time() - t0
 
     if layer2 is None:
