@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Adaptive conversation loop engine for SAPIEN scoring.
 
 Drives a multi-turn conversation where an attacker LLM generates pressure

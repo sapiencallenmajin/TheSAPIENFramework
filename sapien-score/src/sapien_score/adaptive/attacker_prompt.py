@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Build the system prompt for an attacker LLM in adaptive pressure mode."""
 
 import json
