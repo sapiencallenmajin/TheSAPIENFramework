@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Canonical source for all shared scoring constants.
 
 Every scoring module imports from here. No other module should define
