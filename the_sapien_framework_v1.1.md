@@ -1,3 +1,11 @@
+<!--
+The SAPIEN Behavioral Safety Framework
+Copyright 2024-2026 SAPIEN Labs LLC
+Licensed under Creative Commons Attribution 4.0 International (CC BY 4.0).
+Attribution: "Based on the SAPIEN Behavioral Safety Framework by SAPIEN Labs LLC."
+"SAPIEN Certified" is a certification mark of SAPIEN Labs LLC.
+-->
+
 ═══════════════════════════════════════════════════════════════════════════════
 
                     THE SAPIEN BEHAVIORAL SAFETY FRAMEWORK
@@ -3341,7 +3349,7 @@ separately under Apache License 2.0. See the repository for details.
 
 When using or adapting this framework, credit MUST be given as:
 
-  "Based on the SAPIEN Behavioral Safety Framework by Callen Sapien"
+  "Based on the SAPIEN Behavioral Safety Framework by SAPIEN Labs LLC"
 
 
 ═══════════════════════════════════════════════════════════════════════════════

@@ -59,7 +59,7 @@ documentation.
 
 ## License
 
-The SAPIEN Framework specification is licensed under CC BY 4.0. Free to reference, implement, and build upon with attribution. The 'SAPIEN Certified' mark is a trademark of Synthreo, Inc.
+The SAPIEN Framework specification is licensed under CC BY 4.0. Free to reference, implement, and build upon with attribution. The 'SAPIEN Certified' mark is a trademark of SAPIEN Labs LLC.
 
 - The SAPIEN Framework **specification** (everything under the repo root except
   `sapien-score/`) is licensed under [CC BY 4.0](LICENSE).
