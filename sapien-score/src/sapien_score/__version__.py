@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Single source of truth for the sapien-score package version.
 
 All modules that need the package version import from here.

@@ -258,3 +258,12 @@ format and existing examples.
 
 The voigt-kampff CLI is licensed under Apache 2.0. The SAPIEN Framework
 specification is licensed separately under CC BY 4.0.
+
+Copyright 2026 SAPIEN Labs LLC. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+### Trademarks
+
+"SAPIEN", "SAPIEN Score", "SAPIEN Rating", and "SAPIEN Certified" are
+trademarks of SAPIEN Labs LLC. The Apache 2.0 license covers the code, not the
+marks — see [TRADEMARKS.md](TRADEMARKS.md) for permitted nominative use and
+what requires written permission.

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Cross-family validation for adaptive attacker mode.
 
 The check is advisory: pairing attacker and target from the same model
