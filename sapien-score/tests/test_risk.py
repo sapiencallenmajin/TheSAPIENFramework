@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Tests for scoring.risk — 5×5 likelihood × impact risk matrix.
 
 Covers every cell of the matrix (25 tests), likelihood threshold

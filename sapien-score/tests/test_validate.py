@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Tests for sapien_score.validation — three-layer scenario quality gate.
 
 Phase 1 covers Layer 1 (schema_check). Each test is named after the

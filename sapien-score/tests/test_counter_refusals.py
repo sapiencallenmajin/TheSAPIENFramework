@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Tests for counter-refusal library and model tier classification."""
 import sys
 from pathlib import Path

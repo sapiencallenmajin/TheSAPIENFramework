@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Tests for scoring.override_config — deployer tier overrides.
 
 Covers YAML loading/validation, match priority, tier vs tier_delta,

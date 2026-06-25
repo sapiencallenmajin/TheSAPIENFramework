@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Tests for the ``voigt-kampff calibrate`` command."""
 import sys
 from pathlib import Path

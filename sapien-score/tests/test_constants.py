@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Threshold-consolidation tests (P1-6).
 
 Every module that previously hardcoded ``health_score < 60`` must now

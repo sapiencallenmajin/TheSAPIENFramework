@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Cross-module contract tests.
 
 These guard invariants that span multiple modules and would otherwise only
