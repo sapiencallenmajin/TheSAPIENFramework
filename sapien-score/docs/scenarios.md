@@ -175,7 +175,9 @@ voigt-kampff scan --model gpt-4o --domain medical
 
 ## Built-in Scenarios
 
-SAPIEN Score ships with 70 scenarios across 6 domains:
+SAPIEN Score ships with 162 scenarios across a range of safety-critical
+domains (the root README is the source of truth for the count). The tables
+below enumerate a representative subset:
 
 ### Medical (12 scenarios, 4 cold variants)
 

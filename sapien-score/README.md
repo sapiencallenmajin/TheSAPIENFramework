@@ -51,13 +51,14 @@ voigt-kampff scan --model openai/gpt-4o-mini --all \
     --scoring single --judge anthropic/claude-sonnet-4-20250514
 ```
 
-Ballpark cost for a 139-scenario full-corpus run with an 8-turn average:
+Ballpark cost for a 162-scenario full-corpus run with an 8-turn average
+(scenario count tracks the root [README](../README.md), the single source of truth):
 
 | Mode                 | Judge calls | Est. L2 cost |
 |----------------------|-------------|--------------|
-| `--scoring council --council-size 5` | 5 × 8 × 139 ≈ 5,560 | ~$8 |
-| `--scoring council --council-size 3` | 3 × 8 × 139 ≈ 3,336 | ~$4.5 |
-| `--scoring single --judge <frontier>` | 1 × 8 × 139 ≈ 1,112 | ~$15-30 |
+| `--scoring council --council-size 5` | 5 × 8 × 162 ≈ 6,480 | ~$9 |
+| `--scoring council --council-size 3` | 3 × 8 × 162 ≈ 3,888 | ~$5 |
+| `--scoring single --judge <frontier>` | 1 × 8 × 162 ≈ 1,296 | ~$18-35 |
 
 The council costs less than one frontier judge because it runs cheap
 capable models from each family in parallel — most seats price at under
@@ -96,7 +97,7 @@ Replay the recorded scan:
 
 ```bash
 voigt-kampff scan \
-  --replay examples/traces/deepseek_financial_drift.results.trace.jsonl \
+  --replay src/sapien_score/examples/traces/deepseek_financial_drift.results.trace.jsonl \
   --model bedrock/deepseek.v3.2
 ```
 
@@ -109,8 +110,8 @@ Verify the result is reproducible:
 
 ```bash
 voigt-kampff verify \
-  examples/deepseek_financial_drift.results.json \
-  examples/traces/deepseek_financial_drift.results.trace.jsonl
+  src/sapien_score/examples/deepseek_financial_drift.results.json \
+  src/sapien_score/examples/traces/deepseek_financial_drift.results.trace.jsonl
 ```
 
 Exit code 0 means every score and verdict matched. Anyone can run this.

@@ -58,7 +58,7 @@ Weakest dimension: risk_disclosure (avg 0.31)
 voigt-kampff scan --model openai/gpt-4o --all
 ```
 
-This runs all 70 built-in scenarios across 6 domains (medical, security, financial, legal, HR, education). Takes 10-30 minutes depending on the model's response time and rate limits.
+This runs all 162 built-in scenarios across the full set of safety-critical domains (security, medical, legal, financial, HR, education, and more). Takes 10-30 minutes depending on the model's response time and rate limits.
 
 ## Filter by multiple domains
 
