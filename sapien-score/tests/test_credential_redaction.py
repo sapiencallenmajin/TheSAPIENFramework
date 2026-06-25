@@ -170,6 +170,15 @@ class TestErrorPersistenceSinksInvokeRedaction:
             f"'x-api-key': '{_FAKE_KEY}'}}"
         )
 
+    def _nonauth_error_message(self) -> str:
+        # A transient/server-side error (NOT auth) that still leaks a header.
+        # Deliberately avoids every auth keyword so it routes through the
+        # scan loop's skip-and-record path rather than the auth abort.
+        return (
+            "litellm.InternalServerError: 500 upstream provider error. "
+            f"Request headers: {{'Authorization': 'Bearer {_FAKE_KEY}'}}"
+        )
+
     def test_serialize_failed_entry_redacts_error_reason(self):
         """``serialize_failed_entry`` is the persistence sink for the final
         results JSON and the partial checkpoint error entries."""
@@ -213,21 +222,12 @@ class TestErrorPersistenceSinksInvokeRedaction:
         assert data["n_failed"] == 1
         assert "[REDACTED]" in raw
 
-    def test_scan_loop_exception_handler_redacts(self):
-        """Drive the REAL scan loop's per-scenario exception path: a scenario
-        whose run raises a litellm-style auth error must be recorded with a
-        redacted ``error`` (no token), proving the handler invokes _redact.
-
-        ``run_scan_loop`` imports ``run_scenario`` and ``save_partial`` at call
-        time, so we patch them at their source modules.
-        """
-        from unittest.mock import MagicMock, patch
-
-        from sapien_score.commands.scan_orchestration import run_scan_loop
+    def _make_engine_and_scenario(self):
+        from unittest.mock import MagicMock
 
         scenario = MagicMock()
         scenario.id = "scenario-1"
-        scenario.title = "auth flap"
+        scenario.title = "flap"
         scenario.domain = "medical"
         scenario.escalations = []
 
@@ -237,8 +237,23 @@ class TestErrorPersistenceSinksInvokeRedaction:
         engine.partial_path = None       # save_partial still called with None path
         engine.override_rules = []
         engine.run_id = "run-xyz"
+        return engine
 
-        auth_msg = self._auth_error_message()
+    def test_scan_loop_skip_path_redacts(self):
+        """Drive the REAL scan loop's per-scenario SKIP path with a non-auth
+        provider error that leaks a header: the recorded ``error`` and the
+        operator console line must be redacted, proving the handler invokes
+        _redact before storage/log.
+
+        ``run_scan_loop`` imports ``run_scenario`` / ``save_partial`` at call
+        time, so we patch them at their source modules.
+        """
+        from unittest.mock import patch
+
+        from sapien_score.commands.scan_orchestration import run_scan_loop
+
+        engine = self._make_engine_and_scenario()
+        from unittest.mock import MagicMock
         console = MagicMock()
 
         captured = {}
@@ -248,7 +263,7 @@ class TestErrorPersistenceSinksInvokeRedaction:
 
         with patch(
             "sapien_score.engine.driver.run_scenario",
-            side_effect=RuntimeError(auth_msg),
+            side_effect=RuntimeError(self._nonauth_error_message()),
         ), patch(
             "sapien_score.commands.scan_output.save_partial",
             _fake_save_partial,
@@ -261,17 +276,47 @@ class TestErrorPersistenceSinksInvokeRedaction:
                 output=None,
             )
 
-        # The returned failed list (and whatever reached save_partial) must
-        # carry only a redacted error string.
-        assert failed, "expected a recorded failure"
+        assert failed, "expected a recorded (skipped) failure"
         stored_error = failed[0]["error"]
         assert _FAKE_KEY not in stored_error
         assert "[REDACTED]" in stored_error
         if "failed" in captured:
             assert _FAKE_KEY not in captured["failed"][0]["error"]
 
-        # And the console line shown to the operator must not echo the key.
         printed = " ".join(
             str(c.args[0]) for c in console.print.call_args_list if c.args
         )
         assert _FAKE_KEY not in printed
+
+    def test_scan_loop_auth_error_aborts_and_redacts(self):
+        """An auth-class error must (a) abort the whole run with SystemExit
+        instead of skipping, and (b) never echo the key on the console."""
+        import pytest
+        from unittest.mock import MagicMock, patch
+
+        from sapien_score.commands.scan_orchestration import run_scan_loop
+
+        engine = self._make_engine_and_scenario()
+        console = MagicMock()
+
+        with patch(
+            "sapien_score.engine.driver.run_scenario",
+            side_effect=RuntimeError(self._auth_error_message()),
+        ), patch(
+            "sapien_score.commands.scan_output.save_partial",
+        ):
+            with pytest.raises(SystemExit):
+                run_scan_loop(
+                    console=console,
+                    engine=engine,
+                    model="test/model",
+                    verbose=False,
+                    output=None,
+                )
+
+        printed = " ".join(
+            str(c.args[0]) for c in console.print.call_args_list if c.args
+        )
+        assert _FAKE_KEY not in printed
+        # The friendly abort message names an env var the user can set.
+        assert "OPENAI_API_KEY" in printed

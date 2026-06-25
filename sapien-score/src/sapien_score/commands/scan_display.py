@@ -16,12 +16,15 @@ bars, timing summary, and cost estimation output.  Receives a
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from ._shared import drift_style, health_style, rating_style
 
 if TYPE_CHECKING:
     from rich.console import Console
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -368,8 +371,14 @@ def show_cost_estimate(
                 console.print(
                     f"  [dim]Combined estimate: ~${estimated_cost + judge_cost:.4f}[/dim]"
                 )
-        except Exception:
-            pass
+        except Exception as exc:
+            # Cost estimation is a best-effort display nicety: litellm may not
+            # know this judge model's pricing (raises) or may be unimportable.
+            # Don't abort the scan over a missing cost line — but log at debug
+            # so the omission is diagnosable rather than silently swallowed.
+            logger.debug(
+                "Judge cost estimate skipped for %s: %s", judge_model, exc
+            )
 
     if scoring_mode == "council" and estimated_cost is not None and council_cost is not None:
         console.print(
