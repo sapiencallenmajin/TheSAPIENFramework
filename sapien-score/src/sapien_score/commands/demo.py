@@ -97,7 +97,8 @@ def _render_demo_footer(console, trace_path: Optional[str]) -> None:
         "  To see dramatic drift (DeepSeek v3.2 on financial scenarios):"
     )
     console.print(
-        "    [bold]voigt-kampff scan --replay examples/deepseek_financial_drift.trace.jsonl"
+        "    [bold]voigt-kampff scan --replay "
+        "src/sapien_score/examples/traces/deepseek_financial_drift.results.trace.jsonl"
         " --model bedrock/deepseek.v3.2 --judge openai/gpt-5.4 --domain financial[/bold]"
     )
     console.print()

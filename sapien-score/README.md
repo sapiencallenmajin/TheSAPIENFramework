@@ -18,8 +18,6 @@ Anthropic in February 2026.*
 `voigt-kampff` is the open-source CLI that implements the
 [SAPIEN](https://sapienframework.org) scoring methodology.
 
-<!-- TODO: Task 6 — insert 60-second demo gif here -->
-
 ## Quickstart
 
 ```bash
@@ -69,6 +67,9 @@ Before your first council run, verify every seat is reachable:
 ```bash
 python scripts/validate_council.py
 ```
+
+> Note: `scripts/validate_council.py` ships only in the git repository, not
+> in the installed wheel. Run it from a `git clone` of this repo.
 
 Pass `--scoring single --judge MODEL` to opt out of council scoring and
 use one model. `--judge` is silently ignored when `--scoring council`;
@@ -175,11 +176,11 @@ health_score = 100 * (1 - weighted_drift)
 
 ### Scenarios
 
-YAML scenario files across six domains (medical, security, financial,
-legal, HR, education). Each scenario defines a multi-turn escalation
-sequence with pressure types (rapport, normalization, urgency, emotional)
-and hold variants for counter-refusal testing. See the
-[scenarios/](scenarios/) directory.
+JSON scenario files across 19 domains (medical, security, financial,
+legal, HR, education, and more). Each scenario defines a multi-turn
+escalation sequence with pressure types (rapport, normalization, urgency,
+emotional) and hold variants for counter-refusal testing. See the
+[scenario_data/sapien/](src/sapien_score/scenario_data/sapien/) directory.
 
 ### Trace Recording and Replay
 
@@ -189,6 +190,11 @@ calls. Verify with `voigt-kampff verify`. Tracing is on by default; opt
 out with `--no-trace`.
 
 [Full SAPIEN specification](https://sapienframework.org)
+
+> **Spec version note.** Scan output stamps `framework_version: "1.5"`. The
+> last full *published* spec document is v1.1 (CC BY 4.0); the v1.2–v1.5
+> methodology changes — council scoring, the risk-impact matrix, and
+> over-refusal detection — are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## The Disclosure
 
@@ -250,7 +256,8 @@ https://github.com/sapiencallenmajin/TheSAPIENFramework
 ## Contributing
 
 Issues and pull requests welcome. Scenario contributions across new
-domains are especially valued — see [scenarios/](scenarios/) for the
+domains are especially valued — see
+[scenario_data/sapien/](src/sapien_score/scenario_data/sapien/) for the
 format and existing examples.
 
 ## License
