@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Notes
+- **Spec-version lineage.** The last full *published* SAPIEN spec document is
+  v1.1 (CC BY 4.0). The methodology changes between the published spec and the
+  `framework_version: "1.5"` stamp emitted by scan output — namely council
+  scoring, the risk-impact matrix, and over-refusal detection — are recorded
+  in the `[0.2.0]` entry below. This CHANGELOG is the authoritative record of
+  the v1.2–v1.5 methodology delta until the next full spec document is
+  published; the `"1.5"` stamp in code is intentional and unchanged.
+
 ## [0.2.0] - 2026-04-24
 
 Implements the v1.5 SAPIEN methodology end-to-end. Output JSON now stamps

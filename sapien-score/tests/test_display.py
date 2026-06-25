@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Tests for the live-display layer (events, themes, layout, boot).
 
 Plain-mode invariance is the most important property: when no event

@@ -832,6 +832,8 @@ use the following citation:
 This work is licensed under the Creative Commons Attribution 4.0
 International License (CC BY 4.0).
 
+Copyright 2024-2026 SAPIEN Labs LLC
+
 Contributors retain authorship credit. You are free to share and
 adapt this material for any purpose, including commercial use,
 provided appropriate credit is given.

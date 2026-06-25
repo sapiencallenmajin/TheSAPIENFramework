@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Tests for --mode and --layer2-threshold functionality.
 
 Covers mode presets, threshold behavior, judge skip logic,

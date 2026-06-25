@@ -12,7 +12,7 @@ license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.10"
 authors = [
-    {name = "Callen Majin", email = "contact@sapienframework.org"},
+    {name = "Callen Sapien", email = "contact@sapienframework.org"},
 ]
 keywords = ["ai-safety", "llm", "benchmark", "evaluation", "drift-detection", "red-team", "behavioral-safety"]
 classifiers = [

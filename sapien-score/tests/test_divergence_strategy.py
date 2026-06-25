@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Tests for divergence-strategy resolution in scoring/composite.py.
 
 Covers the four strategies (strict / council / layer1 / report), the

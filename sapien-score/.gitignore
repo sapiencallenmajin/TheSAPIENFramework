@@ -43,3 +43,12 @@ traces/
 
 # But still keep partial.json ignored even inside examples/
 src/sapien_score/examples/**/*.partial.json
+
+# Internal/confidential docs and orphan files — removed before public
+# release; ignored so they cannot be re-introduced accidentally.
+AGENTS.md
+ENGINEERING_STANDARDS.md
+all_scenarios.yaml
+baseline_pre_tier3.*
+Style Reference/
+docs/AGENTS_v1_tier_plan.md

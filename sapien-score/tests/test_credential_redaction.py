@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Tests for credential redaction in error-persistence and log output.
 
 ``engine.redaction.redact`` (re-exported as ``engine.turn._redact``) scrubs
@@ -152,6 +155,91 @@ class TestWidenedPatterns:
         """The fallbacks are bounded so normal short words survive."""
         raw = "the quick brown fox jumps over the lazy dog 12345"
         assert _redact(raw) == raw
+
+
+class TestJsonDictShapedAndCustomHeaderForms:
+    """Regression coverage for the adversarial-review finding: JSON/dict-repr
+    error strings (where the credential label is wrapped in quotes/brackets
+    BEFORE the separator) and custom auth headers previously slipped past the
+    key=value patterns because those required the separator IMMEDIATELY after
+    the keyword. Fake values are assembled at runtime from fragments so secret
+    scanners don't flag this test file.
+    """
+
+    # Assembled at runtime — never a static secret-looking literal.
+    _VALUE = "AAAA" + "BBBB" + "CCCC"
+
+    def test_json_api_key_pair(self):
+        raw = '{"api-key": "' + self._VALUE + '"}'
+        out = _redact(raw)
+        assert self._VALUE not in out
+        assert "[REDACTED]" in out
+
+    def test_json_x_goog_api_key_pair(self):
+        """Vendor-prefixed header label (x-goog-api-key) inside a dict-repr."""
+        raw = '"x-goog-api-key": "' + self._VALUE + '"'
+        out = _redact(raw)
+        assert self._VALUE not in out
+        assert "[REDACTED]" in out
+
+    def test_json_authorization_scheme_value(self):
+        """authorization value carries a scheme word (Token/Bearer) before the
+        real secret — the whole quoted value must be redacted, not just the
+        scheme word."""
+        raw = '{"authorization": "Token ' + self._VALUE + '"}'
+        out = _redact(raw)
+        assert self._VALUE not in out
+        assert "[REDACTED]" in out
+
+    def test_json_bare_secret_pair(self):
+        raw = '{"secret": "' + self._VALUE + '"}'
+        out = _redact(raw)
+        assert self._VALUE not in out
+        assert "[REDACTED]" in out
+
+    def test_custom_auth_header(self):
+        """A non-standard ``X-Custom-Auth:`` header (label ends in 'auth')."""
+        raw = "X-Custom-Auth: " + self._VALUE
+        out = _redact(raw)
+        assert self._VALUE not in out
+        assert "[REDACTED]" in out
+
+    def test_short_labeled_token_redacted(self):
+        """A SHORT custom/self-hosted gateway token (below the generic
+        entropy floor) is still redacted because a credential label precedes
+        it. The length floor only guards the UNLABELED fallback."""
+        short = "tok_" + "9z"  # 6 chars — far below the 40-char generic floor
+        raw = "token=" + short
+        out = _redact(raw)
+        assert short not in out
+        assert "[REDACTED]" in out
+
+    def test_labeled_value_does_not_over_redact_prose(self):
+        """The label-anchored pattern requires a ``:``/``=`` separator, so a
+        bare credential word in prose is left untouched (no false positives)."""
+        for raw in (
+            "the authorization is granted to the user",
+            "the secret garden was lovely",
+            "please authenticate before you continue",
+            "author = Callen Sapien",
+        ):
+            assert _redact(raw) == raw
+
+
+class TestEmptyContentSinkRedaction:
+    """The empty-content path in engine/adapter.py builds an error string from
+    the provider-controlled ``finish_reason``; it must now flow through
+    ``_redact`` so a header echoed inside finish_reason cannot leak."""
+
+    def test_finish_reason_embedded_credential_redacted(self):
+        # Simulate a provider that echoes a request header inside finish_reason,
+        # exactly as the adapter formats the empty-content error message.
+        key = "sk-" + "abc123" + "DEF456" + "ghi789JKL"
+        finish_reason = "content_filter; x-api-key: " + key
+        msg = f"empty content after retry (finish_reason={finish_reason})"
+        out = _redact(msg)
+        assert key not in out
+        assert "[REDACTED]" in out
 
 
 class TestErrorPersistenceSinksInvokeRedaction:

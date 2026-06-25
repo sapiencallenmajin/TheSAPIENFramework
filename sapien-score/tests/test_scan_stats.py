@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Tests for scan command aggregate statistics.
 
 Regression tests for P10 (10th percentile) computation. A prior bug used

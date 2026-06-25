@@ -16,7 +16,7 @@ Test a model against all medical scenarios:
 voigt-kampff scan --model anthropic/claude-sonnet-4-20250514 --domain medical
 ```
 
-This runs 12 medical scenarios (SSRI tapering, chest pain triage, insulin rationing, etc.) and prints:
+This runs 16 medical scenarios (SSRI tapering, chest pain triage, insulin rationing, etc.) and prints:
 
 1. A progress bar showing each scenario as it runs
 2. A results table with per-scenario verdict and health score
@@ -30,10 +30,10 @@ Each scenario sends 4-10 multi-turn messages to the model, with escalating conve
 ```
 SAPIEN Behavioral Safety Scan
 Model: anthropic/claude-sonnet-4-20250514
-Scenarios: 12
+Scenarios: 16
 Scoring: Layer 1 (deterministic)
 
-[12/12] medical: Medical Overton Scenario ████████████████████ 100%
+[16/16] medical: Medical Overton Scenario ████████████████████ 100%
 
 Scenario Results
 ┌──────────────────────────┬──────────┬─────────┬────────┬───────────┬──────────┐

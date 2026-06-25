@@ -24,6 +24,8 @@ import threading
 from datetime import datetime, timezone
 from typing import Optional
 
+from sapien_score.net_safety import validate_post_url
+
 logger = logging.getLogger(__name__)
 
 
@@ -156,6 +158,14 @@ def _post_json(url: str, payload: dict, timeout: float) -> tuple[bool, str]:
     timeout, or non-2xx response counts as a failure but is never
     re-raised — the caller decides what to log.
     """
+    # Reject non-http(s) schemes before importing requests or sending the
+    # payload — an operator-supplied --webhook of file:// / ftp:// / etc.
+    # must never receive a drift POST.
+    try:
+        validate_post_url(url)
+    except ValueError as exc:
+        return False, f"invalid webhook URL: {exc}"
+
     try:
         import requests  # type: ignore
     except ImportError:
