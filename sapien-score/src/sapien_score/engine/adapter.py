@@ -12,6 +12,8 @@ import time
 from dataclasses import dataclass
 from typing import Optional
 
+from sapien_score.engine.redaction import redact as _redact
+
 logger = logging.getLogger(__name__)
 
 
@@ -69,6 +71,46 @@ _CLIENT_ERROR_KEYWORDS = (
     "404", "not found",
     "invalid", "invocation of model",
 )
+
+
+# Substrings that mark a missing/invalid-credential failure specifically —
+# the case where the right user action is "set your API key", not "retry".
+# A subset of the client-error keywords plus auth-specific phrasing. Matched
+# case-insensitively against str(exception) as a fallback when the typed
+# litellm.AuthenticationError class isn't available or wasn't raised.
+_AUTH_ERROR_KEYWORDS = (
+    "authenticationerror",
+    "no api key",
+    "api key",
+    "api_key",
+    "apikey",
+    "401",
+    "unauthorized",
+    "invalid api key",
+    "incorrect api key",
+    "missing credentials",
+    "could not resolve authentication",
+)
+
+
+def is_auth_error(exc: BaseException) -> bool:
+    """True if *exc* looks like a missing/invalid-credential failure.
+
+    Typed dispatch first (``litellm.exceptions.AuthenticationError``), with a
+    case-insensitive keyword fallback for providers whose auth failures arrive
+    as a bare exception without the typed class. Lets the demo and scan entry
+    points distinguish "you forgot your API key" from a transient error and
+    abort with one friendly message instead of N per-scenario tracebacks.
+    """
+    try:
+        import litellm.exceptions as le
+        auth_cls = getattr(le, "AuthenticationError", None)
+        if isinstance(auth_cls, type) and isinstance(exc, auth_cls):
+            return True
+    except Exception:
+        pass
+    msg = str(exc).lower()
+    return any(kw in msg for kw in _AUTH_ERROR_KEYWORDS)
 
 
 # Model name fragments that identify OpenAI's reasoning-tier models.
@@ -330,7 +372,7 @@ class LiteLLMAdapter:
                         wait = retry_delays[attempt]
                         logger.warning(
                             "Retryable error on attempt %d/%d: %s — waiting %ds",
-                            attempt + 1, self.MAX_RETRIES, str(e)[:100], wait,
+                            attempt + 1, self.MAX_RETRIES, _redact(str(e)[:100]), wait,
                         )
                         self._last_retry_count += 1
                         self._scenario_retry_budget -= 1
@@ -342,7 +384,7 @@ class LiteLLMAdapter:
                         finish_reason=None,
                         usage=UsageInfo(),
                         duration_ms=round((time.monotonic() - call_start) * 1000),
-                        error=str(e)[:500],
+                        error=_redact(str(e)[:500]),
                     )
                     raise
 

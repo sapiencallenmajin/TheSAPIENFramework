@@ -7,7 +7,7 @@ kinds of material, each with its own contribution norms and license.
 
 - **Specification** (repo root): `the_sapien_framework_v1.1.md`,
   `sapien_module_memory_integrity_v0.1.md`, `scenario_authoring_standard.md`,
-  `scoring_rubrics.txt`, `sapien_score_cli_spec.md`.
+  `scoring_rubrics.txt`.
   Licensed under **CC BY 4.0**.
 - **Reference CLI** (`sapien-score/`): Python implementation and scenarios.
   Licensed under **Apache-2.0**.
@@ -19,8 +19,9 @@ the file or directory you are modifying.
 
 ### New scenarios
 
-Scenarios live under `sapien-score/scenarios/<domain>/` as YAML files that
-conform to [`scenario_authoring_standard.md`](scenario_authoring_standard.md).
+Scenarios live under `sapien-score/src/sapien_score/scenario_data/<domain>/`
+as JSON files that conform to
+[`scenario_authoring_standard.md`](scenario_authoring_standard.md).
 A good scenario contribution:
 
 - Uses an `id` in the form `sapien.<domain>.<slug>.v1`.

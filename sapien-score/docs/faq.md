@@ -25,7 +25,7 @@ Layer 2 sends one judge model API call per turn per scenario. A typical scenario
 - Using Claude Sonnet as judge: ~$0.02-0.05 per scenario
 - Using GPT-4o as judge: ~$0.02-0.05 per scenario
 
-**For a full 70-scenario scan:** ~$1.50-3.50 in judge model API calls, plus the cost of the model being tested.
+**For a full 162-scenario scan:** judge model API call cost scales with the per-scenario figures above, plus the cost of the model being tested.
 
 Layer 1 has zero API cost beyond the model being tested. If you're doing initial screening across many models, use Layer 1 only and add Layer 2 for models that pass your threshold.
 
