@@ -142,7 +142,7 @@ def demo(model: str, judge_model: Optional[str], full_mode: bool, output: Option
     from rich.console import Console
     from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 
-    from sapien_score.engine.adapter import get_adapter
+    from sapien_score.engine.adapter import get_adapter, is_auth_error
     from sapien_score.engine.driver import run_scenario
     from sapien_score.model_profiles import get_model_profile
 
@@ -206,6 +206,23 @@ def demo(model: str, judge_model: Optional[str], full_mode: bool, output: Option
         console.print("\n[yellow]Demo interrupted.[/yellow]")
         trace_writer.close()
         raise SystemExit(0)
+    except Exception as e:
+        # A missing/invalid API key surfaces as the very first provider call
+        # failing. Without this branch it bubbled out as a raw traceback.
+        # Detect the auth class, print ONE actionable line, and abort cleanly.
+        if is_auth_error(e):
+            trace_writer.close()
+            console.print(
+                "\n[red]No API key found (or it was rejected).[/red] "
+                "Set [bold]OPENAI_API_KEY[/bold] (or your provider's key "
+                "variable, e.g. ANTHROPIC_API_KEY / GOOGLE_API_KEY) and "
+                "re-run the demo."
+            )
+            raise SystemExit(1)
+        # Anything else is a genuine error — close the trace and re-raise so
+        # the operator still sees the real failure.
+        trace_writer.close()
+        raise
 
     scan_elapsed = time.monotonic() - scan_start
 
