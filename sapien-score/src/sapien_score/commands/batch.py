@@ -35,8 +35,9 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from ..display.themes import DEFAULT_THEME
 from ._shared import health_style
-from .scan import scan
+from .scan import DEFAULT_DISPLAY_MODE, scan
 
 
 # Status labels are also used as Rich style keys via STATUS_STYLES below.
@@ -190,6 +191,16 @@ def batch(ctx: click.Context, config_file: str) -> None:
                 # --- council scoring (Part 3) ---
                 scoring_mode="council",
                 council_size="5",
+                # --- display (forward scan's own defaults so batch behavior is
+                #     unchanged; test_batch.TestBatchScanParamSync requires every
+                #     scan param be passed explicitly) ---
+                display_mode=DEFAULT_DISPLAY_MODE,
+                theme=DEFAULT_THEME,
+                divergence_strategy=None,
+                # --- webhooks (not used in batch) ---
+                webhook_url=None,
+                webhook_threshold="high",
+                webhook_test=False,
             )
         except KeyboardInterrupt:
             # scan() catches Ctrl+C internally and re-raises as
