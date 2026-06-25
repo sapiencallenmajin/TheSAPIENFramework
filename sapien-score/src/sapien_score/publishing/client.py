@@ -176,6 +176,7 @@ def publish_results(
     import httpx
 
     from sapien_score.__version__ import __version__
+    from sapien_score.net_safety import validate_post_url
 
     api_key = os.environ.get("SAPIEN_INGEST_API_KEY", "")
     if not api_key:
@@ -186,6 +187,15 @@ def publish_results(
         return
 
     url = publish_url or os.environ.get("SAPIEN_INGEST_URL", DEFAULT_INGEST_URL)
+
+    # Reject anything that isn't plain http/https BEFORE building a payload
+    # or sending the bearer token. A malicious --publish-url (file://, ftp://,
+    # etc.) must never carry the SAPIEN_INGEST_API_KEY.
+    try:
+        validate_post_url(url)
+    except ValueError as exc:
+        console.print(f"[yellow]Publishing failed: invalid --publish-url ({exc}).[/yellow]")
+        return
 
     # Build payload: existing scan output + metadata fields.
     # output_data already carries run_id, scan_started_at, scan_finished_at,
@@ -228,7 +238,15 @@ def publish_results(
     response = None
     for attempt_url in urls_to_try:
         try:
-            response = httpx.post(attempt_url, json=payload, headers=headers, timeout=30.0)
+            # follow_redirects=False: never let a 302 bounce a bearer-auth'd
+            # publish to a different host than the operator/env specified.
+            response = httpx.post(
+                attempt_url,
+                json=payload,
+                headers=headers,
+                timeout=30.0,
+                follow_redirects=False,
+            )
             break
         except (httpx.ConnectError, httpx.TimeoutException, httpx.ConnectTimeout) as exc:
             if attempt_url != urls_to_try[-1]:

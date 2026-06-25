@@ -18,6 +18,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
+from sapien_score.io import check_input_file_size
+
 logger = logging.getLogger(__name__)
 
 
@@ -376,6 +378,10 @@ def load_scenario_from_dict(data: dict) -> Scenario:
 
 def load_scenario_file(filepath: str) -> Scenario:
     """Load a scenario from a JSON file."""
+    # Guard against a hostile/corrupt scenario file exhausting memory before
+    # we hand it to json.load (user-supplied --scenarios-dir paths can be
+    # untrusted).
+    check_input_file_size(filepath)
     with open(filepath, "r", encoding="utf-8") as f:
         data = json.load(f)
     return load_scenario_from_dict(data)
