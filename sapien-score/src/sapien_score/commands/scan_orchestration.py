@@ -56,6 +56,11 @@ if TYPE_CHECKING:
     from sapien_score.engine.council_config import CouncilConfig
     from sapien_score.webhooks import WebhookNotifier
 
+# Raw provider exceptions can echo an Authorization/x-api-key header on a
+# 401/403. Redact before any of these strings reach the log, console, the
+# failed_scenarios record, or the partial checkpoint.
+from sapien_score.engine.redaction import redact as _redact
+
 logger = logging.getLogger(__name__)
 
 
@@ -660,18 +665,21 @@ def run_scan_loop(
                         ),
                     )
                 except Exception as e:
+                    # Redact before log / console / storage: a provider auth
+                    # error can carry the request's Authorization header.
+                    safe_error = _redact(str(e))
                     logger.warning(
                         "Scenario %s failed after retries: %s — skipping",
-                        scenario.id, str(e)[:150],
+                        scenario.id, safe_error[:150],
                     )
                     console.print(
                         f"[yellow]  Scenario {scenario.id} failed: "
-                        f"{str(e)[:120]} — skipping[/yellow]"
+                        f"{safe_error[:120]} — skipping[/yellow]"
                     )
                     failed_scenarios.append({
                         "id": scenario.id,
                         "title": scenario.title,
-                        "error": str(e)[:200],
+                        "error": safe_error[:200],
                     })
                     save_partial(
                         results, failed_scenarios, engine.partial_path,

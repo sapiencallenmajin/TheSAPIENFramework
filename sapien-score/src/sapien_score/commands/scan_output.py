@@ -25,6 +25,7 @@ from pathlib import Path
 from statistics import quantiles
 from typing import Optional
 
+from sapien_score.engine.redaction import redact as _redact
 from sapien_score.io import atomic_write_json
 
 logger = logging.getLogger(__name__)
@@ -223,12 +224,18 @@ def serialize_failed_entry(failed: dict) -> dict:
     Lets consumers see *which* scenarios dropped out without inflating
     the mean (callers exclude ``verdict == "error"`` from aggregates).
     """
+    # Defense-in-depth: the scan loop already redacts before populating
+    # ``error``, but this is a public serializer reachable from other call
+    # sites — redact again so a credential can never reach persisted JSON.
+    error_reason = failed.get("error")
+    if error_reason is not None:
+        error_reason = _redact(error_reason)
     return {
         "scenario_id": failed.get("id"),
         "title": failed.get("title"),
         "verdict": "error",
         "health_score": None,
-        "error_reason": failed.get("error"),
+        "error_reason": error_reason,
     }
 
 
@@ -606,6 +613,12 @@ def save_partial(
         error_entries = [
             serialize_failed_entry(fs) for fs in (failed_scenarios or [])
         ]
+        # Redact the raw failed_scenarios dicts too — they carry the same
+        # ``error`` string and are written verbatim into the checkpoint.
+        safe_failed = [
+            {**fs, "error": _redact(fs["error"])} if fs.get("error") is not None else fs
+            for fs in (failed_scenarios or [])
+        ]
         combined = success_entries + error_entries
         data = {
             "partial": True,
@@ -617,7 +630,7 @@ def save_partial(
             "n_failed": len(error_entries),
             "timestamp": datetime.now().isoformat(),
             "results": combined,
-            "failed_scenarios": failed_scenarios,
+            "failed_scenarios": safe_failed,
         }
         if run_id is not None:
             data["run_id"] = run_id

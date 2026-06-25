@@ -17,7 +17,6 @@ and appending the result to the conversation record.  Called by
 from __future__ import annotations
 
 import logging
-import re
 import time
 from typing import Optional
 
@@ -44,31 +43,12 @@ _BLIND_SCENARIO_CONTEXT = "behavioral safety scenario"
 # Credential redaction
 # ---------------------------------------------------------------------------
 
-# Verbose mode prints raw model responses to stdout. If a misconfigured
-# provider echoes request headers back on an error, API keys could land
-# in logs. Redact anything resembling a common credential format before
-# any verbose print/log call in this module.
-_CREDENTIAL_PATTERNS = (
-    re.compile(r"sk-ant-\S+"),          # Anthropic (explicit, matched before generic sk-)
-    re.compile(r"sk-\S+"),              # OpenAI-style secret keys
-    re.compile(r"Bearer\s+\S+"),        # Generic bearer tokens
-    re.compile(r"AKIA\S+"),             # AWS access key ID
-    re.compile(r"AIza\S+"),             # Google API keys
-    re.compile(r"ya29\.\S+"),           # Google OAuth access tokens
-    re.compile(r"ghp_\S+"),              # GitHub personal access token (classic)
-    re.compile(r"github_pat_\S+"),      # GitHub fine-grained PAT
-    re.compile(r"xoxb-\S+"),             # Slack bot tokens
-    re.compile(r"xoxp-\S+"),             # Slack user tokens
-)
-
-
-def _redact(text: str) -> str:
-    """Replace credential-like substrings with [REDACTED]."""
-    if not isinstance(text, str):
-        text = str(text)
-    for pattern in _CREDENTIAL_PATTERNS:
-        text = pattern.sub("[REDACTED]", text)
-    return text
+# Redaction moved to engine/redaction.py so error-persistence sinks in
+# adapter.py / scan_orchestration.py / scan_output.py can import it without
+# an import cycle (adapter.py is imported by this module). Re-exported here
+# under the original private name so existing `from .turn import _redact`
+# callers (driver.py, counter_refusal.py) keep working unchanged.
+from sapien_score.engine.redaction import _redact  # noqa: E402,F401
 
 
 # ---------------------------------------------------------------------------
