@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Tests for the drift-alert webhook dispatcher."""
 
 from __future__ import annotations

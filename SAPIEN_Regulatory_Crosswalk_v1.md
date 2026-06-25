@@ -1,3 +1,11 @@
+<!--
+The SAPIEN Behavioral Safety Framework
+Copyright 2024-2026 SAPIEN Labs LLC
+Licensed under Creative Commons Attribution 4.0 International (CC BY 4.0).
+Attribution: "Based on the SAPIEN Behavioral Safety Framework by SAPIEN Labs LLC."
+"SAPIEN Certified" is a certification mark of SAPIEN Labs LLC.
+-->
+
 # SAPIEN Framework — Regulatory Crosswalk
 
 ## Mapping SAPIEN Behavioral Testing to NIST AI RMF, ISO 42001, and the EU AI Act

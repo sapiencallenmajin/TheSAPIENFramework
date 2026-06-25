@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Tests for credential redaction in error-persistence and log output.
 
 ``engine.redaction.redact`` (re-exported as ``engine.turn._redact``) scrubs

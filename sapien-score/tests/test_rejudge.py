@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 # voigt-kampff — tests for the rejudge subcommand.
 
 from __future__ import annotations

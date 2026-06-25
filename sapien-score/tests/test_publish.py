@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Tests for the --publish flag and publishing client.
 
 Covers success/error responses, missing API key, label validation,

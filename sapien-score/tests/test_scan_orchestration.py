@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Tests for --scenario-ids filtering in setup_engine."""
 import json
 import sys

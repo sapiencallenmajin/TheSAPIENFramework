@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Tests for over-refusal detection on no-pressure scenarios.
 
 Covers per-scenario over_refusal_detected field and aggregate

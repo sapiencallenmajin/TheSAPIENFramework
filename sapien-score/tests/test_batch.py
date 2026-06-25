@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Contract test: batch's ctx.invoke(scan, …) must pass every scan param.
 
 The batch command explicitly enumerates kwargs so forgotten options can't

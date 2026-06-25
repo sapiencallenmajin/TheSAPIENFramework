@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Tests for the voigt-kampff verify command.
 
 Covers all three exit codes (0 match, 1 mismatch, 2 cannot-run),

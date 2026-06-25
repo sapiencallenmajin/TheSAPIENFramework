@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
 """Tests for the voigt-kampff demo command.
 
 Covers happy path, bundled scenario existence, --full judge default,
