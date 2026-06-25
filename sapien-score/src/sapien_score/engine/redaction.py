@@ -38,6 +38,28 @@ _CREDENTIAL_PATTERNS = (
     re.compile(r"github_pat_\S+"),           # GitHub fine-grained PAT
     re.compile(r"xoxb-\S+"),                 # Slack bot tokens
     re.compile(r"xoxp-\S+"),                 # Slack user tokens
+    # --- Credential-LABEL-anchored (JSON / dict / custom-header shapes) ---
+    # An adversarial review found that JSON/dict-shaped errors slipped past the
+    # patterns below because those require the separator IMMEDIATELY after the
+    # keyword. In a dict-repr the keyword is wrapped in quotes/brackets first:
+    #   {"api-key": "VALUE"}, "x-goog-api-key": "VALUE",
+    #   {"authorization": "Token VALUE"}, {"secret": "VALUE"}, X-Custom-Auth: VALUE
+    # This pattern anchors on a credential LABEL (with an optional vendor prefix
+    # such as x-, x-goog-, x-custom-) and tolerates optional quotes / brackets /
+    # whitespace between the label and a REQUIRED ``:`` or ``=`` separator, then
+    # redacts the value EVEN IF short (the length floor only guards the
+    # *unlabeled* generic-entropy fallback further down, to avoid eating prose).
+    #
+    # A separator (``:``/``=``) is required — a bare label in prose
+    # ("the authorization is granted", "the secret garden") is NOT matched, so
+    # the no-false-positive tests still pass. The value capture runs to the
+    # next closing quote / bracket / comma so a leading scheme word
+    # ("Bearer VALUE", "Token VALUE") inside a quoted header is redacted whole.
+    re.compile(
+        r"(?i)\b(?:[a-z]+-)*"
+        r"(?:api[-_]?key|apikey|secret|token|authorization|auth|bearer)\b"
+        r"[\"'\]\}\s]*[:=][\s\"'\[\{]*([^\"'\]\},]+)"
+    ),
     # --- Header / bearer forms -----------------------------------------
     # "authorization: bearer <token>", "Authorization Bearer <token>" — the
     # scheme word and any following non-space token both get redacted.
