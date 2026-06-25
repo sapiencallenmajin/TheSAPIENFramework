@@ -12,6 +12,8 @@ import time
 from dataclasses import dataclass
 from typing import Optional
 
+from sapien_score.engine.redaction import redact as _redact
+
 logger = logging.getLogger(__name__)
 
 
@@ -330,7 +332,7 @@ class LiteLLMAdapter:
                         wait = retry_delays[attempt]
                         logger.warning(
                             "Retryable error on attempt %d/%d: %s — waiting %ds",
-                            attempt + 1, self.MAX_RETRIES, str(e)[:100], wait,
+                            attempt + 1, self.MAX_RETRIES, _redact(str(e)[:100]), wait,
                         )
                         self._last_retry_count += 1
                         self._scenario_retry_budget -= 1
@@ -342,7 +344,7 @@ class LiteLLMAdapter:
                         finish_reason=None,
                         usage=UsageInfo(),
                         duration_ms=round((time.monotonic() - call_start) * 1000),
-                        error=str(e)[:500],
+                        error=_redact(str(e)[:500]),
                     )
                     raise
 
