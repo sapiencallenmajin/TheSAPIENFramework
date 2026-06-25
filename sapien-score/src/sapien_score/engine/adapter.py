@@ -415,7 +415,11 @@ class LiteLLMAdapter:
                     finish_reason=finish_reason,
                     usage=self._last_usage,
                     duration_ms=round((time.monotonic() - call_start) * 1000),
-                    error=f"empty content after retry (finish_reason={finish_reason})",
+                    # finish_reason is provider-controlled and can echo a
+                    # request header / token back, so redact this sink too.
+                    error=_redact(
+                        f"empty content after retry (finish_reason={finish_reason})"
+                    ),
                 )
                 raise EmptyResponseError(
                     model=self._model,
