@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Optional
 
 from sapien_score.engine.adapter import UsageInfo
+from sapien_score.io import check_input_file_size
 from sapien_score.tracing.errors import (
     ReplayExhaustedError,
     ReplayMissError,
@@ -39,16 +40,37 @@ logger = logging.getLogger(__name__)
 # Request fingerprinting
 # ---------------------------------------------------------------------------
 
-def _strip_none(obj: object) -> object:
+# Max nesting depth we will recurse into when normalizing an untrusted trace
+# request. Real requests nest only a handful of levels (messages -> content
+# parts); anything past this is almost certainly a malicious/corrupt line
+# crafted to blow the Python stack. Well above any legitimate payload.
+_MAX_STRIP_DEPTH: int = 200
+
+
+def _strip_none(obj: object, _depth: int = 0) -> object:
     """Recursively remove None values from dicts.
 
     Treats ``{"key": None}`` and ``{}`` as semantically identical for
     fingerprinting purposes.
+
+    Bounded against hostile input: a trace line nested past
+    ``_MAX_STRIP_DEPTH`` raises ``ValueError`` instead of recursing until the
+    interpreter raises an unhandled ``RecursionError`` (which would crash the
+    whole replay rather than skipping one bad line).
     """
+    if _depth > _MAX_STRIP_DEPTH:
+        raise ValueError(
+            f"Trace request nested deeper than {_MAX_STRIP_DEPTH} levels; "
+            "refusing to recurse (possible malicious trace line)"
+        )
     if isinstance(obj, dict):
-        return {k: _strip_none(v) for k, v in obj.items() if v is not None}
+        return {
+            k: _strip_none(v, _depth + 1)
+            for k, v in obj.items()
+            if v is not None
+        }
     if isinstance(obj, list):
-        return [_strip_none(item) for item in obj]
+        return [_strip_none(item, _depth + 1) for item in obj]
     return obj
 
 
@@ -109,6 +131,9 @@ class TraceReader:
                 f"Record a trace first with: voigt-kampff scan --output <file>"
             )
 
+        # Reject an oversized (possibly hostile) trace before reading it in.
+        check_input_file_size(self._path)
+
         with open(self._path, encoding="utf-8") as f:
             for lineno, line in enumerate(f, 1):
                 line = line.strip()
@@ -132,9 +157,20 @@ class TraceReader:
                         path=self._path,
                     )
 
+                # Fingerprinting normalizes (recursively) an untrusted request.
+                # A pathologically deep line raises ValueError (depth bound) or
+                # RecursionError; skip that one line rather than crash the load.
+                try:
+                    fp = request_fingerprint(entry["kind"], entry["request"])
+                except (ValueError, RecursionError, KeyError) as exc:
+                    logger.warning(
+                        "Trace line %d in %s: could not fingerprint, skipping (%s)",
+                        lineno, self._path, exc,
+                    )
+                    continue
+
                 self._entries.append(entry)
 
-                fp = request_fingerprint(entry["kind"], entry["request"])
                 key = f"{entry['kind']}:{fp}"
                 if key not in self._index:
                     self._index[key] = collections.deque()

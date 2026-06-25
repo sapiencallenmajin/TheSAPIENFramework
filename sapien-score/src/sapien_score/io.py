@@ -26,6 +26,36 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+# Upper bound on the size of an *untrusted* input file (trace JSONL, scenario
+# JSON) we will read into memory. A hostile or corrupt file an order of
+# magnitude past any legitimate corpus must be rejected up front rather than
+# OOM-ing the process. 50 MB comfortably clears real traces (the bundled
+# financial replay fixture is ~4 MB) while stopping a memory-exhaustion DoS.
+MAX_INPUT_FILE_BYTES: int = 50 * 1024 * 1024
+
+
+def check_input_file_size(
+    path: str | os.PathLike[str],
+    *,
+    max_bytes: int = MAX_INPUT_FILE_BYTES,
+) -> None:
+    """Raise ``ValueError`` if *path* is larger than *max_bytes*.
+
+    Cheap ``os.stat`` guard run before ``json.load`` / line iteration on any
+    operator- or third-party-supplied file, so a multi-gigabyte input can't
+    exhaust memory. A missing file is left for the caller's own open() to
+    surface (we don't want to mask FileNotFoundError here).
+    """
+    try:
+        size = os.stat(path).st_size
+    except OSError:
+        return
+    if size > max_bytes:
+        raise ValueError(
+            f"Input file {os.fspath(path)!r} is {size} bytes, which exceeds the "
+            f"{max_bytes}-byte safety limit. Refusing to load a file this large."
+        )
+
 
 def atomic_write_json(path: str, data: dict) -> None:
     """Write JSON atomically: temp file → fsync → rename.
