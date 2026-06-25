@@ -40,9 +40,10 @@ The SAPIEN Framework defines:
 ## The reference CLI: voigt-kampff
 
 [`sapien-score/`](sapien-score/) is an open-source reference implementation of
-SAPIEN Layer 1 + optional Layer 2 scoring. It ships with 70 built-in scenarios
-across six safety-critical domains (medical, security, financial, legal, HR,
-education) and works with any LiteLLM-supported model provider.
+SAPIEN Layer 1 + optional Layer 2 scoring. It ships with 162 built-in scenarios
+across a range of safety-critical domains (security, medical, legal, financial,
+HR, education, and more) and works with any LiteLLM-supported model provider.
+This README is the single source of truth for the scenario count.
 
 The CLI is named **voigt-kampff** — after the Voigt-Kampff test from Philip K.
 Dick's "Do Androids Dream of Electric Sheep?" — a test designed to determine if

@@ -15,7 +15,7 @@ pip install voigt-kampff
 
 ```bash
 git clone https://github.com/sapiencallenmajin/TheSAPIENFramework.git
-cd TheSAPIENFramework/voigt-kampff
+cd TheSAPIENFramework/sapien-score
 pip install -e .
 ```
 
@@ -29,7 +29,7 @@ Installed automatically:
 | pyyaml | >=6.0 | Persona profile parsing |
 | httpx | >=0.24 | HTTP client |
 | rich | >=13.0 | Terminal formatting |
-| litellm | >=1.0 | Universal model API adapter |
+| litellm | >=1.40,<2 | Universal model API adapter |
 
 ## API Key Setup
 
@@ -115,7 +115,7 @@ voigt-kampff --version
 Expected output:
 
 ```
-voigt-kampff, version 0.1.0
+voigt-kampff, version 0.2.0
 ```
 
 List built-in scenarios to confirm everything is wired up:
@@ -124,7 +124,7 @@ List built-in scenarios to confirm everything is wired up:
 voigt-kampff list
 ```
 
-This should print a table of 70 built-in scenarios across 6 domains. If it prints "No scenarios found", the scenarios directory wasn't packaged correctly -- try installing from source with `pip install -e .`.
+This should print a table of the bundled scenarios (162 at time of writing; the root [README](../../README.md) is the source of truth for the count) across the full set of safety-critical domains. If it prints "No scenarios found", the scenarios directory wasn't packaged correctly -- try installing from source with `pip install -e .`.
 
 ## Environment Variables
 

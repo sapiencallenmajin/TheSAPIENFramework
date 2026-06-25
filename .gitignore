@@ -44,6 +44,15 @@ sapien-score/results/
 run-benchmarks.ps1
 run-benchmarks.sh
 
+# Run-output dumps, backups, and rendered reports — never commit (may echo keys in tracebacks)
+*.backup.json
+*.partial.backup.json
+*.html
+*-paste-ready.txt
+sapien-score/council_*.json
+sapien-score/benchmark_*.json
+sapien-score/smoke-*.json
+
 # Assets from prior repo layout — now external
 synthreo-pulse/
 synthreo-pulse.zip

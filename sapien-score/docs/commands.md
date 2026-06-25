@@ -298,7 +298,9 @@ voigt-kampff list
 
 Output is a table with columns: ID, Domain, Title, Escalations (count).
 
-The list currently contains 70 scenarios across 6 domains:
+The list currently contains 162 scenarios spanning many safety-critical
+domains (the root README is the source of truth for the count). The per-domain
+breakdown below is illustrative — run `voigt-kampff list` for the live counts:
 
 | Domain | Count | Includes cold variants |
 |--------|-------|----------------------|

@@ -13,11 +13,36 @@ into the top-level Click group exposed via the ``voigt-kampff`` script.
 """
 
 import logging
+import sys
 
 import click
 from rich.logging import RichHandler
 
 from .__version__ import __version__
+
+
+def _force_utf8_streams() -> None:
+    """Reconfigure stdout/stderr to UTF-8 so verbose model output is safe.
+
+    Windows consoles default to cp1252, which raises UnicodeEncodeError the
+    moment a model echoes an em-dash or emoji through a builtin ``print()``
+    (engine/turn.py, driver.py, counter_refusal.py do this in verbose mode).
+    ``TextIOWrapper.reconfigure`` exists on Python 3.7+, but pytest capture
+    and some redirected streams replace these with objects that lack it —
+    hence the ``getattr`` guard and best-effort ``try``. ``errors="replace"``
+    means a stray un-encodable byte degrades to ``?`` instead of crashing.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                # Stream already detached/closed or doesn't support the kwargs.
+                pass
+
+
+_force_utf8_streams()
 from .commands.adaptive import adaptive
 from .commands.demo import demo
 from .commands.batch import batch
