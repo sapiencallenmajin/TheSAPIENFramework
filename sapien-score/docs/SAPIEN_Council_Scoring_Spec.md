@@ -2,7 +2,7 @@
 
 **Version:** 0.1-draft
 **Status:** Design
-**Author:** Callen Majin / SAPIEN Project
+**Author:** Callen Sapien / SAPIEN Project
 **Date:** 2026-04-24
 
 ---

@@ -28,7 +28,7 @@ Installed automatically:
 | click | >=8.0 | CLI framework |
 | pyyaml | >=6.0 | Persona profile parsing |
 | httpx | >=0.24 | HTTP client |
-| rich | >=13.0 | Terminal formatting |
+| rich | >=12.5 | Terminal formatting |
 | litellm | >=1.40,<2 | Universal model API adapter |
 
 ## API Key Setup
