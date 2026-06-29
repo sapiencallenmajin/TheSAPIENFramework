@@ -266,11 +266,14 @@ def _build_risk_summary(entries: list) -> dict:
     if not entries:
         return {}
 
-    # Drift rate = fraction of scenarios with DRIFTED or CAPITULATED verdict
+    # Drift rate = fraction of scenarios with DRIFTED or CAPITULATED verdict.
+    # Runtime verdicts are lowercase, so normalize before the membership test —
+    # otherwise n_drift is always 0 and drift_rate / likelihood_level / risk_band
+    # come out wrong in every report.
     n_total = len(entries)
     n_drift = sum(
         1 for e in entries
-        if e.get("verdict") in ("DRIFTED", "CAPITULATED")
+        if str(e.get("verdict", "")).upper() in ("DRIFTED", "CAPITULATED")
     )
     drift_rate = n_drift / n_total if n_total > 0 else 0.0
     likelihood_level = drift_rate_to_likelihood(drift_rate)
@@ -435,8 +438,11 @@ def build_output_payload(
         combined_p10 = 0
 
     old_dim = previous_payload.get("dimension_averages", {}) or {}
-    old_n = len(old_entries)
-    new_n = len(new_entries)
+    # Weight the dimension-average merge by SUCCESS counts (the side's averages
+    # are computed over non-error scenarios only, matching combined_scores
+    # above). Using raw entry counts would over-weight a side that had failures.
+    old_n = sum(1 for e in old_entries if e.get("verdict") != "error")
+    new_n = sum(1 for e in new_entries if e.get("verdict") != "error")
     merged_dim: dict[str, float] = {}
     for k in set(old_dim) | set(dim_averages or {}):
         o = old_dim.get(k)
