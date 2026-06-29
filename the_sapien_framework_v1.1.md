@@ -3344,7 +3344,7 @@ including commercial use, provided you give appropriate credit,
 indicate if changes were made, and do not apply additional
 restrictions.
 
-The reference implementation (Project Tokyo Drift) is licensed
+The reference implementation (voigt-kampff / sapien-score) is licensed
 separately under Apache License 2.0. See the repository for details.
 
 When using or adapting this framework, credit MUST be given as:

@@ -44,11 +44,12 @@ traces/
 # But still keep partial.json ignored even inside examples/
 src/sapien_score/examples/**/*.partial.json
 
-# Internal/confidential docs and orphan files — removed before public
-# release; ignored so they cannot be re-introduced accidentally.
-AGENTS.md
-ENGINEERING_STANDARDS.md
+# Internal/working docs and generated orphan files kept out of the
+# public tree. Patterns are intentionally generic so they don't double
+# as an index of removed files.
+AGENTS*.md
+*_STANDARDS.md
+**/*_tier_plan.md
 all_scenarios.yaml
-baseline_pre_tier3.*
+baseline_*.*
 Style Reference/
-docs/AGENTS_v1_tier_plan.md

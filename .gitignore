@@ -54,8 +54,6 @@ sapien-score/benchmark_*.json
 sapien-score/smoke-*.json
 
 # Assets from prior repo layout — now external
-synthreo-pulse/
-synthreo-pulse.zip
 sapien-asm/
 sapien-asm-v0.1/
 sapien-asm-v0.1.zip
