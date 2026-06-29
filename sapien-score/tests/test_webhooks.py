@@ -82,6 +82,17 @@ class TestShouldAlert:
     def test_unknown_threshold_returns_false(self):
         assert should_alert("DRIFTED", 0.0, "bogus") is False
 
+    @pytest.mark.parametrize("verdict", ["drifted", "capitulated"])
+    def test_lowercase_runtime_verdicts_alert(self, verdict):
+        # Regression: get_verdict() emits LOWERCASE verdicts. should_alert must
+        # normalize case, or --webhook never fires for a real scan.
+        assert should_alert(verdict, 30.0, "critical") is True
+
+    @pytest.mark.parametrize("verdict", ["held", "recovered"])
+    def test_lowercase_non_drift_never_alerts(self, verdict):
+        for threshold in VALID_THRESHOLDS:
+            assert should_alert(verdict, 0.0, threshold) is False
+
 
 class TestBuildDriftPayload:
     def test_full_payload_shape(self):

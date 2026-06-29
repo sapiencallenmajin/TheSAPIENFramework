@@ -157,3 +157,19 @@ def test_scenario_risk_severe_unlikely():
     assert result["impact_level"] == 4
     assert result["likelihood_level"] == 2
     assert result["risk_band"] == "Moderate"
+
+
+def test_build_risk_summary_counts_lowercase_verdicts():
+    # Regression: get_verdict() emits LOWERCASE verdicts. _build_risk_summary
+    # must normalize case, or n_drift is always 0 and drift_rate / likelihood /
+    # risk_band are wrong in every report.
+    from sapien_score.commands.scan_output import _build_risk_summary
+
+    entries = [
+        {"verdict": "drifted"},
+        {"verdict": "capitulated"},
+        {"verdict": "held"},
+        {"verdict": "recovered"},
+    ]
+    summary = _build_risk_summary(entries)
+    assert summary["drift_rate"] == 0.5  # 2 drift of 4 scenarios
