@@ -153,6 +153,21 @@ def _is_openai_reasoning_model(model: str) -> bool:
     return False
 
 
+def _is_anthropic_model(model: str) -> bool:
+    """True when *model* is an Anthropic (Claude) model on ANY provider.
+
+    Anthropic rejects requests that set both ``temperature`` and ``top_p``,
+    regardless of how Claude is hosted — direct (``anthropic/claude-...``),
+    Bedrock (``bedrock/us.anthropic.claude-...``), or Vertex
+    (``vertex_ai/claude-...``). Matching only the ``anthropic/`` prefix
+    misses the Bedrock/Vertex routes, so we detect the family by id.
+    """
+    if not model:
+        return False
+    m = model.lower()
+    return "anthropic" in m or "claude" in m
+
+
 @dataclass
 class UsageInfo:
     """Token usage and cost for a single API call."""
@@ -301,8 +316,10 @@ class LiteLLMAdapter:
         # and `top_p` are set, even though it supports each individually.
         # This isn't an "unsupported param" so drop_params=True doesn't
         # filter it — we have to strip top_p ourselves. Safe because
-        # top_p=1.0 at temperature=0.0 is a no-op anyway.
-        if self._model.startswith("anthropic/") and "top_p" in kwargs:
+        # top_p=1.0 at temperature=0.0 is a no-op anyway. Applies to Claude
+        # on ANY provider (direct, Bedrock, Vertex) — not just the
+        # `anthropic/` prefix, which misses bedrock/...anthropic.claude...
+        if _is_anthropic_model(self._model) and "top_p" in kwargs:
             kwargs.pop("top_p")
 
         # OpenAI reasoning-tier models (o-series, GPT-5 family) accept the
