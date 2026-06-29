@@ -1,0 +1,8 @@
+version: 2
+updates:
+  # No package.json exists in this repo (the Astro site moved to its own
+  # repo), so an npm ecosystem entry errors on every Dependabot run.
+  - package-ecosystem: "pip"
+    directory: "/sapien-score"
+    schedule:
+      interval: "weekly"

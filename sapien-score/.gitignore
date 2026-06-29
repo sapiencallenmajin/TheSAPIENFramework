@@ -1,0 +1,55 @@
+# User-local custom scenarios — not committed
+src/sapien_score/scenario_data/custom/*
+!src/sapien_score/scenario_data/custom/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Test / coverage
+.pytest_cache/
+htmlcov/
+.coverage
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Baseline scans (kept locally for invariant checks, not committed)
+baseline_*.json
+# Partial scan outputs
+*.partial.json
+# Trace files (generated during scans, not committed)
+traces/
+*.trace.jsonl
+
+# But DO commit bundled replay fixtures in examples/
+!src/sapien_score/examples/
+!src/sapien_score/examples/**/*.json
+!src/sapien_score/examples/**/*.jsonl
+
+# But still keep partial.json ignored even inside examples/
+src/sapien_score/examples/**/*.partial.json
+
+# Internal/working docs and generated orphan files kept out of the
+# public tree. Patterns are intentionally generic so they don't double
+# as an index of removed files.
+AGENTS*.md
+*_STANDARDS.md
+**/*_tier_plan.md
+all_scenarios.yaml
+baseline_*.*
+Style Reference/

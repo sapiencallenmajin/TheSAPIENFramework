@@ -1,0 +1,1006 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 SAPIEN Labs LLC
+
+# voigt-kampff — Open-source SAPIEN behavioral safety scoring
+# Part of the SAPIEN Framework (https://sapienframework.org)
+# Licensed under the Apache License, Version 2.0
+#
+# For commercial licensing: https://sapienframework.org/commercial
+"""Engine setup and scenario execution loop for scans.
+
+Coordinates adapter creation, replay/trace configuration, scenario
+loading, argument resolution, the per-scenario progress loop, and
+post-scan finalization (output writes, HTML report, cleanup).
+Does not handle CLI argument parsing (see ``scan.py``) or
+console rendering (see ``scan_display.py``).
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import time
+import uuid
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import TYPE_CHECKING, Literal, Optional
+
+import litellm
+
+# Silence litellm's banner / "Provider List" / debug spam that otherwise
+# pollutes scan output before the first completion call. Setting these
+# at module load (which happens only when a scan actually runs — this
+# file isn't imported on `--help` or unrelated commands) ensures the
+# flags are in place before any litellm.completion() invocation.
+# `suppress_debug_info` kills the per-call provider banner; `set_verbose`
+# is the catch-all switch that some litellm versions still honor.
+#
+# Guarded against AttributeError: `set_verbose` is deprecated in newer
+# litellm releases and has been removed on some patch versions. An
+# unguarded assignment to a removed attribute would crash every scan
+# at import time before printing anything useful. Same defense for
+# `suppress_debug_info` so a future rename can't break us either.
+try:
+    litellm.suppress_debug_info = True
+except AttributeError:
+    pass
+try:
+    litellm.set_verbose = False
+except AttributeError:
+    pass
+
+if TYPE_CHECKING:
+    from rich.console import Console
+    from sapien_score.display.events import EventBus
+    from sapien_score.engine.council_config import CouncilConfig
+    from sapien_score.webhooks import WebhookNotifier
+
+# Raw provider exceptions can echo an Authorization/x-api-key header on a
+# 401/403. Redact before any of these strings reach the log, console, the
+# failed_scenarios record, or the partial checkpoint.
+from sapien_score.engine.adapter import is_auth_error
+from sapien_score.engine.redaction import redact as _redact
+
+logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Engine configuration — shuttles state from setup to the run loop
+# ---------------------------------------------------------------------------
+
+@dataclass
+class EngineConfig:
+    """All state needed to execute and finalize a scan.
+
+    Created by :func:`setup_engine`, consumed by :func:`run_scan_loop`
+    and :func:`finalize_scan`.  Avoids passing 15+ loose parameters
+    between functions.
+    """
+    adapter: object
+    judge: object = None
+    trace_writer: object = None
+    trace_reader: object = None
+    model_profile: object = None
+    scenarios: list = field(default_factory=list)
+    persona_text: Optional[str] = None
+    memory_text: Optional[str] = None
+    no_counter_refusals: bool = False
+    layer2_threshold: float = 0.0
+    # Divergence-resolution strategy for L1 vs L2 disagreement >
+    # DIVERGENCE_THRESHOLD. None means "use the package default" (strict)
+    # — set explicitly by setup_engine when --divergence-strategy is
+    # passed on the CLI. See scoring/composite.py for strategy semantics.
+    divergence_strategy: Optional[str] = None
+    partial_path: str = ""
+    previous_payload: Optional[dict] = None
+    resume_path: Optional[str] = None
+    override_rules: list = field(default_factory=list)
+    # P0-12: run identity for tamper-evident published payloads.
+    run_id: str = ""
+    scan_started_at: str = ""
+    # P1-17: scenarios dropped by --skip-invalid during load, surfaced in
+    # the output payload so reviewers can see what was excluded and why.
+    skipped_scenarios: list = field(default_factory=list)
+    # Council scoring: "council" (default) routes to the multi-judge panel;
+    # "single" preserves the legacy single-judge path. ``council`` is None
+    # until the dispatcher materializes a CouncilConfig (kept lazy so a bare
+    # EngineConfig() doesn't instantiate the default 5-seat roster).
+    scoring_mode: Literal["council", "single"] = "council"
+    council: Optional["CouncilConfig"] = None
+    # Optional drift-alert dispatcher. None when --webhook is not set.
+    # Carries its own state (alerts_sent counter) so finalize_scan can
+    # surface a one-line summary at the end of the run.
+    webhook_notifier: Optional["WebhookNotifier"] = None
+    # Optional pub/sub for live-display subscribers. None when
+    # --display plain is in effect (the default for non-interactive
+    # contexts) — emissions are guarded so the scan loop runs
+    # byte-identically without a bus attached.
+    event_bus: Optional["EventBus"] = None
+
+
+# ---------------------------------------------------------------------------
+# Override config loading
+# ---------------------------------------------------------------------------
+
+def load_risk_overrides(console: "Console", config_path: Optional[str]) -> list:
+    """Load deployer override rules from YAML, if available.
+
+    When *config_path* is None, looks for ``./sapien-config.yaml`` as a
+    default. Returns an empty list when no config is found or applicable.
+    """
+    if config_path is None:
+        default = Path("sapien-config.yaml")
+        if not default.exists():
+            return []
+        config_path = str(default)
+
+    from sapien_score.scoring.override_config import load_override_config
+
+    # Resolve to an absolute path so the operator sees exactly which file
+    # was loaded — "./sapien-config.yaml" is cwd-dependent and ambiguous
+    # when multiple working directories (CI agent, ops console) are in play.
+    resolved_path = str(Path(config_path).resolve())
+
+    try:
+        rules = load_override_config(config_path)
+    except (ValueError, OSError) as e:
+        console.print(f"[red]Override config error: {e}[/red]")
+        raise SystemExit(1)
+
+    logger.info("Loaded override config from %s", resolved_path)
+    console.print(
+        f"[dim]Loaded {len(rules)} override rule(s) from {resolved_path}[/dim]"
+    )
+    return rules
+
+
+# ---------------------------------------------------------------------------
+# Setup
+# ---------------------------------------------------------------------------
+
+def setup_engine(
+    *,
+    model: str,
+    judge_model: Optional[str],
+    domain: Optional[str],
+    domains: Optional[str],
+    run_all: bool,
+    output: Optional[str],
+    verbose: bool,
+    persona: Optional[str],
+    memory: Optional[str],
+    profile: Optional[str],
+    avg_tokens: int,
+    resume: Optional[str],
+    retry_delay: float,
+    debug: bool,
+    collection: Optional[str],
+    authorship: Optional[str],
+    audience: Optional[str],
+    scenarios_dir_override: Optional[str],
+    tier_override: str,
+    no_counter_refusals: bool,
+    no_trace: bool,
+    replay: Optional[str],
+    allow_trace_during_replay: bool,
+    layer2_threshold: float = 0.0,
+    console: "Console",
+    override_rules: Optional[list] = None,
+    scenario_ids: Optional[str] = None,
+    force_resume: bool = False,
+    skip_invalid: bool = False,
+    scoring_mode: Literal["council", "single"] = "council",
+    council_size: int = 5,
+    webhook_notifier: Optional["WebhookNotifier"] = None,
+    divergence_strategy: Optional[str] = None,
+    event_bus: Optional["EventBus"] = None,
+) -> EngineConfig:
+    """Resolve arguments, build adapters, load scenarios.
+
+    Returns an :class:`EngineConfig` containing everything
+    :func:`run_scan_loop` and :func:`finalize_scan` need.
+    """
+    from sapien_score.engine.adapter import get_adapter
+    from sapien_score.scenarios.loader import load_all_scenarios
+
+    # --- Debug mode ---
+    if debug:
+        root = logging.getLogger()
+        if not root.handlers:
+            logging.basicConfig(level=logging.DEBUG, format="%(message)s")
+        else:
+            root.setLevel(logging.DEBUG)
+        logging.getLogger("LiteLLM").setLevel(logging.ERROR)
+        logging.getLogger("litellm").setLevel(logging.ERROR)
+        logging.getLogger("httpx").setLevel(logging.ERROR)
+        logging.getLogger("httpcore").setLevel(logging.ERROR)
+
+    # --- Persona/memory resolution ---
+    persona_text = persona
+    memory_text = memory
+    if profile:
+        from sapien_score.personas.loader import (
+            PersonaValidationError,
+            load_persona_profile,
+        )
+        try:
+            prof = load_persona_profile(profile)
+            if not persona_text:
+                persona_text = prof.persona_text
+            if not memory_text:
+                memory_text = prof.memory_text
+            console.print(f"[dim]Loaded profile: {prof.name} ({prof.role})[/dim]")
+        except (FileNotFoundError, PersonaValidationError) as e:
+            console.print(f"[red]{e}[/red]")
+            raise SystemExit(1)
+
+    # --- Domain filter ---
+    domain_filter: Optional[str] = None
+    domain_set: Optional[set] = None
+    if domain:
+        domain_filter = domain
+    elif domains:
+        domain_set = {d.strip() for d in domains.split(",")}
+
+    # --- Load scenarios ---
+    from sapien_score.scenarios.loader import get_last_skipped_scenarios
+
+    try:
+        all_scenarios = load_all_scenarios(
+            domain=domain_filter,
+            collection=collection,
+            authorship=authorship,
+            audience=audience,
+            scenarios_dir=scenarios_dir_override,
+            skip_invalid=skip_invalid,
+        )
+    except Exception as e:
+        # Fail-fast path: a validation error bubbles up when skip_invalid
+        # is False (the default). Surface a clear message, including the
+        # --skip-invalid hint, before re-raising.
+        if not skip_invalid:
+            console.print(
+                f"[red]Scenario validation failed: {e}[/red]\n"
+                "[dim]Pass --skip-invalid to log and continue instead of "
+                "aborting the scan.[/dim]"
+            )
+        raise
+    skipped_scenarios = get_last_skipped_scenarios()
+    if skipped_scenarios:
+        console.print(
+            f"[yellow]--skip-invalid: skipped {len(skipped_scenarios)} "
+            "scenario(s) during load. See skipped_scenarios in the "
+            "output payload for details.[/yellow]"
+        )
+    if domain_set:
+        all_scenarios = [s for s in all_scenarios if s.domain in domain_set]
+
+    # --- Scenario-ID filter (overrides domain/tier/tag filters) ---
+    if scenario_ids:
+        requested_ids = {sid.strip() for sid in scenario_ids.split(",")}
+        if domain or domains or authorship or audience:
+            console.print(
+                "[yellow]--scenario-ids is set; ignoring --domain/--domains/--authorship/--audience filters.[/yellow]"
+            )
+        corpus_ids = {s.id for s in all_scenarios}
+        missing = requested_ids - corpus_ids
+        if missing:
+            console.print(
+                f"[red]Unknown scenario IDs: {', '.join(sorted(missing))}[/red]"
+            )
+            raise SystemExit(1)
+        all_scenarios = [s for s in all_scenarios if s.id in requested_ids]
+
+    if not run_all and not domain and not domains and not scenario_ids:
+        console.print(
+            "[yellow]No filter specified. Use --all to run every built-in scenario, "
+            "or --domain / --domains to narrow the set.[/yellow]"
+        )
+        raise SystemExit(1)
+
+    if not all_scenarios:
+        console.print(f"[red]No scenarios found matching the given filters.[/red]")
+        raise SystemExit(1)
+
+    # --- Resume ---
+    previous_payload: Optional[dict] = None
+    if resume:
+        try:
+            with open(resume, "r", encoding="utf-8") as f:
+                previous_payload = json.load(f)
+        except (OSError, json.JSONDecodeError) as e:
+            console.print(f"[red]Failed to load --resume file {resume}: {e}[/red]")
+            raise SystemExit(1)
+
+        # P0-11: resume files written by this CLI carry `_checksum` over
+        # their results array. Reject tampered or schema-missing files
+        # unless --force-resume is set.
+        from .scan_output import compute_results_checksum
+
+        prior_results = previous_payload.get("results", []) or []
+        embedded = previous_payload.get("_checksum")
+        if embedded is None:
+            if not force_resume:
+                console.print(
+                    f"[red]Resume file {resume} has no _checksum field "
+                    "(likely written by an older CLI or edited by hand). "
+                    "Re-run the original scan, or pass --force-resume to "
+                    "skip integrity validation.[/red]"
+                )
+                raise SystemExit(1)
+            console.print(
+                "[yellow]--force-resume: skipping checksum validation on "
+                f"{resume}[/yellow]"
+            )
+        else:
+            recomputed = compute_results_checksum(prior_results)
+            if recomputed != embedded:
+                if not force_resume:
+                    console.print(
+                        f"[red]Resume file {resume} failed checksum validation: "
+                        f"expected {embedded[:12]}..., got {recomputed[:12]}... "
+                        "Contents were modified after the original run. Pass "
+                        "--force-resume to override.[/red]"
+                    )
+                    raise SystemExit(1)
+                console.print(
+                    "[yellow]--force-resume: ignoring checksum mismatch on "
+                    f"{resume}[/yellow]"
+                )
+
+        completed_ids = {
+            entry.get("scenario_id")
+            for entry in prior_results
+            # Skip error entries — those scenarios still need to be retried.
+            if entry.get("scenario_id") and entry.get("verdict") != "error"
+        }
+        before_count = len(all_scenarios)
+        all_scenarios = [s for s in all_scenarios if s.id not in completed_ids]
+        skipped = before_count - len(all_scenarios)
+        console.print(
+            f"[dim]Resume: loaded {len(completed_ids)} completed scenario(s) from "
+            f"{resume} — skipping {skipped}, running {len(all_scenarios)} remaining[/dim]"
+        )
+        if not all_scenarios:
+            console.print(
+                "[yellow]All scenarios in the resume file are already complete — "
+                "nothing to do.[/yellow]"
+            )
+            return EngineConfig(adapter=None, scenarios=[])
+
+    # --- Replay setup ---
+    trace_reader = None
+    if replay:
+        if not allow_trace_during_replay:
+            no_trace = True
+        # Validate the user-supplied path BEFORE any filesystem access so a
+        # path containing ".." or that resolves outside the working tree is
+        # rejected regardless of whether the file happens to exist on disk.
+        replay_clean = Path(replay)
+        if any(part == ".." for part in replay_clean.parts):
+            console.print(f"[red]Error: replay path contains illegal components: {replay}[/red]")
+            raise SystemExit(1)
+        replay_path = Path(replay)
+        if not replay_path.exists():
+            # Fall back to package-bundled data (e.g. examples/traces/...).
+            # Absolute paths must already exist at the user-supplied location;
+            # the bundled-resource fallback only makes sense for relative paths.
+            if replay_clean.is_absolute():
+                console.print(f"[red]Error: replay path contains illegal components: {replay}[/red]")
+                raise SystemExit(1)
+            from importlib.resources import files
+            replay_path = Path(str(files("sapien_score").joinpath(replay)))
+        if not replay_path.exists():
+            console.print(f"[red]Error: replay file not found: {replay}[/red]")
+            raise SystemExit(1)
+        from sapien_score.tracing.replay import TraceReader
+        trace_reader = TraceReader(replay_path)
+        meta = trace_reader.metadata()
+        if meta["target_model"] and meta["target_model"] != model:
+            console.print(
+                f"[red]Model mismatch: --model '{model}' but trace "
+                f"recorded with '{meta['target_model']}'[/red]"
+            )
+            raise SystemExit(1)
+        if judge_model and meta.get("judge_model") and meta["judge_model"] != judge_model:
+            console.print(
+                f"[red]Judge mismatch: --judge '{judge_model}' but trace "
+                f"recorded with '{meta['judge_model']}'[/red]"
+            )
+            raise SystemExit(1)
+        console.print(
+            f"[dim]Replay: {replay_path} "
+            f"({meta['total_entries']} entries, run {meta['run_id'][:8]}...)[/dim]"
+        )
+
+    # --- Build adapter ---
+    if trace_reader:
+        from sapien_score.tracing.replay import ReplayAdapter
+        adapter = ReplayAdapter(trace_reader, call_kind="target_call")
+    else:
+        adapter = get_adapter(model=model, base_retry_delay=retry_delay)
+
+    # --- Trace recording ---
+    trace_writer = None
+    if not no_trace:
+        from sapien_score.tracing.trace import TraceWriter, derive_trace_path, new_run_id
+        trace_path = derive_trace_path(output)
+        trace_writer = TraceWriter(path=trace_path, run_id=new_run_id())
+        adapter.trace_writer = trace_writer
+        adapter.call_kind = "target_call"
+
+    # --- Model tier ---
+    from sapien_score.model_profiles import get_model_profile, override_profile
+    if tier_override == "auto":
+        model_profile = get_model_profile(model)
+    else:
+        model_profile = override_profile(tier_override)
+
+    # --- Build judge (single- or council-scoring) ---
+    # Single path: one JudgeScorer over one judge_model adapter.
+    # Council path: one CouncilScorer over a per-seat adapter pool,
+    #   built once here and reused across every turn of every scenario
+    #   so we don't pay LiteLLMAdapter construction cost per call.
+    judge = None
+    council: Optional["CouncilConfig"] = None
+    if scoring_mode == "single":
+        if not judge_model:
+            # Defense in depth; CLI already rejects this.
+            console.print(
+                "[red]--scoring single requires --judge MODEL[/red]"
+            )
+            raise SystemExit(1)
+        from sapien_score.scoring.judge import JudgeScorer
+        if trace_reader:
+            from sapien_score.tracing.replay import ReplayAdapter
+            judge_adapter = ReplayAdapter(trace_reader, call_kind="judge_call")
+        else:
+            judge_adapter = get_adapter(model=judge_model, base_retry_delay=retry_delay)
+        if trace_writer:
+            judge_adapter.trace_writer = trace_writer
+            judge_adapter.call_kind = "judge_call"
+        judge = JudgeScorer(adapter=judge_adapter)
+    else:  # scoring_mode == "council"
+        from sapien_score.engine.council_config import CouncilConfig
+        from sapien_score.engine.council_scorer import CouncilScorer
+        council = CouncilConfig(size=int(council_size))
+
+        # Shared adapter pool: one LiteLLMAdapter per seat, constructed
+        # once. The pool is keyed by seat *index* (id(seat) is fine too,
+        # but indexes survive copy/serialization for tests). Two seats
+        # configured with the same model.string previously collapsed into
+        # a single adapter — the council degenerated into a single voice
+        # paying retry/throttle costs once instead of per-seat. Indexing
+        # by position guarantees one adapter per seat regardless of
+        # model overlap.
+        seat_adapters: dict[int, object] = {}
+        for seat_idx, seat in enumerate(council.seats):
+            if trace_reader:
+                from sapien_score.tracing.replay import ReplayAdapter
+                seat_adapter = ReplayAdapter(trace_reader, call_kind="judge_call")
+            else:
+                seat_model_str = (
+                    f"{seat.model}@{seat.model_version}"
+                    if seat.model_version else seat.model
+                )
+                seat_adapter = get_adapter(
+                    model=seat_model_str, base_retry_delay=retry_delay,
+                )
+            if trace_writer:
+                seat_adapter.trace_writer = trace_writer
+                seat_adapter.call_kind = "judge_call"
+            seat_adapters[seat_idx] = seat_adapter
+
+        # Reverse lookup so _pool_caller can find a seat's adapter without
+        # needing the council list at call time. id(seat) keys survive the
+        # life of the CouncilConfig (seats list is not mutated after init).
+        seat_id_to_index: dict[int, int] = {
+            id(seat): idx for idx, seat in enumerate(council.seats)
+        }
+
+        def _pool_caller(seat, system: str, user_msg: str) -> str:
+            a = seat_adapters[seat_id_to_index[id(seat)]]
+            return a.send_message(
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user_msg},
+                ],
+            )
+
+        judge = CouncilScorer(
+            council_config=council,
+            judge_caller=_pool_caller,
+        )
+
+    # --- Partial results path ---
+    if output:
+        p = Path(output)
+        partial_path = (
+            str(p.with_suffix(".partial.json"))
+            if p.suffix == ".json"
+            else output + ".partial.json"
+        )
+    else:
+        partial_path = str(
+            Path.home() / ".sapien_score" / "last_scan.partial.json"
+        )
+
+    # P0-12: stable run identity stamped into every result file and
+    # published payload so consumers can detect forgery and link partial
+    # writes back to the originating run.
+    run_id = uuid.uuid4().hex
+    scan_started_at = datetime.now(timezone.utc).isoformat()
+
+    return EngineConfig(
+        adapter=adapter,
+        judge=judge,
+        trace_writer=trace_writer,
+        trace_reader=trace_reader,
+        model_profile=model_profile,
+        scenarios=all_scenarios,
+        persona_text=persona_text,
+        memory_text=memory_text,
+        no_counter_refusals=no_counter_refusals,
+        layer2_threshold=layer2_threshold,
+        divergence_strategy=divergence_strategy,
+        partial_path=partial_path,
+        previous_payload=previous_payload,
+        resume_path=resume,
+        override_rules=override_rules or [],
+        run_id=run_id,
+        scan_started_at=scan_started_at,
+        skipped_scenarios=skipped_scenarios,
+        scoring_mode=scoring_mode,
+        council=council,
+        webhook_notifier=webhook_notifier,
+        event_bus=event_bus,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Scenario loop
+# ---------------------------------------------------------------------------
+
+def run_scan_loop(
+    console: "Console",
+    engine: EngineConfig,
+    model: str,
+    verbose: bool,
+    output: Optional[str],
+) -> tuple[list, list, float]:
+    """Execute scenarios with a progress bar, returning (results, failed, elapsed).
+
+    Handles per-scenario error boundaries, incremental checkpoints,
+    and KeyboardInterrupt recovery.
+    """
+    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+
+    from sapien_score.display.events import (
+        ScanStarted,
+        ScenarioCompleted,
+        ScenarioStarted,
+    )
+    from sapien_score.engine.driver import run_scenario
+
+    from .scan_output import (
+        _atomic_write_json,
+        build_output_payload,
+        compute_aggregates,
+        save_partial,
+    )
+
+    scan_start_time = time.monotonic()
+    # ScanStarted fires once at the top of the loop. Domain hint is best-
+    # effort: orchestration doesn't track the original --domain flag,
+    # so we infer "single domain" when every scenario shares one.
+    if engine.event_bus is not None:
+        unique_domains = {s.domain for s in engine.scenarios}
+        domain_hint = (
+            next(iter(unique_domains)) if len(unique_domains) == 1 else None
+        )
+        engine.event_bus.emit(ScanStarted(
+            model=model,
+            domain=domain_hint,
+            scenario_count=len(engine.scenarios),
+            scoring_mode=engine.scoring_mode,
+            council_size=(
+                engine.council.size
+                if engine.council is not None
+                else None
+            ),
+        ))
+    results: list = []
+    failed_scenarios: list[dict] = []
+    running_tokens = 0
+    running_cost = 0.0
+    # Halt the scan after this many consecutive checkpoint-write failures.
+    # A full disk or a permissions glitch shouldn't produce hundreds of
+    # warning lines and a scan whose --resume file never materializes.
+    CHECKPOINT_FAILURE_LIMIT = 3
+    consecutive_checkpoint_failures = 0
+
+    try:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            console=console,
+        ) as progress:
+            task = progress.add_task("Scanning...", total=len(engine.scenarios))
+
+            for idx, scenario in enumerate(engine.scenarios, 1):
+                progress.update(
+                    task,
+                    description=f"[{idx}/{len(engine.scenarios)}] {scenario.domain}: {scenario.title}",
+                )
+
+                if engine.event_bus is not None:
+                    engine.event_bus.emit(ScenarioStarted(
+                        scenario_id=scenario.id,
+                        title=scenario.title,
+                        domain=scenario.domain,
+                        turn_count=len(scenario.escalations) + 1,
+                        scenario_number=idx,
+                        total_scenarios=len(engine.scenarios),
+                    ))
+
+                try:
+                    result = run_scenario(
+                        scenario=scenario,
+                        adapter=engine.adapter,
+                        verbose=verbose,
+                        judge=engine.judge,
+                        persona_text=engine.persona_text,
+                        memory_text=engine.memory_text,
+                        model_profile=engine.model_profile,
+                        disable_counter_refusals=engine.no_counter_refusals,
+                        layer2_threshold=engine.layer2_threshold,
+                        divergence_strategy=engine.divergence_strategy,
+                        event_bus=engine.event_bus,
+                        council_size_hint=(
+                            engine.council.size
+                            if engine.council is not None
+                            else None
+                        ),
+                    )
+                except Exception as e:
+                    # Redact before log / console / storage: a provider auth
+                    # error can carry the request's Authorization header.
+                    safe_error = _redact(str(e))
+                    # A missing/invalid API key fails EVERY scenario. Treating
+                    # it as a per-scenario skip produced N identical failures
+                    # and an empty result set. Detect the auth class, save any
+                    # work done so far, print ONE actionable line, and abort.
+                    if is_auth_error(e):
+                        save_partial(
+                            results, failed_scenarios, engine.partial_path,
+                            model, engine.override_rules, run_id=engine.run_id,
+                        )
+                        console.print(
+                            "\n[red]No API key found (or it was rejected).[/red] "
+                            "Set [bold]OPENAI_API_KEY[/bold] (or your provider's "
+                            "key variable, e.g. ANTHROPIC_API_KEY / GOOGLE_API_KEY) "
+                            "and re-run the scan."
+                        )
+                        if engine.trace_writer:
+                            engine.trace_writer.close()
+                        raise SystemExit(1)
+                    logger.warning(
+                        "Scenario %s failed after retries: %s — skipping",
+                        scenario.id, safe_error[:150],
+                    )
+                    console.print(
+                        f"[yellow]  Scenario {scenario.id} failed: "
+                        f"{safe_error[:120]} — skipping[/yellow]"
+                    )
+                    failed_scenarios.append({
+                        "id": scenario.id,
+                        "title": scenario.title,
+                        "error": safe_error[:200],
+                    })
+                    save_partial(
+                        results, failed_scenarios, engine.partial_path,
+                        model, engine.override_rules, run_id=engine.run_id,
+                    )
+                    progress.advance(task)
+                    continue
+
+                results.append((scenario, result))
+
+                if engine.event_bus is not None:
+                    # ScenarioResult.verdict is a ConversationVerdict
+                    # dataclass (scoring/layer1.py), not a string. The
+                    # verdict label ("held"/"drifted"/...) and the
+                    # final health_score both live on the nested
+                    # object — surface them by attribute access, not
+                    # by str()-ing the whole record.
+                    engine.event_bus.emit(ScenarioCompleted(
+                        scenario_id=scenario.id,
+                        title=scenario.title,
+                        verdict=str(result.verdict.verdict).upper(),
+                        health_score=float(result.verdict.health_score),
+                        scenario_number=idx,
+                        total_scenarios=len(engine.scenarios),
+                    ))
+
+                # Drift webhook (fire-and-forget) — runs after the scenario
+                # is appended so callers reading engine.webhook_notifier
+                # observe a monotonic alerts_sent counter even if the user
+                # KeyboardInterrupts mid-loop. Wrapped in a broad except so
+                # a malformed receiver URL or transient threading hiccup
+                # never aborts the scan.
+                if engine.webhook_notifier is not None:
+                    try:
+                        engine.webhook_notifier.maybe_alert(scenario, result)
+                    except Exception as exc:
+                        logger.warning(
+                            "Webhook dispatch error for %s: %s",
+                            scenario.id, exc,
+                        )
+
+                # Running cost display in verbose mode
+                running_tokens += result.total_tokens
+                running_cost += result.total_cost_usd
+                if verbose and result.total_tokens > 0:
+                    console.print(
+                        f"  [dim]Scenario complete: {result.total_tokens:,} tokens "
+                        f"(${result.total_cost_usd:.4f}) | Running total: "
+                        f"{running_tokens:,} tokens (${running_cost:.4f})[/dim]"
+                    )
+
+                # Incremental checkpoint
+                if output:
+                    try:
+                        ckpt_dim, ckpt_health, ckpt_mean, ckpt_p10 = compute_aggregates(results)
+                        ckpt_payload = build_output_payload(
+                            model=model,
+                            results=results,
+                            dim_averages=ckpt_dim,
+                            overall_health=ckpt_health,
+                            mean_score=ckpt_mean,
+                            p10=ckpt_p10,
+                            previous_payload=engine.previous_payload,
+                            resume_path=engine.resume_path,
+                            override_rules=engine.override_rules,
+                            failed_scenarios=failed_scenarios,
+                            run_id=engine.run_id,
+                            scan_started_at=engine.scan_started_at,
+                        )
+                        _atomic_write_json(output, ckpt_payload)
+                    except OSError as e:
+                        consecutive_checkpoint_failures += 1
+                        logger.warning(
+                            "Checkpoint write failed (%d consecutive): %s",
+                            consecutive_checkpoint_failures, e,
+                        )
+                        if consecutive_checkpoint_failures >= CHECKPOINT_FAILURE_LIMIT:
+                            console.print(
+                                f"\n[red]Checkpoint write has failed "
+                                f"{consecutive_checkpoint_failures} times in a row "
+                                f"(last error: {e}). Aborting scan so the problem "
+                                f"isn't hidden under a flood of warnings — check "
+                                f"disk space / permissions on {output}.[/red]"
+                            )
+                            raise SystemExit(1)
+                    else:
+                        consecutive_checkpoint_failures = 0
+
+                save_partial(
+                    results, failed_scenarios, engine.partial_path,
+                    model, engine.override_rules, run_id=engine.run_id,
+                )
+                progress.advance(task)
+
+    except KeyboardInterrupt:
+        console.print(
+            "\n[yellow]Scan interrupted. Saving partial results...[/yellow]"
+        )
+        save_partial(
+            results, failed_scenarios, engine.partial_path,
+            model, engine.override_rules, run_id=engine.run_id,
+        )
+        if engine.trace_writer:
+            engine.trace_writer.close()
+        console.print(f"[green]Partial results saved: {engine.partial_path}[/green]")
+        console.print(
+            f"Resume with: voigt-kampff scan --model {model} "
+            f"--resume {engine.partial_path}"
+        )
+        raise SystemExit(0)
+
+    scan_elapsed = time.monotonic() - scan_start_time
+    return results, failed_scenarios, scan_elapsed
+
+
+# ---------------------------------------------------------------------------
+# Finalization (output writes, report, cleanup)
+# ---------------------------------------------------------------------------
+
+def finalize_scan(
+    *,
+    console: "Console",
+    engine: EngineConfig,
+    model: str,
+    results: list,
+    failed: list,
+    dim_averages: dict,
+    overall_health: dict,
+    mean_score: float,
+    p10: float,
+    output: Optional[str],
+    report: Optional[str],
+    cost_csv: Optional[str],
+    judge_model: Optional[str],
+    scan_elapsed: float,
+    publish: bool = False,
+    publish_label: Optional[str] = None,
+    publish_primary: bool = False,
+    publish_url: Optional[str] = None,
+    publisher: Optional[str] = None,
+    publish_transcripts: bool = False,
+    layer2_threshold_applied: float = 0.0,
+) -> None:
+    """Write JSON/CSV/HTML outputs, optionally publish, and clean up."""
+    from sapien_score.display.events import ScanCompleted
+    from .scan_output import (
+        _atomic_write_json,
+        build_output_payload,
+        compute_content_hash,
+        compute_results_checksum,
+        compute_timing_summary,
+        write_cost_csv,
+    )
+
+    # Emit ScanCompleted before any I/O so a slow JSON-write doesn't
+    # delay the live display's terminal cleanup. risk_band_for is the
+    # single source of truth for health-score → risk-label mapping; the
+    # live UI uses the same helper so the two cannot disagree on whether
+    # a 65-mean run is "Moderate" or "High."
+    if engine.event_bus is not None:
+        from sapien_score.scoring.constants import risk_band_for
+        risk_band = risk_band_for(mean_score)
+        total_cost = None
+        if results:
+            total_cost = sum(
+                r.total_cost_usd for _, r in results
+                if hasattr(r, "total_cost_usd")
+            ) or None
+        engine.event_bus.emit(ScanCompleted(
+            total_scenarios=len(results) + len(failed),
+            completed=len(results),
+            failed=len(failed),
+            mean_health=float(mean_score),
+            risk_band=risk_band,
+            total_cost=total_cost,
+            elapsed_seconds=float(scan_elapsed),
+        ))
+
+    scan_finished_at = datetime.now(timezone.utc).isoformat()
+
+    # --- Build output payload (needed for JSON write, publish, or HTML
+    # report — v1.5 risk + council displays read from the same payload so
+    # the report and the JSON file can never disagree). ---
+    output_data = None
+    if output or publish or report:
+        output_data = build_output_payload(
+            model=model,
+            results=results,
+            dim_averages=dim_averages,
+            overall_health=overall_health,
+            mean_score=mean_score,
+            p10=p10,
+            previous_payload=engine.previous_payload,
+            resume_path=engine.resume_path,
+            override_rules=engine.override_rules,
+            layer2_threshold_applied=layer2_threshold_applied,
+            failed_scenarios=failed,
+            run_id=engine.run_id,
+            scan_started_at=engine.scan_started_at,
+            scan_finished_at=scan_finished_at,
+            skipped_scenarios=engine.skipped_scenarios,
+        )
+        timing_summary = compute_timing_summary(results, scan_elapsed)
+        if timing_summary:
+            output_data["_timing"] = timing_summary
+            # _timing is included in the file write but not in the
+            # content_hash/checksum (those are fingerprints of results only,
+            # so re-running timing analysis doesn't invalidate them).
+
+    # --- JSON output ---
+    if output and output_data:
+        _atomic_write_json(output, output_data)
+        if failed:
+            console.print(
+                f"\n[green]Results saved to {output} "
+                f"({len(results)} completed, {len(failed)} failed)[/green]"
+            )
+        else:
+            console.print(f"\n[green]Results saved to {output}[/green]")
+
+    # --- CSV cost export ---
+    if cost_csv:
+        write_cost_csv(cost_csv, model, results)
+        console.print(f"[green]Cost CSV written to {cost_csv}[/green]")
+
+    # --- HTML report ---
+    if report:
+        from sapien_score.reporting.html_report import generate_html_report
+        generate_html_report(
+            results=[r for _, r in results],
+            model_name=model,
+            output_path=report,
+            judge_model=judge_model,
+            scan_payload=output_data,
+        )
+        console.print(f"[green]HTML report written to {report}[/green]")
+
+    # --- Failed scenario summary / partial cleanup ---
+    if failed:
+        console.print(
+            f"\n[yellow]WARNING: {len(failed)} scenario(s) "
+            f"failed and were skipped:[/yellow]"
+        )
+        for fs in failed:
+            console.print(f"  - {fs['id']}: {fs['error'][:80]}")
+        console.print(
+            f"[dim]Partial results also saved to {engine.partial_path}[/dim]"
+        )
+        console.print(
+            f"[yellow]Resume with: voigt-kampff scan --model {model} "
+            f"--resume {engine.partial_path}[/yellow]"
+        )
+    else:
+        try:
+            Path(engine.partial_path).unlink(missing_ok=True)
+        except OSError:
+            pass
+
+    if engine.trace_writer:
+        engine.trace_writer.close()
+
+    # --- Webhook alert summary ---
+    # Counts dispatched alerts (background POSTs may still be in flight on
+    # daemon threads). Suppressed when no notifier was configured so the
+    # default scan output stays unchanged.
+    if engine.webhook_notifier is not None:
+        n_total = len(results) + len(failed)
+        console.print(
+            f"[dim]Webhook alerts sent: "
+            f"{engine.webhook_notifier.alerts_sent} of {n_total} "
+            f"scenario{'s' if n_total != 1 else ''} "
+            f"(threshold: {engine.webhook_notifier.threshold})[/dim]"
+        )
+
+    # --- Surface any silently-degraded judge activity ---
+    # JudgeScorer tracks total turns where both attempts failed. If that
+    # count is >0, L2 silently fell back to L1 for those turns — warn
+    # loudly so the operator doesn't assume a clean judge run.
+    judge_failures = getattr(engine.judge, "failure_count", 0) or 0
+    if judge_failures > 0:
+        total_turns = sum(len(r.turns) for _, r in results) if results else 0
+        console.print(
+            f"[yellow]Judge degraded: {judge_failures} turn(s) fell back "
+            f"to Layer 1 only (out of {total_turns} scored). "
+            f"Check earlier WARNING lines for causes (API key / rate "
+            f"limits / parse failures).[/yellow]"
+        )
+
+    # --- Publish to scoreboard ---
+    if publish and output_data:
+        from sapien_score.publishing.client import publish_results, resolve_judge_family
+        judge_family = resolve_judge_family(judge_model, console)
+        publish_results(
+            console=console,
+            output_data=output_data,
+            judge_model=judge_model,
+            judge_family=judge_family,
+            run_label=publish_label,
+            is_primary=publish_primary,
+            publish_url=publish_url,
+            publisher=publisher,
+            publish_transcripts=publish_transcripts,
+        )
+
+    console.print()

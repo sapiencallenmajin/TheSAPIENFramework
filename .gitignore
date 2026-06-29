@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage
+htmlcov/
+build/
+dist/
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Node / Astro (site moved to separate repo — keep ignored in case of local builds)
+node_modules/
+.astro/
+package.json
+package-lock.json
+
+# Environment secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Editor / tooling
+.claude/
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Local benchmark outputs (may contain API keys in tracebacks)
+sapien-score/results/
+run-benchmarks.ps1
+run-benchmarks.sh
+
+# Run-output dumps, backups, and rendered reports — never commit (may echo keys in tracebacks)
+*.backup.json
+*.partial.backup.json
+*.html
+*-paste-ready.txt
+sapien-score/council_*.json
+sapien-score/benchmark_*.json
+sapien-score/smoke-*.json
+
+# Assets from prior repo layout — now external
+sapien-asm/
+sapien-asm-v0.1/
+sapien-asm-v0.1.zip
+files/
+files.zip

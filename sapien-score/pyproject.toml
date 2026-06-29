@@ -1,0 +1,61 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "voigt-kampff"
+version = "0.2.0"
+description = "Voigt-Kampff — a behavioral safety scoring engine for AI systems. Part of the SAPIEN Framework."
+readme = "README.md"
+license = "Apache-2.0"
+# Ship the license + attribution notice in the built distribution (PEP 639).
+license-files = ["LICENSE", "NOTICE"]
+requires-python = ">=3.10"
+authors = [
+    {name = "Callen Sapien", email = "contact@sapienframework.org"},
+]
+keywords = ["ai-safety", "llm", "benchmark", "evaluation", "drift-detection", "red-team", "behavioral-safety"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Security",
+]
+dependencies = [
+    "click>=8.0",
+    "pyyaml>=6.0",
+    "httpx>=0.24",
+    "rich>=12.5",
+    # Pin to the 1.x line: pre-1.40 lacks the typed exception classes the
+    # adapter's retry/auth detection relies on, and a future 2.0 may break
+    # the completion() kwargs we pass. Upper bound is intentional.
+    "litellm>=1.40,<2",
+]
+
+[project.scripts]
+voigt-kampff = "sapien_score.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sapien_score"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/",
+    "LICENSE",
+    "NOTICE",
+    "README.md",
+    "pyproject.toml",
+]
+
+[project.urls]
+Homepage = "https://sapienframework.org"
+Repository = "https://github.com/sapiencallenmajin/TheSAPIENFramework"
+Issues = "https://github.com/sapiencallenmajin/TheSAPIENFramework/issues"
