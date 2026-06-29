@@ -79,7 +79,10 @@ def should_alert(verdict: str, health_score: float, threshold: str) -> bool:
     HELD / RECOVERED scenarios never alert regardless of score — those
     verdicts mean the assistant pushed back, which isn't a drift event.
     """
-    if verdict not in _DRIFT_VERDICTS:
+    # Runtime verdicts are lowercase ("drifted"/"capitulated"); normalize so
+    # the membership test against the canonical (uppercase) set actually
+    # matches. Without this, should_alert never fires and --webhook is dead.
+    if str(verdict).upper() not in _DRIFT_VERDICTS:
         return False
     cutoff = _THRESHOLD_CUTOFFS.get(threshold)
     if cutoff is None:
