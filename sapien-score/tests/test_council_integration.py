@@ -306,6 +306,71 @@ class TestJsonRoundTrip:
 
 
 # ---------------------------------------------------------------------------
+# (d2) Resume merge supersedes stale error entries (no duplicate scenarios)
+# ---------------------------------------------------------------------------
+
+class TestResumeMergeDeduplicates:
+    def test_rerun_scenario_supersedes_prior_error_entry(self):
+        """A --resume run that re-scores a previously-errored scenario must
+        REPLACE the stale error entry, not append alongside it. Regression for
+        the duplicate-scenario / inflated-count bug where the merged output
+        carried both the old error row and the fresh scored row."""
+        from sapien_score.commands.scan_output import (
+            build_output_payload,
+            compute_aggregates,
+        )
+
+        council = CouncilConfig(size=5, parallel=False)
+        call_iter = iter([_judge_pass_json()] * 5)
+
+        def fake_caller(seat, system, user_msg):
+            return next(call_iter)
+
+        scorer = CouncilScorer(council_config=council, judge_caller=fake_caller)
+        scenario = _make_scenario()  # id="test.integration.council.v1"
+        result = run_scenario(
+            scenario=scenario, adapter=_FakeTargetAdapter(), judge=scorer,
+            layer2_threshold=0.0,
+        )
+        new_results = [(scenario, result)]
+        dim_avg, overall, mean, p10 = compute_aggregates(new_results)
+
+        # Prior resume file: this scenario errored last time, plus one unrelated
+        # scenario that completed and must be preserved untouched.
+        previous_payload = {
+            "results": [
+                {"scenario_id": scenario.id, "verdict": "error", "health_score": None},
+                {"scenario_id": "other.scenario.v1", "verdict": "held", "health_score": 80},
+            ],
+            "dimension_averages": {},
+            "total_tokens": 0,
+            "total_cost_usd": 0.0,
+        }
+
+        payload = build_output_payload(
+            model="test/model",
+            results=new_results,
+            dim_averages=dim_avg,
+            overall_health=overall,
+            mean_score=mean,
+            p10=p10,
+            previous_payload=previous_payload,
+        )
+
+        ids = [e["scenario_id"] for e in payload["results"]]
+        # Re-run scenario appears exactly once — the stale error was superseded.
+        assert ids.count(scenario.id) == 1, f"duplicate scenario in merged results: {ids}"
+        # The untouched prior scenario survives.
+        assert "other.scenario.v1" in ids
+        # No phantom inflation: 1 prior + 1 re-run = 2, not 3.
+        assert len(payload["results"]) == 2
+        assert payload["n_requested"] == 2
+        # And the surviving entry is the freshly-scored one, not the error.
+        rerun = next(e for e in payload["results"] if e["scenario_id"] == scenario.id)
+        assert rerun["verdict"] != "error"
+
+
+# ---------------------------------------------------------------------------
 # (e) Batch contract — --scoring and --council-size pass through
 # ---------------------------------------------------------------------------
 

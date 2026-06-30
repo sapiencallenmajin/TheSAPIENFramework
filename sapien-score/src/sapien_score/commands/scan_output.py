@@ -420,6 +420,14 @@ def build_output_payload(
 
     # --- Resume merge path ---
     old_entries = previous_payload.get("results", []) or []
+    # New results supersede any prior entry for the same scenario. A --resume
+    # run re-runs scenarios that previously errored, so a naive concat keeps
+    # BOTH the stale error entry and the fresh scored entry — duplicating the
+    # scenario and inflating n_requested / the published scenario count. Drop
+    # any prior entry whose scenario was just re-run before appending the new
+    # results.
+    rerun_ids = {e.get("scenario_id") for e in new_entries if e.get("scenario_id")}
+    old_entries = [e for e in old_entries if e.get("scenario_id") not in rerun_ids]
     combined_entries = old_entries + new_entries
 
     # Exclude error entries (health_score is None) from aggregates.
