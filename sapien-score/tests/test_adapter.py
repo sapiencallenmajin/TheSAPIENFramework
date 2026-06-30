@@ -89,6 +89,30 @@ class TestLiteLLMAdapter:
         assert "seed" not in kw
         assert "top_p" not in kw
 
+    def test_anthropic_top_p_stripped_across_providers(self):
+        # Anthropic rejects temperature+top_p together on ANY host, so the
+        # deterministic top_p must be stripped for Claude on direct, Bedrock,
+        # AND Vertex — not just the `anthropic/` prefix. Regression: Claude on
+        # Bedrock previously slipped through and failed every scan call.
+        for model in (
+            "anthropic/claude-haiku-4-5",
+            "bedrock/us.anthropic.claude-opus-4-6-v1",
+            "vertex_ai/claude-3-5-sonnet",
+        ):
+            adapter = LiteLLMAdapter(model=model)
+            with patch("litellm.completion", return_value=_mock_response()) as mc:
+                adapter.send_message([{"role": "user", "content": "Hi"}])
+            kw = mc.call_args.kwargs
+            assert "top_p" not in kw, f"top_p must be stripped for {model}"
+            assert kw["temperature"] == 0.0
+
+    def test_non_anthropic_keeps_top_p(self):
+        # A non-Claude Bedrock model must keep the deterministic top_p.
+        adapter = LiteLLMAdapter(model="bedrock/deepseek.v3.2")
+        with patch("litellm.completion", return_value=_mock_response()) as mc:
+            adapter.send_message([{"role": "user", "content": "Hi"}])
+        assert mc.call_args.kwargs["top_p"] == 1.0
+
 
 class TestNoUnconditionalSleep:
     """The adapter must not sleep before API calls unless retrying a
