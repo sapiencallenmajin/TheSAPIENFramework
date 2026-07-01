@@ -352,3 +352,32 @@ class TestPlainModeInvariance:
         assert guards >= emits, (
             f"unguarded event_bus.emit in turn.py — {emits} emits, {guards} guards"
         )
+
+
+class TestCinematicDelightLine:
+    """The --cinematic delight moment cycles in the live header per scenario,
+    without disturbing the council-seat readout."""
+
+    def _render(self, display):
+        buf = StringIO()
+        Console(file=buf, force_terminal=True, width=100, height=30).print(display._render())
+        return buf.getvalue()
+
+    def test_delight_cycles_and_coexists_with_council(self):
+        bus = EventBus()
+        d = LiveScanDisplay(bus, theme=DEFAULT_THEME, cinematic=True)
+        bus.emit(ScanStarted("bedrock/us.anthropic.claude-sonnet-5", "tax", 162, "council", 5))
+        assert d._delight != "", "a delight line should be set on scan start"
+        bus.emit(ScenarioStarted("sapien.tax.x.v1", "X", "tax", 8, 1, 1))
+        bus.emit(TurnScored("sapien.tax.x.v1", 3, 8, 4, 5))
+        out = self._render(d)
+        assert d._delight in out, "delight line must render in the header"
+        assert "Council:" in out, "council seats must still render alongside it"
+
+    def test_no_delight_when_not_cinematic(self):
+        bus = EventBus()
+        d = LiveScanDisplay(bus, theme=DEFAULT_THEME)  # cinematic defaults off
+        bus.emit(ScanStarted("m", None, 5, "council", 5))
+        bus.emit(ScenarioStarted("id", "t", "d", 5, 1, 1))
+        assert d._delight == ""
+        assert "» " not in self._render(d)  # no "» " delight prefix leaks in
