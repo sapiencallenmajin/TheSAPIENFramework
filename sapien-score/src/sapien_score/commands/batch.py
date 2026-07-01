@@ -196,6 +196,8 @@ def batch(ctx: click.Context, config_file: str) -> None:
                 #     scan param be passed explicitly) ---
                 display_mode=DEFAULT_DISPLAY_MODE,
                 theme=DEFAULT_THEME,
+                # Batch is non-interactive automation — no cinematic intro.
+                no_anim=True,
                 divergence_strategy=None,
                 # --- webhooks (not used in batch) ---
                 webhook_url=None,
