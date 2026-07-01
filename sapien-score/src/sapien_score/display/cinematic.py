@@ -249,7 +249,11 @@ def reveal_verdict(
         if score is None:
             return
         stops = _GREEN if score >= 70 else _AMBER if score >= 50 else _CYLON
-        _reveal(_figlet(f"{score}  {str(rating).upper()}"), random.choice(_VERDICT_EFFECTS), stops)
+        # Big, clean score NUMBER only — then the rating as a normal decoded
+        # line beneath. Figleting the whole "87  LOW RISK" string stretched it
+        # into an over-wide, warped block; a 2-3 char number reads crisp.
+        _reveal(_figlet(str(score)), random.choice(_VERDICT_EFFECTS), stops)
+        _reveal(f"HEALTH SCORE  ·  {str(rating).upper()}", "Decrypt", stops)
         # Reset terminal modes (no clear — keep the scan output above the
         # summary panel that render_summary_panel prints next).
         _restore_terminal(console, clear=False)
