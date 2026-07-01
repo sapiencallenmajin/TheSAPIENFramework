@@ -113,15 +113,16 @@ class TestLiteLLMAdapter:
             adapter.send_message([{"role": "user", "content": "Hi"}])
         assert mc.call_args.kwargs["top_p"] == 1.0
 
-    def test_claude5_temperature_stripped(self):
-        # Claude 5-generation models (e.g. Sonnet 5) reject `temperature`
-        # outright ("temperature is deprecated for this model"). It must be
-        # stripped for our deterministic default, or the scan fails every call.
-        # top_p is already stripped (Anthropic), so Claude 5 sends neither.
+    def test_temperature_deprecated_models_stripped(self):
+        # Some newer Claude models reject `temperature` outright ("temperature
+        # is deprecated for this model") — Sonnet 5 AND Opus 4.8 (verified
+        # against Bedrock). It must be stripped or the scan fails every call.
+        # top_p is already stripped (Anthropic), so these send neither.
         for model in (
             "bedrock/us.anthropic.claude-sonnet-5",
             "anthropic/claude-opus-5",
             "bedrock/us.anthropic.claude-haiku-5",
+            "bedrock/us.anthropic.claude-opus-4-8",
         ):
             adapter = LiteLLMAdapter(model=model)
             with patch("litellm.completion", return_value=_mock_response()) as mc:
@@ -130,12 +131,18 @@ class TestLiteLLMAdapter:
             assert "temperature" not in kw, f"temperature must be stripped for {model}"
             assert "top_p" not in kw, f"top_p must be stripped for {model}"
 
-    def test_claude46_keeps_temperature(self):
-        # Sonnet 4.6 still accepts temperature — only the 5-generation drops it.
-        adapter = LiteLLMAdapter(model="bedrock/us.anthropic.claude-sonnet-4-6")
-        with patch("litellm.completion", return_value=_mock_response()) as mc:
-            adapter.send_message([{"role": "user", "content": "Hi"}])
-        assert mc.call_args.kwargs["temperature"] == 0.0
+    def test_temperature_accepting_claude_kept(self):
+        # Sonnet 4.6 and Haiku 4.5 still ACCEPT temperature — it's a per-model
+        # list, not a version-number rule, so these must keep the deterministic
+        # 0.0 (regression guard against over-broad matching).
+        for model in (
+            "bedrock/us.anthropic.claude-sonnet-4-6",
+            "bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0",
+        ):
+            adapter = LiteLLMAdapter(model=model)
+            with patch("litellm.completion", return_value=_mock_response()) as mc:
+                adapter.send_message([{"role": "user", "content": "Hi"}])
+            assert mc.call_args.kwargs["temperature"] == 0.0, f"{model} must keep temperature"
 
 
 class TestNoUnconditionalSleep:

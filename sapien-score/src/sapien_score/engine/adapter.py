@@ -168,17 +168,20 @@ def _is_anthropic_model(model: str) -> bool:
     return "anthropic" in m or "claude" in m
 
 
-# Claude 5-generation models deprecate the `temperature` parameter: the API
-# returns 400 "temperature is deprecated for this model" (seen first on
-# bedrock/us.anthropic.claude-sonnet-5) rather than ignoring it. Like the
+# Some newer Claude models deprecate the `temperature` parameter: the API
+# returns 400 "temperature is deprecated for this model" (seen on
+# claude-sonnet-5 and claude-opus-4-8) rather than ignoring it. Like the
 # OpenAI reasoning case, drop_params=True doesn't help — temperature is a
 # known param, it's the value that's rejected — so we strip it ourselves.
-# Matched as a substring of the (prefix-inclusive) model id so it catches
-# Bedrock/Vertex/direct routes and date-stamped variants. Add fragments here
-# as new Claude generations drop temperature.
+# It is NOT strictly by generation: Opus 4.8 drops it, but Sonnet 4.6 and
+# Haiku 4.5 still accept it — so this is an explicit per-model list, not a
+# version-number rule. Matched as a substring of the (prefix-inclusive) model
+# id so it catches Bedrock/Vertex/direct routes and date-stamped variants. Add
+# fragments here as new Claude models drop temperature.
 _ANTHROPIC_NO_TEMPERATURE_FRAGMENTS: tuple[str, ...] = (
     "claude-sonnet-5", "claude-opus-5", "claude-haiku-5",
     "sonnet-5", "opus-5", "haiku-5",
+    "claude-opus-4-8", "opus-4-8",
 )
 
 
