@@ -32,7 +32,7 @@ Runs one curated scenario, Layer 1 deterministic scoring, results in ~90 seconds
 
 `voigt-kampff scan` uses **council scoring by default** — each turn is
 evaluated by five independent judges drawn from distinct model families
-(Meta, Google, DeepSeek, Mistral, Cohere), and their majority vote
+(Meta, Google, DeepSeek, Mistral, Amazon), and their majority vote
 decides the verdict. This avoids the single-family-bias problem you hit
 when one frontier model scores another frontier model from the same
 provider.

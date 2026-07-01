@@ -83,7 +83,8 @@ def validate() -> int:
         print("  OPENROUTER_API_KEY  (seats 1-2: Meta / Google)")
         print("  DEEPSEEK_API_KEY    (seat 3: DeepSeek)")
         print("  MISTRAL_API_KEY     (seat 4: Mistral)")
-        print("  COHERE_API_KEY      (seat 5: Cohere)")
+        print("  AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_REGION_NAME")
+        print("                      (seat 5: Amazon Nova via Bedrock)")
         print()
         print("See: https://docs.litellm.ai/docs/providers for provider setup.")
         return 1
