@@ -197,7 +197,7 @@ def batch(ctx: click.Context, config_file: str) -> None:
                 display_mode=DEFAULT_DISPLAY_MODE,
                 theme=DEFAULT_THEME,
                 # Batch is non-interactive automation — no cinematic intro.
-                cinematic=False,
+                no_anim=True,
                 divergence_strategy=None,
                 # --- webhooks (not used in batch) ---
                 webhook_url=None,
