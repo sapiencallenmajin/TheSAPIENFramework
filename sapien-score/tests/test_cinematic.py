@@ -77,6 +77,33 @@ class TestBootFallback:
         assert buf.getvalue() == ""
 
 
+class TestTerminalHandoff:
+    """The boot→live-display handoff must reset the terminal modes TTE toggles
+    (cursor visibility, autowrap) and clear, so rich.Live starts clean. This is
+    the regression for the broken council-panel render."""
+
+    def test_restore_resets_cursor_and_autowrap(self, monkeypatch):
+        cap = io.StringIO()
+        monkeypatch.setattr("sys.stdout", cap)
+        c._restore_terminal(Console(file=io.StringIO()), clear=True)
+        seq = cap.getvalue()
+        assert "\x1b[?25h" in seq, "cursor must be re-shown"
+        assert "\x1b[?7h" in seq, "autowrap must be re-enabled"
+        assert "\x1b[0m" in seq, "SGR must be reset"
+
+    def test_restore_clear_true_clears_the_console(self):
+        # force_terminal so rich emits real control codes (the interactive scan
+        # console is always a terminal). clear() -> erase-screen + home.
+        buf = io.StringIO()
+        c._restore_terminal(Console(file=buf, force_terminal=True), clear=True)
+        assert "\x1b[2J" in buf.getvalue()
+
+    def test_restore_clear_false_keeps_content(self):
+        buf = io.StringIO()
+        c._restore_terminal(Console(file=buf, force_terminal=True), clear=False)
+        assert "\x1b[2J" not in buf.getvalue()
+
+
 class TestDeckIntegrity:
     def test_deck_has_ten_moments(self):
         assert len(c.DELIGHT_DECK) == 10
