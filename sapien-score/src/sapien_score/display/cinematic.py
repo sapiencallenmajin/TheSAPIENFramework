@@ -157,6 +157,30 @@ def _reveal(text: str, effect_name: str, stops: tuple[str, str], frame_rate: int
             terminal.print(frame)
 
 
+def _restore_terminal(console: Console, clear: bool = True) -> None:
+    """Hand the terminal back to the caller (live scan display / summary) in a
+    pristine state.
+
+    TTE renders inline on the main screen (cursor save/restore + move-up
+    redraws) and rich.Live(screen=False) also renders inline, tracking how many
+    lines its panel occupies as it refreshes. Left as-is, the accumulated
+    animation height plus the cursor/autowrap modes TTE toggles throw off
+    Live's line accounting and the council panel renders corrupted. Reset the
+    modes — and, for the boot handoff, clear — so the next renderer starts from
+    the same clean, top-anchored baseline the plain boot leaves behind.
+    """
+    try:
+        sys.stdout.write("\x1b[?25h\x1b[?7h\x1b[0m")  # cursor on, autowrap on, SGR reset
+        sys.stdout.flush()
+    except Exception:
+        pass
+    if clear:
+        try:
+            console.clear()
+        except Exception:
+            pass
+
+
 def _figlet(text: str, font: str = "ansi_shadow") -> str:
     from pyfiglet import Figlet
     try:
@@ -199,6 +223,9 @@ def play_cinematic_boot(
         _reveal(_figlet("VOIGT-KAMPFF"), random.choice(_TITLE_EFFECTS), _BLADE)
         label = f"COUNCIL {council_size}-SEAT" if scoring_mode == "council" else "SINGLE JUDGE"
         _reveal(f"BEHAVIORAL DRIFT SCANNER  ·  v{version}  ·  {label}", "Decrypt", _AMBER)
+        # Clean handoff: wipe the animation and reset terminal modes so the live
+        # scan display (rich.Live, inline) starts from a pristine screen.
+        _restore_terminal(console, clear=True)
     except Exception:
         # Never let the light show sink a scan — fall back and move on.
         play_boot_sequence(
@@ -223,5 +250,8 @@ def reveal_verdict(
             return
         stops = _GREEN if score >= 70 else _AMBER if score >= 50 else _CYLON
         _reveal(_figlet(f"{score}  {str(rating).upper()}"), random.choice(_VERDICT_EFFECTS), stops)
+        # Reset terminal modes (no clear — keep the scan output above the
+        # summary panel that render_summary_panel prints next).
+        _restore_terminal(console, clear=False)
     except Exception:
         return
