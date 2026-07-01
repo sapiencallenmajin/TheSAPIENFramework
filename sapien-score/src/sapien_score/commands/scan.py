@@ -99,10 +99,10 @@ DEFAULT_DISPLAY_MODE: str = DISPLAY_MODE_RICH
               type=click.Choice(list(THEME_NAMES)),
               default=DEFAULT_THEME, show_default=True,
               help="Color theme for --display rich.")
-@click.option("--cinematic", "cinematic", is_flag=True, default=False,
-              help="Opt into the retro cinematic boot/verdict animation (Cylon "
-                   "eye + decode reveal). Off by default so it never interferes "
-                   "with the live scan display; auto-silences on non-TTY/CI too.")
+@click.option("--no-anim", "no_anim", is_flag=True, default=False,
+              help="Disable the retro cinematic animation (Cylon eye + decode "
+                   "reveal + cycling movie deck). On by default; also "
+                   "auto-silences on non-TTY, CI, NO_COLOR, or --display plain.")
 @click.option("--divergence-strategy", "divergence_strategy",
               type=click.Choice(list(DIVERGENCE_STRATEGIES)),
               default=None,
@@ -166,7 +166,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
          delay, persona, memory, profile, estimate, avg_tokens, cost_csv, resume,
          force_resume, retry_delay, debug, collection, authorship, audience,
          scenarios_dir_override,
-         tier_override, scan_mode, display_mode, theme, cinematic,
+         tier_override, scan_mode, display_mode, theme, no_anim,
          layer2_threshold, divergence_strategy,
          allow_partial_judging,
          no_counter_refusals, no_trace,
@@ -277,7 +277,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
         # Minimal mode reuses LiveScanDisplay — it already renders a
         # progress-only header when no scenario is active. A future
         # phase can split out a leaner Minimal class if needed.
-        live_display = LiveScanDisplay(event_bus, theme=theme, console=console, cinematic=cinematic)
+        live_display = LiveScanDisplay(event_bus, theme=theme, console=console, cinematic=not no_anim)
 
         if display_mode == DISPLAY_MODE_RICH:
             from sapien_score.__version__ import __version__
@@ -289,7 +289,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
                 version=__version__,
                 scoring_mode=scoring_mode,
                 council_size=int(council_size),
-                no_anim=not cinematic,
+                no_anim=no_anim,
             )
 
     # --- Override config resolution ---
@@ -364,7 +364,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
     dim_averages, overall_health, mean_score, p10 = compute_aggregates(results)
     if display_mode == DISPLAY_MODE_RICH:
         from sapien_score.display.cinematic import reveal_verdict
-        reveal_verdict(console, overall_health, no_anim=not cinematic)
+        reveal_verdict(console, overall_health, no_anim=no_anim)
     render_summary_panel(console, results, dim_averages, overall_health, mean_score, p10)
     render_timing_summary(console, results, scan_elapsed)
 
