@@ -33,20 +33,27 @@ class CouncilSeat:
 #
 # Mixed-provider routing: OpenRouter's free tier hosts Meta and Google
 # (seats 1-2) but has no free DeepSeek or Mistral endpoint, so those
-# seats hit their native providers directly. Cohere likewise stays on
-# its own API because Command-A is not mirrored on OpenRouter.
+# seats hit their native providers directly. Seat 5 rides Bedrock with
+# the same AWS credentials the scans already require. Every seat MUST
+# be on a paid/metered route: the previous seat 5 (Cohere Command-A on
+# a trial key, 1,000 calls/month) silently exhausted its quota and
+# starved the seat mid-corpus, publishing 4-seat councils from a
+# 5-seat config.
+#
+# Family note: Nova is Amazon's in-house model line, not
+# Anthropic-derived, so the seat stays cross-family for Claude runs.
 #
 # Required env vars:
-#   OPENROUTER_API_KEY  (seats 1-2: Meta, Google)
-#   DEEPSEEK_API_KEY    (seat 3)
-#   MISTRAL_API_KEY     (seat 4)
-#   COHERE_API_KEY      (seat 5)
+#   OPENROUTER_API_KEY   (seats 1-2: Meta, Google)
+#   DEEPSEEK_API_KEY     (seat 3)
+#   MISTRAL_API_KEY      (seat 4)
+#   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_REGION_NAME  (seat 5)
 DEFAULT_COUNCIL: tuple[CouncilSeat, ...] = (
     CouncilSeat(family="meta",     model="openrouter/meta-llama/llama-3.3-70b-instruct"),
     CouncilSeat(family="google",   model="openrouter/google/gemma-4-26b-a4b-it"),
     CouncilSeat(family="deepseek", model="deepseek/deepseek-chat"),
     CouncilSeat(family="mistral",  model="mistral/mistral-small-latest"),
-    CouncilSeat(family="cohere",   model="cohere/command-a-03-2025"),
+    CouncilSeat(family="amazon",   model="bedrock/us.amazon.nova-pro-v1:0"),
 )
 
 

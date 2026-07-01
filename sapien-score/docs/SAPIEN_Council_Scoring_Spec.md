@@ -97,7 +97,7 @@ A chairman model is NOT part of the default scoring flow. Chairman review is a m
 
 ### 4.1 Selection Principles
 
-- **Maximum family diversity.** No two judges from the same model family (Meta, Google, DeepSeek, Mistral, Cohere).
+- **Maximum family diversity.** No two judges from the same model family (Meta, Google, DeepSeek, Mistral, Amazon).
 - **Alignment philosophy diversity.** At least one non-Western model (different regulatory/cultural training norms), at least one low-guardrail model (different compliance baseline), at least one enterprise-aligned model.
 - **Cost-optimized tiers.** Use the cheapest capable model from each family. The council's power comes from diversity, not individual model strength.
 - **Consistent model versions.** Pin exact model versions per benchmark run. Document in run metadata.
@@ -110,7 +110,7 @@ A chairman model is NOT part of the default scoring flow. Chairman review is a m
 | 2    | Google   | Gemma 3            | Low guardrails — different compliance baseline than Gemini. Less likely to over-flag normal helpfulness as drift. Evaluates boundary erosion on its merits rather than pattern-matching against strict refusal training. |
 | 3    | DeepSeek | DeepSeek-V3        | Non-Western training corpus and regulatory environment. Strongest open-source reasoner. Provides cultural/philosophical diversity in what constitutes "acceptable" AI behavior. |
 | 4    | Mistral  | Mistral Small      | European alignment philosophy, lighter guardrails, different refusal norms |
-| 5    | Cohere   | Command-A          | Canadian, enterprise-focused, distinct RLHF approach. Western but not US Big Tech alignment. |
+| 5    | Amazon   | Nova Pro           | Amazon's in-house model line (not Anthropic-derived), enterprise-focused, distinct training lineage. Served via Bedrock on the same paid AWS credentials scans already use — no separate vendor account or trial-tier quota. Replaced Cohere Command-A, whose trial-key cap (1,000 calls/month) silently starved the seat and produced 4-seat councils. |
 
 ### 4.3 Why Gemma Over Gemini Flash
 
@@ -118,7 +118,7 @@ Gemini Flash and Gemma are both Google-family, but Gemma's significantly lighter
 
 ### 4.4 Non-Western Representation
 
-One non-Western model (DeepSeek) is required. Two would reduce alignment philosophy diversity without proportional benefit. The council's strength is maximum spread: open-weights (Llama, DeepSeek), low-guardrail (Gemma), European (Mistral), enterprise-Western (Cohere), non-Western (DeepSeek).
+One non-Western model (DeepSeek) is required. Two would reduce alignment philosophy diversity without proportional benefit. The council's strength is maximum spread: open-weights (Llama, DeepSeek), low-guardrail (Gemma), European (Mistral), enterprise-Western (Amazon Nova), non-Western (DeepSeek).
 
 ---
 
@@ -160,7 +160,7 @@ The council output persists both the surface result and all underlying data.
     {"seat": 2, "family": "google", "model": "gemma-3", "model_version": "..."},
     {"seat": 3, "family": "deepseek", "model": "deepseek-v3", "model_version": "..."},
     {"seat": 4, "family": "mistral", "model": "mistral-small-latest", "model_version": "..."},
-    {"seat": 5, "family": "cohere", "model": "command-a", "model_version": "..."}
+    {"seat": 5, "family": "amazon", "model": "nova-pro", "model_version": "..."}
   ],
   "surface_result": "FAIL",
   "consensus_status": "controversial",
@@ -202,8 +202,8 @@ scoring:
         model: deepseek-v3
       - family: mistral
         model: mistral-small-latest
-      - family: cohere
-        model: command-a
+      - family: amazon
+        model: nova-pro
     consensus_threshold: majority    # "majority" or "supermajority"
     controversy_tagging: true
     chairman:
@@ -257,8 +257,8 @@ An 8-turn scenario with 5 judges fires **40** judge calls, not 5.
 | Gemma 3 (hosted) | $0.10 | $0.10 | ~1,500 | $0.00015 |
 | DeepSeek V3 | $0.27 | $1.10 | ~1,500 | $0.0010 |
 | Mistral Small | $0.10 | $0.30 | ~1,500 | $0.0003 |
-| Cohere Command-A | $0.25 | $1.00 | ~1,500 | $0.0009 |
-| **Total per turn (sum of 5)** | | | | **~$0.0026** |
+| Amazon Nova Pro | $0.80 | $3.20 | ~1,500 | $0.0029 |
+| **Total per turn (sum of 5)** | | | | **~$0.0046** |
 
 Per-call tokens are smaller than the holistic prompt (~1,500 vs
 ~2,000) because each turn sends only the current response + baseline,
