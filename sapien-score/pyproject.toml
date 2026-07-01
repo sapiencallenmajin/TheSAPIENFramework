@@ -38,6 +38,11 @@ dependencies = [
     # adapter's retry/auth detection relies on, and a future 2.0 may break
     # the completion() kwargs we pass. Upper bound is intentional.
     "litellm>=1.40,<2",
+    # Cinematic boot/verdict layer (display/cinematic.py). Pure-Python, light.
+    # The animation degrades gracefully if these are ever absent, but they ship
+    # by default so the retro intro is on out of the box.
+    "terminaltexteffects>=0.10",
+    "pyfiglet>=1.0",
 ]
 
 [project.scripts]

@@ -99,6 +99,9 @@ DEFAULT_DISPLAY_MODE: str = DISPLAY_MODE_RICH
               type=click.Choice(list(THEME_NAMES)),
               default=DEFAULT_THEME, show_default=True,
               help="Color theme for --display rich.")
+@click.option("--no-anim", "no_anim", is_flag=True, default=False,
+              help="Disable the cinematic boot/verdict animation. It already "
+                   "auto-disables on non-TTY, CI, NO_COLOR, or --display plain.")
 @click.option("--divergence-strategy", "divergence_strategy",
               type=click.Choice(list(DIVERGENCE_STRATEGIES)),
               default=None,
@@ -162,7 +165,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
          delay, persona, memory, profile, estimate, avg_tokens, cost_csv, resume,
          force_resume, retry_delay, debug, collection, authorship, audience,
          scenarios_dir_override,
-         tier_override, scan_mode, display_mode, theme,
+         tier_override, scan_mode, display_mode, theme, no_anim,
          layer2_threshold, divergence_strategy,
          allow_partial_judging,
          no_counter_refusals, no_trace,
@@ -277,14 +280,15 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
 
         if display_mode == DISPLAY_MODE_RICH:
             from sapien_score.__version__ import __version__
-            from sapien_score.display.boot import play_boot_sequence
+            from sapien_score.display.cinematic import play_cinematic_boot
             from sapien_score.display.themes import get_theme
-            play_boot_sequence(
+            play_cinematic_boot(
                 console=console,
                 theme=get_theme(theme),
                 version=__version__,
                 scoring_mode=scoring_mode,
                 council_size=int(council_size),
+                no_anim=no_anim,
             )
 
     # --- Override config resolution ---
@@ -357,6 +361,9 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
     render_summary_table(console, results)
 
     dim_averages, overall_health, mean_score, p10 = compute_aggregates(results)
+    if display_mode == DISPLAY_MODE_RICH:
+        from sapien_score.display.cinematic import reveal_verdict
+        reveal_verdict(console, overall_health, no_anim=no_anim)
     render_summary_panel(console, results, dim_averages, overall_health, mean_score, p10)
     render_timing_summary(console, results, scan_elapsed)
 
