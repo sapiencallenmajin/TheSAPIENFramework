@@ -15,6 +15,7 @@ Rich handles the actual terminal refresh rate.
 from __future__ import annotations
 
 from collections import deque
+import random
 from typing import Optional
 
 from rich.console import Console, Group
@@ -34,7 +35,12 @@ from sapien_score.display.events import (
     TurnScored,
 )
 from sapien_score.display.themes import DEFAULT_THEME, get_theme
+from sapien_score.display.cinematic import DELIGHT_DECK
 from sapien_score.scoring.constants import RISK_BANDS, risk_band_for
+
+# Movie-terminal one-liners that cycle in the header while a --cinematic scan
+# runs — reuse the same deck the boot montage draws from (no duplication).
+_DELIGHT_PHRASES: tuple[str, ...] = tuple(phrase for phrase, _effect, _stops in DELIGHT_DECK)
 
 
 # ─── Tunables ───────────────────────────────────────────────────────────────
@@ -99,11 +105,17 @@ class LiveScanDisplay:
         event_bus: EventBus,
         theme: str = DEFAULT_THEME,
         console: Optional[Console] = None,
+        cinematic: bool = False,
     ) -> None:
         self.bus = event_bus
         self.theme = get_theme(theme)
         self.theme_name = theme
         self.console = console or Console()
+
+        # Retro delight: a movie one-liner cycled in the header per scenario
+        # while --cinematic is on. Cosmetic only; empty when disabled.
+        self._cinematic = cinematic
+        self._delight: str = ""
 
         # Mutable state populated by event handlers
         self._model: str = ""
@@ -171,6 +183,7 @@ class LiveScanDisplay:
         self._council_size = event.council_size
         self._total_scenarios = event.scenario_count
         self._completed = 0
+        self._rotate_delight()
         self._refresh()
 
     def on_scenario_started(self, event: ScenarioStarted) -> None:
@@ -180,6 +193,7 @@ class LiveScanDisplay:
         self._current_total_turns = event.turn_count
         self._current_seats_done = None
         self._current_seats_total = None
+        self._rotate_delight()
         self._refresh()
 
     def on_turn_scored(self, event: TurnScored) -> None:
@@ -210,6 +224,14 @@ class LiveScanDisplay:
         self._summary = event
         self._refresh()
 
+    def _rotate_delight(self) -> None:
+        """Advance the header's movie one-liner. No-op unless --cinematic."""
+        if not self._cinematic or not _DELIGHT_PHRASES:
+            return
+        # Avoid repeating the current line back-to-back.
+        pool = [p for p in _DELIGHT_PHRASES if p != self._delight] or list(_DELIGHT_PHRASES)
+        self._delight = random.choice(pool)
+
     # ─── Rendering ─────────────────────────────────────────────────────────
 
     def _refresh(self) -> None:
@@ -219,7 +241,7 @@ class LiveScanDisplay:
     def _render(self) -> Layout:
         layout = Layout()
         layout.split_column(
-            Layout(self._render_header(), name=LAYOUT_HEADER, size=8),
+            Layout(self._render_header(), name=LAYOUT_HEADER, size=9 if self._cinematic else 8),
             Layout(self._render_current(), name=LAYOUT_CURRENT, size=7),
             Layout(self._render_results(), name=LAYOUT_RESULTS),
         )
@@ -250,12 +272,22 @@ class LiveScanDisplay:
             style=self.theme["accent"],
         )
 
-        body = Group(
+        rows = [
             Text(f"Model: {self._model}", style=self.theme["secondary"]),
             Text(f"Scoring: {scoring_line}", style=self.theme["secondary"]),
             Text(f"Domain: {domain_line}", style=self.theme["secondary"]),
-            progress,
-        )
+        ]
+        # Cycling movie one-liner (--cinematic only) — the "delight moment" that
+        # drifts by as the scan grinds through scenarios.
+        if self._cinematic and self._delight:
+            rows.append(
+                Text.assemble(
+                    ("» ", self.theme["dim"]),
+                    (self._delight, f"bold {self.theme['accent']}"),
+                )
+            )
+        rows.append(progress)
+        body = Group(*rows)
         return Panel(
             body,
             title="SAPIEN Behavioral Drift Scanner",

@@ -277,7 +277,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
         # Minimal mode reuses LiveScanDisplay — it already renders a
         # progress-only header when no scenario is active. A future
         # phase can split out a leaner Minimal class if needed.
-        live_display = LiveScanDisplay(event_bus, theme=theme, console=console)
+        live_display = LiveScanDisplay(event_bus, theme=theme, console=console, cinematic=cinematic)
 
         if display_mode == DISPLAY_MODE_RICH:
             from sapien_score.__version__ import __version__
