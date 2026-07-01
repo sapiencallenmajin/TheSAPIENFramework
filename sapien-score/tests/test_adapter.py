@@ -113,6 +113,30 @@ class TestLiteLLMAdapter:
             adapter.send_message([{"role": "user", "content": "Hi"}])
         assert mc.call_args.kwargs["top_p"] == 1.0
 
+    def test_claude5_temperature_stripped(self):
+        # Claude 5-generation models (e.g. Sonnet 5) reject `temperature`
+        # outright ("temperature is deprecated for this model"). It must be
+        # stripped for our deterministic default, or the scan fails every call.
+        # top_p is already stripped (Anthropic), so Claude 5 sends neither.
+        for model in (
+            "bedrock/us.anthropic.claude-sonnet-5",
+            "anthropic/claude-opus-5",
+            "bedrock/us.anthropic.claude-haiku-5",
+        ):
+            adapter = LiteLLMAdapter(model=model)
+            with patch("litellm.completion", return_value=_mock_response()) as mc:
+                adapter.send_message([{"role": "user", "content": "Hi"}])
+            kw = mc.call_args.kwargs
+            assert "temperature" not in kw, f"temperature must be stripped for {model}"
+            assert "top_p" not in kw, f"top_p must be stripped for {model}"
+
+    def test_claude46_keeps_temperature(self):
+        # Sonnet 4.6 still accepts temperature — only the 5-generation drops it.
+        adapter = LiteLLMAdapter(model="bedrock/us.anthropic.claude-sonnet-4-6")
+        with patch("litellm.completion", return_value=_mock_response()) as mc:
+            adapter.send_message([{"role": "user", "content": "Hi"}])
+        assert mc.call_args.kwargs["temperature"] == 0.0
+
 
 class TestNoUnconditionalSleep:
     """The adapter must not sleep before API calls unless retrying a

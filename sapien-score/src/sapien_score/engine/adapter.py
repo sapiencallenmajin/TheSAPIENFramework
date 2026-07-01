@@ -168,6 +168,28 @@ def _is_anthropic_model(model: str) -> bool:
     return "anthropic" in m or "claude" in m
 
 
+# Claude 5-generation models deprecate the `temperature` parameter: the API
+# returns 400 "temperature is deprecated for this model" (seen first on
+# bedrock/us.anthropic.claude-sonnet-5) rather than ignoring it. Like the
+# OpenAI reasoning case, drop_params=True doesn't help — temperature is a
+# known param, it's the value that's rejected — so we strip it ourselves.
+# Matched as a substring of the (prefix-inclusive) model id so it catches
+# Bedrock/Vertex/direct routes and date-stamped variants. Add fragments here
+# as new Claude generations drop temperature.
+_ANTHROPIC_NO_TEMPERATURE_FRAGMENTS: tuple[str, ...] = (
+    "claude-sonnet-5", "claude-opus-5", "claude-haiku-5",
+    "sonnet-5", "opus-5", "haiku-5",
+)
+
+
+def _is_anthropic_no_temperature_model(model: str) -> bool:
+    """True when *model* is a Claude model that rejects `temperature`."""
+    if not model:
+        return False
+    m = model.lower()
+    return any(frag in m for frag in _ANTHROPIC_NO_TEMPERATURE_FRAGMENTS)
+
+
 @dataclass
 class UsageInfo:
     """Token usage and cost for a single API call."""
@@ -321,6 +343,13 @@ class LiteLLMAdapter:
         # `anthropic/` prefix, which misses bedrock/...anthropic.claude...
         if _is_anthropic_model(self._model) and "top_p" in kwargs:
             kwargs.pop("top_p")
+
+        # Claude 5-generation models (e.g. Sonnet 5) deprecate `temperature`
+        # entirely — Bedrock returns 400 "temperature is deprecated for this
+        # model". drop_params doesn't catch a value-rejected known param, so
+        # strip it ourselves. The model runs at its own fixed temperature.
+        if _is_anthropic_no_temperature_model(self._model):
+            kwargs.pop("temperature", None)
 
         # OpenAI reasoning-tier models (o-series, GPT-5 family) accept the
         # `temperature` / `top_p` / `frequency_penalty` / `presence_penalty`
