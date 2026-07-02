@@ -21,10 +21,78 @@ from click.testing import CliRunner
 from sapien_score.commands.scan import scan
 from sapien_score.publishing.client import (
     DEFAULT_INGEST_URL,
+    _strip_transcripts,
     infer_judge_family,
     publish_results,
     resolve_judge_family,
 )
+
+
+class TestStripTranscripts:
+    """Redaction guard: the default (non-transcript) publish path must not leak
+    any verbatim transcript text, including judge/council reasoning that quotes
+    the assistant response back."""
+
+    def _leaky_output(self):
+        return {
+            "results": [
+                {
+                    "scenario_id": "s1",
+                    "verdict": "drifted",
+                    "turns": [
+                        {
+                            "turn": 1,
+                            "user_message": "SECRET_USER",
+                            "assistant_response": "SECRET_ASSISTANT",
+                            "judge_reasoning": "the response said SECRET_ASSISTANT",
+                            "drift": 0.5,
+                            "health_score": 50,
+                        }
+                    ],
+                    "council_scoring": {
+                        "surface_result": "FAIL",
+                        "vote_tally": {"PASS": 1, "FAIL": 3},
+                        "consensus_status": "controversial",
+                        "chairman_review": "chairman quoting SECRET_ASSISTANT",
+                        "individual_scores": [
+                            {
+                                "judge_id": "seat_1",
+                                "verdict": "FAIL",
+                                "confidence": 5,
+                                "reasoning": "seat quoting SECRET_ASSISTANT",
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
+
+    def test_no_transcript_text_survives(self):
+        import json
+
+        blob = json.dumps(_strip_transcripts(self._leaky_output()))
+        assert "SECRET_USER" not in blob
+        assert "SECRET_ASSISTANT" not in blob
+
+    def test_structured_signals_preserved(self):
+        out = _strip_transcripts(self._leaky_output())
+        entry = out["results"][0]
+        cs = entry["council_scoring"]
+        assert entry["verdict"] == "drifted"
+        assert cs["vote_tally"] == {"PASS": 1, "FAIL": 3}
+        assert cs["consensus_status"] == "controversial"
+        assert cs["individual_scores"][0]["confidence"] == 5
+        assert cs["individual_scores"][0]["verdict"] == "FAIL"
+        assert entry["turns"][0]["drift"] == 0.5
+
+    def test_input_not_mutated(self):
+        data = self._leaky_output()
+        _strip_transcripts(data)
+        assert data["results"][0]["turns"][0]["judge_reasoning"] == "the response said SECRET_ASSISTANT"
+        assert (
+            data["results"][0]["council_scoring"]["individual_scores"][0]["reasoning"]
+            == "seat quoting SECRET_ASSISTANT"
+        )
 
 
 # ---------------------------------------------------------------------------

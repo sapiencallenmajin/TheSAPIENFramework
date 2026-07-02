@@ -37,7 +37,14 @@ dependencies = [
     # Pin to the 1.x line: pre-1.40 lacks the typed exception classes the
     # adapter's retry/auth detection relies on, and a future 2.0 may break
     # the completion() kwargs we pass. Upper bound is intentional.
-    "litellm>=1.40,<2",
+    #
+    # Floor raised to 1.83.7 and 1.82.8 excluded: the 1.82.7/1.82.8 wheels were
+    # a compromised supply-chain release (cloud-credential harvester, March
+    # 2026); 1.83.7 is the first clean build at/after that window. A loose
+    # >=1.40 floor let a rebuild resolve to the poisoned wheel. Only the litellm
+    # PROXY SERVER carries the 2026 CVE wave — this project is a library-only
+    # consumer of litellm.completion(), so the SDK path is unaffected.
+    "litellm>=1.83.7,!=1.82.8,<2",
     # Cinematic boot/verdict layer (display/cinematic.py). Pure-Python, light.
     # The animation degrades gracefully if these are ever absent, but they ship
     # by default so the retro intro is on out of the box.
