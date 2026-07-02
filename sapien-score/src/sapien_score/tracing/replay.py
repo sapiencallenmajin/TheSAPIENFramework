@@ -132,7 +132,12 @@ class TraceReader:
             )
 
         # Reject an oversized (possibly hostile) trace before reading it in.
-        check_input_file_size(self._path)
+        # Uses the trace-specific bound: full-corpus council traces run
+        # 43–146 MB, far past the general-input cap that a results/scenario
+        # JSON is held to.
+        from sapien_score.io import MAX_TRACE_FILE_BYTES
+
+        check_input_file_size(self._path, max_bytes=MAX_TRACE_FILE_BYTES)
 
         with open(self._path, encoding="utf-8") as f:
             for lineno, line in enumerate(f, 1):
