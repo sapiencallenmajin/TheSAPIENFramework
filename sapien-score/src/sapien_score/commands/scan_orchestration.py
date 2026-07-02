@@ -159,6 +159,23 @@ def load_risk_overrides(console: "Console", config_path: Optional[str]) -> list:
 # Setup
 # ---------------------------------------------------------------------------
 
+def resume_implies_run_all(
+    run_all: bool,
+    resume: Optional[str],
+    domain: Optional[str],
+    domains: Optional[str],
+    scenario_ids: Optional[str],
+) -> bool:
+    """Whether a bare ``--resume`` should default to running the full corpus.
+
+    A resume file records which scenarios already completed, so resuming with
+    no explicit scenario filter means "run everything, skip the finished ones".
+    Without this, ``scan --resume run.json`` (no ``--all``) hit the no-filter
+    guard and silently did nothing — a repeated operator trap.
+    """
+    return bool(resume) and not (run_all or domain or domains or scenario_ids)
+
+
 def setup_engine(
     *,
     model: str,
@@ -292,6 +309,13 @@ def setup_engine(
             raise SystemExit(1)
         all_scenarios = [s for s in all_scenarios if s.id in requested_ids]
 
+    if resume_implies_run_all(run_all, resume, domain, domains, scenario_ids):
+        run_all = True
+        console.print(
+            "[dim]--resume with no filter: defaulting to --all "
+            "(already-completed scenarios are skipped).[/dim]"
+        )
+
     if not run_all and not domain and not domains and not scenario_ids:
         console.print(
             "[yellow]No filter specified. Use --all to run every built-in scenario, "
@@ -300,8 +324,16 @@ def setup_engine(
         raise SystemExit(1)
 
     if not all_scenarios:
-        console.print(f"[red]No scenarios found matching the given filters.[/red]")
+        console.print(
+            "[red]Resolved 0 scenarios from the given filters / scenarios dir. "
+            "Nothing to run — check --domain/--collection/--scenarios-dir.[/red]"
+        )
         raise SystemExit(1)
+
+    # Count of scenarios resolved into scope; with --resume, already-completed
+    # ones are skipped downstream, so this is the in-scope total, not the
+    # number that will actually be (re)run.
+    console.print(f"[dim]Resolved {len(all_scenarios)} scenario(s) in scope.[/dim]")
 
     # --- Resume ---
     previous_payload: Optional[dict] = None
