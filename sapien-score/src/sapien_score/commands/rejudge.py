@@ -71,6 +71,122 @@ def _load_input(path: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Council replay support (council v1.1 migration path)
+# ---------------------------------------------------------------------------
+#
+# Re-scoring a council run under a new scoring version must NOT re-drive the
+# scan: scoring feeds back into conversation control flow (early termination /
+# escalation thresholds), so `scan --replay` under changed math diverges from
+# the trace mid-scenario and misses recorded entries. The correct model is:
+# transcripts are historical fact; only scoring re-runs. Judge VOTES are also
+# historical fact — they live in the trace — so council rejudge replays each
+# seat's recorded response instead of re-calling judge APIs ($0, deterministic).
+
+
+class TraceCouncilJudgeCaller:
+    """JudgeCaller that replays recorded judge responses from a trace.
+
+    Entries are queued per ``(seat model, request fingerprint)``: every seat
+    receives an IDENTICAL per-turn prompt, so fingerprint alone cannot
+    attribute a recorded response to a seat — the trace entry's ``model``
+    field disambiguates. Recorded per-seat errors are re-raised so a seat
+    that failed in the original run fails identically here (e.g. the
+    quota-dead Cohere seat), letting the v1.1 aggregation handle it.
+    """
+
+    def __init__(self, trace_path: str) -> None:
+        import collections
+
+        from sapien_score.io import MAX_TRACE_FILE_BYTES, check_input_file_size
+        from sapien_score.tracing.replay import request_fingerprint
+
+        check_input_file_size(trace_path, max_bytes=MAX_TRACE_FILE_BYTES)
+        self._fingerprint = request_fingerprint
+        self._queues: dict[tuple[str, str], collections.deque] = collections.defaultdict(
+            collections.deque
+        )
+        self._params: dict[str, dict] = {}
+        self.seat_models: list[str] = []  # distinct judge models, first-seen order
+        self.misses = 0
+        self.replays = 0
+
+        with open(trace_path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                entry = json.loads(line)
+                if entry.get("kind") != "judge_call":
+                    continue
+                model = entry.get("model") or ""
+                if model and model not in self.seat_models:
+                    self.seat_models.append(model)
+                    params = (entry.get("request") or {}).get("params")
+                    if isinstance(params, dict):
+                        self._params[model] = dict(params)
+                fp = self._fingerprint("judge_call", entry.get("request") or {})
+                self._queues[(model, fp)].append(entry)
+
+    def __call__(self, seat, system: str, user: str) -> str:
+        # Mirror LiteLLMAdapter._record_trace's request shape exactly —
+        # full message list including the system turn, plus the recorded
+        # sampling params for this seat — so fingerprints line up.
+        params = self._params.get(seat.model, {"temperature": 0.0, "max_tokens": 4096})
+        request = {
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            "params": params,
+            "tools": [],
+        }
+        fp = self._fingerprint("judge_call", request)
+        queue = self._queues.get((seat.model, fp))
+        if not queue:
+            self.misses += 1
+            raise RuntimeError(
+                f"replay miss: no recorded judge response for seat {seat.model} "
+                f"(fingerprint {fp[:16]}...)"
+            )
+        entry = queue.popleft()
+        error = (entry.get("metadata") or {}).get("error")
+        if error:
+            # Recorded seat failure — reproduce it.
+            raise RuntimeError(f"replayed seat error: {error}")
+        content = (entry.get("response") or {}).get("content")
+        if not content:
+            raise RuntimeError("replayed judge entry has empty content")
+        self.replays += 1
+        return content
+
+
+def _derive_council_seats(payload: dict, caller: "TraceCouncilJudgeCaller") -> list:
+    """Build the council roster for a replay rejudge.
+
+    Seat models come from the TRACE (first-seen order) — this includes seats
+    that never produced a verdict (their failed calls are still recorded),
+    which the results file alone cannot know about. Family labels are taken
+    from the results file's ``individual_scores`` where a seat did respond,
+    falling back to the litellm provider prefix.
+    """
+    from sapien_score.engine.council_config import CouncilSeat
+
+    family_by_model: dict[str, str] = {}
+    for entry in payload.get("results", []):
+        cs = entry.get("council_scoring") or {}
+        for s in cs.get("individual_scores") or []:
+            model, family = s.get("model"), s.get("family")
+            if model and family and model not in family_by_model:
+                family_by_model[model] = family
+
+    seats = []
+    for model in caller.seat_models:
+        family = family_by_model.get(model) or model.split("/", 1)[0]
+        seats.append(CouncilSeat(family=family, model=model))
+    return seats
+
+
+# ---------------------------------------------------------------------------
 # Per-scenario rejudge
 # ---------------------------------------------------------------------------
 
@@ -91,6 +207,13 @@ def _rejudge_scenario(scenario_entry: dict, judge, layer2_threshold: float) -> d
     from sapien_score.scoring.layer1 import get_verdict, score_turn as layer1_score_turn
 
     out = dict(scenario_entry)
+
+    # Error entries pass through untouched: they have no transcripts to
+    # re-score, and preserving verdict == "error" keeps the rejudged file
+    # `--resume`-compatible so the failed scenarios can be re-RUN live later.
+    if scenario_entry.get("verdict") == "error":
+        return out
+
     turns_in = scenario_entry.get("turns") or []
     if not turns_in:
         out["rejudge_partial"] = True
@@ -106,7 +229,16 @@ def _rejudge_scenario(scenario_entry: dict, judge, layer2_threshold: float) -> d
         return out
 
     baseline_response = turns_in[0].get("assistant_response") or ""
-    scenario_context = f"{scenario_entry.get('domain', '')}: {scenario_entry.get('title', '')}"
+    # Mirror the scan EXACTLY: judges are scenario-blind — engine/turn.py
+    # passes the fixed _BLIND_SCENARIO_CONTEXT constant, never the domain or
+    # title. The previous f"{domain}: {title}" here (a) leaked scenario
+    # framing to the judge that live scans never provide, biasing
+    # judge-sensitivity comparisons, and (b) changed the judge prompt text,
+    # which broke trace-replay fingerprint matching in council mode (every
+    # one of 7,135 recorded votes missed).
+    from sapien_score.engine.turn import _BLIND_SCENARIO_CONTEXT
+
+    scenario_context = _BLIND_SCENARIO_CONTEXT
 
     rejudged_turns: list[dict] = []
     turn_drifts: list[float] = []
@@ -202,6 +334,21 @@ def _rejudge_scenario(scenario_entry: dict, judge, layer2_threshold: float) -> d
     out["peak_drift"] = round(verdict.peak_drift, 4)
     out["peak_turn"] = verdict.peak_turn
     out["rejudge_partial"] = False
+
+    # Council mode: refresh the per-scenario council record from the last
+    # scored turn, mirroring the scan path (scan_output attaches
+    # engine.judge.last_council_result the same way). Without this the entry
+    # would carry the STALE pre-rejudge council_scoring (wrong
+    # council_version, wrong tallies) into the republished payload.
+    last_council = getattr(judge, "last_council_result", None)
+    if last_council is not None:
+        out["council_scoring"] = last_council.to_dict()
+    elif not hasattr(judge, "last_council_result"):
+        # Single-judge rejudge of a council-scored source: the stored
+        # council_scoring describes votes the OLD judge panel cast under the
+        # OLD scoring version — carrying it forward would stamp the output
+        # with provenance that doesn't describe these scores. Drop it.
+        out.pop("council_scoring", None)
     return out
 
 
@@ -318,11 +465,60 @@ def rejudge_payload(
     }
 
     partial_count = sum(1 for e in rejudged_entries if e.get("rejudge_partial"))
+    error_count = sum(1 for e in rejudged_entries if e.get("verdict") == "error")
     out["rejudge_summary"] = {
         "total_scenarios": len(rejudged_entries),
-        "rejudged_successfully": len(rejudged_entries) - partial_count,
+        "rejudged_successfully": len(rejudged_entries) - partial_count - error_count,
         "rejudge_failed": partial_count,
+        "passed_through_errors": error_count,
     }
+
+    # Publishable fields — a rejudged payload must satisfy the same schema-v3
+    # ingest contract as a fresh scan (run_id, timestamps, n_* counts,
+    # risk_summary, content_hash, _checksum, scoring provenance), otherwise it
+    # can only sit on disk. Mirrors scan_output.build_output_payload.
+    import uuid
+    from datetime import datetime, timezone
+
+    from sapien_score.commands.scan_output import (
+        _build_risk_summary,
+        compute_content_hash,
+        compute_results_checksum,
+    )
+
+    scored_entries = [
+        e for e in rejudged_entries
+        if e.get("verdict") not in ("error", "rejudge_failed")
+    ]
+    out["n_requested"] = len(rejudged_entries)
+    out["n_completed"] = len(scored_entries)
+    out["n_failed"] = len(rejudged_entries) - len(scored_entries)
+    out["risk_summary"] = _build_risk_summary(scored_entries)
+    out["run_id"] = uuid.uuid4().hex
+    if payload.get("scan_started_at"):
+        out["scan_started_at"] = payload["scan_started_at"]
+    if payload.get("scan_finished_at"):
+        out["scan_finished_at"] = payload["scan_finished_at"]
+    out["rejudged_at"] = datetime.now(timezone.utc).isoformat()
+
+    # Scoring provenance (same derivation as scan_output): the rejudged
+    # entries carry fresh council_scoring records, so the stamps reflect the
+    # NEW scoring version, and verify() will guard cross-version comparisons.
+    council_versions = {
+        e["council_scoring"].get("council_version")
+        for e in rejudged_entries
+        if isinstance(e, dict) and isinstance(e.get("council_scoring"), dict)
+    } - {None}
+    if council_versions:
+        out["scoring_mode"] = "council"
+        out["council_version"] = max(council_versions)
+        if len(council_versions) > 1:
+            out["council_version_mixed"] = sorted(council_versions)
+    else:
+        out["scoring_mode"] = "single"
+
+    out["content_hash"] = compute_content_hash(rejudged_entries)
+    out["_checksum"] = compute_results_checksum(rejudged_entries)
     return out
 
 
@@ -335,8 +531,25 @@ def rejudge_payload(
 @click.option(
     "--judge",
     "judge_model",
-    required=True,
-    help="Judge model identifier (e.g. bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0)",
+    default=None,
+    help="Judge model identifier (e.g. bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0). "
+    "Required for --scoring single; ignored for --scoring council.",
+)
+@click.option(
+    "--scoring",
+    type=click.Choice(["single", "council"]),
+    default="single",
+    show_default=True,
+    help="single: re-judge with one live judge model. council: re-score with "
+    "the council, replaying each seat's recorded votes from --replay.",
+)
+@click.option(
+    "--replay",
+    "replay_path",
+    type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    help="Trace file recorded by the original scan. Required for --scoring "
+    "council: seat votes are replayed from it (no judge API calls, $0).",
 )
 @click.option(
     "--output",
@@ -360,7 +573,9 @@ def rejudge_payload(
 )
 def rejudge(
     input_path: str,
-    judge_model: str,
+    judge_model: Optional[str],
+    scoring: str,
+    replay_path: Optional[str],
     output: str,
     layer2_threshold: float,
     retry_delay: float,
@@ -370,6 +585,14 @@ def rejudge(
     Reuses the per-turn transcripts stored in INPUT_PATH. No target-model
     API calls are made. Scenarios where any turn fails judging are marked
     ``rejudge_failed`` and excluded from recomputed aggregates.
+
+    Council mode (``--scoring council --replay <trace>``) is the migration
+    path for SCORE-AFFECTING council-version changes (see CHANGELOG):
+    transcripts come from INPUT_PATH, each seat's votes are replayed from
+    the trace, and only the aggregation math runs fresh — deterministic
+    and free. Do NOT use ``scan --replay`` for re-scoring: scoring feeds
+    back into conversation control flow, so a changed scorer diverges from
+    the recorded call sequence mid-scenario.
     """
     console = Console()
 
@@ -380,11 +603,35 @@ def rejudge(
 
     payload = _load_input(input_path)
 
-    from sapien_score.engine.adapter import get_adapter
-    from sapien_score.scoring.judge import JudgeScorer
+    if scoring == "council":
+        if not replay_path:
+            raise click.ClickException("--scoring council requires --replay <trace.jsonl>")
+        from sapien_score.engine.council_config import CouncilConfig
+        from sapien_score.engine.council_scorer import CouncilScorer
 
-    judge_adapter = get_adapter(model=judge_model, base_retry_delay=retry_delay)
-    judge = JudgeScorer(adapter=judge_adapter)
+        caller = TraceCouncilJudgeCaller(replay_path)
+        seats = _derive_council_seats(payload, caller)
+        if len(seats) not in (3, 5):
+            raise click.ClickException(
+                f"Trace contains {len(seats)} distinct judge seat(s) "
+                f"({[s.model for s in seats]}); council size must be 3 or 5. "
+                f"Was this trace recorded by a council scan?"
+            )
+        config = CouncilConfig(size=len(seats), seats=seats, parallel=True)
+        judge = CouncilScorer(config, judge_caller=caller, round_timeout_s=None)
+        judge_model = f"Council ({len(seats)}-seat, votes replayed)"
+        console.print(
+            f"[dim]Council replay: {len(seats)} seats from {replay_path} — "
+            f"{', '.join(s.family for s in seats)}[/dim]"
+        )
+    else:
+        if not judge_model:
+            raise click.ClickException("--scoring single requires --judge <model>")
+        from sapien_score.engine.adapter import get_adapter
+        from sapien_score.scoring.judge import JudgeScorer
+
+        judge_adapter = get_adapter(model=judge_model, base_retry_delay=retry_delay)
+        judge = JudgeScorer(adapter=judge_adapter)
 
     console.print(
         f"[dim]Rejudging {len(payload.get('results', []))} scenario(s) "
@@ -406,8 +653,15 @@ def rejudge(
     console.print(
         f"[green]Rejudged results written to {output}[/green] "
         f"({summary['rejudged_successfully']} ok, "
-        f"{summary['rejudge_failed']} failed)"
+        f"{summary['rejudge_failed']} failed, "
+        f"{summary.get('passed_through_errors', 0)} error entries passed through)"
     )
+    if scoring == "council":
+        console.print(
+            f"[dim]Replay: {caller.replays} seat votes replayed, "
+            f"{caller.misses} misses; degraded turns: "
+            f"{getattr(judge, 'failure_count', 0)}[/dim]"
+        )
     if summary["rejudge_failed"]:
         console.print(
             f"[yellow]{summary['rejudge_failed']} scenario(s) marked "
