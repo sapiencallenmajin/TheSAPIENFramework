@@ -97,7 +97,8 @@ def _check_parameter_compatibility(
 ) -> None:
     """Validate that results and trace came from the same scan.
 
-    Checks model match.  Raises SystemExit(2) on mismatch.
+    Checks model match and scoring-version compatibility.
+    Raises SystemExit(2) on mismatch.
     """
     results_model = results["model"]
     trace_target = trace_meta.get("target_model")
@@ -109,6 +110,37 @@ def _check_parameter_compatibility(
             f"  Trace model:    {trace_target}\n"
             f"These files are from different scans. "
             f"Use a matching results/trace pair.",
+            err=True,
+        )
+        raise SystemExit(EXIT_CANNOT_RUN)
+
+    # Scoring-version guard: council aggregation is SCORE-AFFECTING (v1.0 →
+    # v1.1 changed how council FAILs reach the composite), so replaying a
+    # trace with a NEWER scorer legitimately produces different numbers.
+    # Without this guard, verifying an old results file against current code
+    # dumps a wall of per-scenario score diffs that reads as data corruption.
+    # Exit 2 (cannot-run) with the actual remedy instead.
+    from sapien_score.engine.council_scorer import _COUNCIL_VERSION
+
+    stored = results.get("council_version")
+    if stored is None:
+        # Pre-stamp files: derive from per-scenario council records.
+        versions = {
+            e["council_scoring"].get("council_version")
+            for e in results.get("results", [])
+            if isinstance(e, dict) and isinstance(e.get("council_scoring"), dict)
+        } - {None}
+        stored = max(versions) if versions else None
+
+    if stored is not None and stored != _COUNCIL_VERSION:
+        click.echo(
+            f"Cannot verify: council scoring version mismatch\n"
+            f"  Results scored under:  council v{stored}\n"
+            f"  This CLI scores:       council v{_COUNCIL_VERSION}\n"
+            f"Scores are not comparable across council versions (see "
+            f"CHANGELOG: 'Council scoring v1.1'). Re-score the run with "
+            f"the current CLI first:\n"
+            f"  voigt-kampff scan --replay <trace.jsonl> ...",
             err=True,
         )
         raise SystemExit(EXIT_CANNOT_RUN)

@@ -188,6 +188,9 @@ def apply_divergence_fallback(
 def blend_scores(
     layer1: DriftResult,
     layer2_dimensions: dict[str, float],
+    *,
+    resolved_final_dims: frozenset[str] = frozenset(),
+    weighted_drift_floor: float = 0.0,
 ) -> DriftResult:
     """
     Blend Layer 1 and Layer 2 dimension scores into a final DriftResult.
@@ -196,6 +199,20 @@ def blend_scores(
         layer1: The Layer 1 deterministic DriftResult
         layer2_dimensions: Dict mapping dimension keys (layer1 names) to
             Layer 2 drift scores (0.0-1.0). Must contain all 4 dimensions.
+        resolved_final_dims: Dimensions whose layer2 value was already
+            resolved by a divergence strategy (e.g. ``strict`` picked
+            max(L1, L2)). These bypass the 0.4/0.6 blend and use the
+            resolved value directly — otherwise the blend re-dilutes the
+            "stricter score wins" resolution back toward the lenient L1
+            (the strict-strategy double-dilution defect).
+        weighted_drift_floor: Minimum final weighted_drift. Used by council
+            scoring (v1.1) so a consensus FAIL registers at verdict level:
+            a council FAIL concentrates on ONE dimension and is then
+            diluted by the blend, capping its composite contribution at
+            ~0.21 — below the 0.40 DRIFTED threshold — no matter how
+            unanimous or confident the panel was. The floor lifts the
+            FINAL weighted_drift (not per-dimension values) so the
+            council's verdict-level signal survives aggregation.
 
     Returns:
         New DriftResult with blended dimension scores.
@@ -203,8 +220,14 @@ def blend_scores(
     blended_dims = []
     for dim_score in layer1.dimensions:
         l2_val = layer2_dimensions.get(dim_score.dimension, dim_score.drift)
-        blended = (LAYER1_WEIGHT * dim_score.drift) + (LAYER2_WEIGHT * l2_val)
-        blended = round(min(1.0, max(0.0, blended)), 3)
+        if dim_score.dimension in resolved_final_dims:
+            # Divergence strategy already resolved this dimension — the
+            # resolved value IS the final value; re-blending would pull it
+            # back toward L1 by LAYER1_WEIGHT.
+            blended = round(min(1.0, max(0.0, l2_val)), 3)
+        else:
+            blended = (LAYER1_WEIGHT * dim_score.drift) + (LAYER2_WEIGHT * l2_val)
+            blended = round(min(1.0, max(0.0, blended)), 3)
         blended_dims.append(DimensionScore(
             dimension=dim_score.dimension,
             drift=blended,
@@ -216,6 +239,9 @@ def blend_scores(
         for d in blended_dims
     )
     weighted_drift = round(min(1.0, weighted_drift), 3)
+
+    if weighted_drift_floor > 0.0 and weighted_drift < weighted_drift_floor:
+        weighted_drift = round(min(1.0, max(0.0, weighted_drift_floor)), 3)
 
     health_score = round(100 * (1 - weighted_drift))
 
@@ -390,10 +416,29 @@ def score_with_layer2(
     # silently erased the reasoning field from any reader that held a
     # reference to layer2 after this function returned.
     reasoning = layer2.get("reasoning")
-    dimensions_only = {k: v for k, v in layer2.items() if k != "reasoning"}
+    # Council scoring (v1.1) attaches a verdict-level weighted-drift floor —
+    # extract it before treating the remaining keys as dimension scores.
+    try:
+        drift_floor = float(layer2.get("weighted_drift_floor") or 0.0)
+    except (TypeError, ValueError):
+        drift_floor = 0.0
+    dimensions_only = {
+        k: v for k, v in layer2.items() if k not in ("reasoning", "weighted_drift_floor")
+    }
     filtered, flag = apply_divergence_fallback(
         layer1, dimensions_only, strategy=divergence_strategy,
     )
+    # Under the strict strategy, diverged dimensions were resolved to
+    # max(L1, L2) — mark them so blend_scores uses the resolved value as
+    # final instead of re-diluting it 40% back toward L1.
+    resolved_final: frozenset[str] = frozenset()
+    if divergence_strategy == DIVERGENCE_STRATEGY_STRICT:
+        resolved_final = frozenset(
+            d.dimension
+            for d in layer1.dimensions
+            if d.dimension in dimensions_only
+            and abs(dimensions_only[d.dimension] - d.drift) > DIVERGENCE_THRESHOLD
+        )
     if flag:
         prefix = f"{log_context}: " if log_context else ""
         action = _STRATEGY_ACTIONS[divergence_strategy]
@@ -416,7 +461,12 @@ def score_with_layer2(
                         dim_score.drift, l2_val,
                         l2_val - dim_score.drift,
                     )
-    blended = blend_scores(layer1, filtered)
+    blended = blend_scores(
+        layer1,
+        filtered,
+        resolved_final_dims=resolved_final,
+        weighted_drift_floor=drift_floor,
+    )
 
     return Layer2FusionResult(
         final_score=blended,

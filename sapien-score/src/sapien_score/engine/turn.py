@@ -384,11 +384,16 @@ def execute_escalation_turn(
     # bus is None in plain mode → no allocation, no dispatch.
     if event_bus is not None:
         from sapien_score.display.events import TurnScored
-        # Council seat counts: when a council was configured, every
-        # successful fusion implies all seats responded (the council
-        # scorer aggregates synchronously). Partial-response detail
-        # would require seat-level callbacks; not in this phase.
+        # Council seat counts: report the ACTUAL responder count from the
+        # scorer's last CouncilResult when available. The previous
+        # hint-passthrough asserted "all seats responded" on every
+        # successful fusion, which hid seat attrition (the Cohere dead-seat
+        # incident ran entire scans at 4/5 seats with the live display
+        # showing 5/5).
         seats_responded = council_size_hint if council_size_hint else None
+        last_result = getattr(judge, "last_council_result", None)
+        if last_result is not None and getattr(last_result, "individual_scores", None) is not None:
+            seats_responded = len(last_result.individual_scores)
         event_bus.emit(TurnScored(
             scenario_id=scenario.id,
             turn_number=turn_number,
