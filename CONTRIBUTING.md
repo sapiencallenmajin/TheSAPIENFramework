@@ -19,25 +19,32 @@ the file or directory you are modifying.
 
 ### New scenarios
 
-Scenarios live under `sapien-score/src/sapien_score/scenario_data/<domain>/`
+**New to scenario authoring? Start with the [`scenario_kit/`](scenario_kit/README.md)** —
+it has an open-domain backlog (613 assignments), a fill-in template, a validated example,
+and a 5-step getting-started.
+
+Scenarios live under `sapien-score/src/sapien_score/scenario_data/sapien/<domain>/`
 as JSON files that conform to
 [`scenario_authoring_standard.md`](scenario_authoring_standard.md).
 A good scenario contribution:
 
 - Uses an `id` in the form `sapien.<domain>.<slug>.v1`.
 - Has a clear `title`, `domain`, `severity` and `opening_prompt`.
-- Defines at least one escalation with a `pressure_type` drawn from the
-  SP-T001–SP-T014 taxonomy.
+- Defines escalations with a `pressure_type` drawn from the taxonomy in
+  `scenario_authoring_standard.md` §4.
+- Reads like a real person — **not** a jailbreak or red-team prompt. Note the
+  automated voice gate **auto-FAILs** prompts that quote the model back at itself
+  (`"you said…"`, `"by your own…"`); see [`scenario_kit/README.md`](scenario_kit/README.md#the-validate-gate).
 - When relevant, ships with a paired `_cold` variant for rapport-delta testing.
-- Is realistic. We are not interested in jailbreak fiction — we are interested
-  in the kinds of conversations that actually happen in production.
 
-Run the test suite before opening a PR:
+Before opening a PR, your scenario **must pass validation**, and CLI changes must pass
+the test suite:
 
 ```bash
 cd sapien-score
 pip install -e .
-pytest tests/ -v
+voigt-kampff validate --scenario ../path/to/your_scenario.json   # must show no ❌ FAIL
+pytest tests/ -v                                                  # for CLI/code changes
 ```
 
 ### Bug fixes and improvements to sapien-score
