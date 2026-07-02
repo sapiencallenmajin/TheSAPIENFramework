@@ -186,7 +186,12 @@ def test_rejudge_happy_path_three_turns(tmp_path: Path) -> None:
     assert len(judge.calls) == 2
     assert {c["turn_number"] for c in judge.calls} == {1, 2}
     # Scenario context matches live-scan synthesis f"{domain}: {title}"
-    assert judge.calls[0]["scenario_context"] == "medical: withdrawal_pressure"
+    # Council v1.1 fidelity fix: rejudge now mirrors the live scan, which
+    # passes the scenario-BLIND constant (engine/turn.py) — the judge never
+    # sees domain/title. The old "domain: title" context leaked framing and
+    # broke trace-replay fingerprints.
+    from sapien_score.engine.turn import _BLIND_SCENARIO_CONTEXT
+    assert judge.calls[0]["scenario_context"] == _BLIND_SCENARIO_CONTEXT
 
 
 # ---------------------------------------------------------------------------
@@ -552,3 +557,145 @@ def test_rejudge_no_divergence_flag_when_judge_agrees() -> None:
             f"Turn {turn.get('turn')} was flagged divergent even though the "
             "judge returned Layer 1's own values"
         )
+
+
+# ---------------------------------------------------------------------------
+# Council replay mode (council v1.1 migration path)
+# ---------------------------------------------------------------------------
+
+def _write_trace(tmp_path: Path, entries: list[dict]) -> str:
+    p = tmp_path / "trace.jsonl"
+    with open(p, "w", encoding="utf-8") as f:
+        for e in entries:
+            f.write(json.dumps(e) + "\n")
+    return str(p)
+
+
+def _judge_entry(model: str, system: str, user: str, content: str | None,
+                 error: str | None = None) -> dict:
+    return {
+        "kind": "judge_call",
+        "model": model,
+        "request": {
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            "params": {"temperature": 0.0, "max_tokens": 4096},
+            "tools": [],
+        },
+        "response": {"content": content},
+        "metadata": {"error": error} if error else {},
+    }
+
+
+class _FakeSeat:
+    def __init__(self, model: str):
+        self.model = model
+
+
+def test_trace_caller_replays_per_seat_and_reproduces_errors(tmp_path: Path) -> None:
+    """Identical prompts go to every seat — attribution must key on the trace
+    entry's model, and recorded seat failures must be re-raised."""
+    from sapien_score.commands.rejudge import TraceCouncilJudgeCaller
+
+    trace = _write_trace(tmp_path, [
+        _judge_entry("m/a", "SYS", "PROMPT", '{"verdict":"PASS"}'),
+        _judge_entry("m/b", "SYS", "PROMPT", '{"verdict":"FAIL"}'),
+        _judge_entry("m/dead", "SYS", "PROMPT", None, error="429 quota"),
+    ])
+    caller = TraceCouncilJudgeCaller(trace)
+    assert caller.seat_models == ["m/a", "m/b", "m/dead"]
+
+    assert caller(_FakeSeat("m/a"), "SYS", "PROMPT") == '{"verdict":"PASS"}'
+    assert caller(_FakeSeat("m/b"), "SYS", "PROMPT") == '{"verdict":"FAIL"}'
+    with pytest.raises(RuntimeError, match="replayed seat error"):
+        caller(_FakeSeat("m/dead"), "SYS", "PROMPT")
+    # Queue exhausted -> miss, counted.
+    with pytest.raises(RuntimeError, match="replay miss"):
+        caller(_FakeSeat("m/a"), "SYS", "PROMPT")
+    assert caller.misses == 1
+    assert caller.replays == 2
+
+
+def test_derive_council_seats_orders_and_falls_back_on_family(tmp_path: Path) -> None:
+    from sapien_score.commands.rejudge import (
+        TraceCouncilJudgeCaller,
+        _derive_council_seats,
+    )
+
+    trace = _write_trace(tmp_path, [
+        _judge_entry("openrouter/meta/x", "S", "U", "r"),
+        _judge_entry("cohere/never-responded", "S", "U", None, error="429"),
+    ])
+    caller = TraceCouncilJudgeCaller(trace)
+    payload = {"results": [{"council_scoring": {"individual_scores": [
+        {"judge_id": "council_seat_1", "family": "meta", "model": "openrouter/meta/x"},
+    ]}}]}
+    seats = _derive_council_seats(payload, caller)
+    assert [s.model for s in seats] == ["openrouter/meta/x", "cohere/never-responded"]
+    assert seats[0].family == "meta"          # from results file
+    assert seats[1].family == "cohere"        # provider-prefix fallback
+
+
+def test_error_entries_pass_through_unchanged() -> None:
+    from sapien_score.commands.rejudge import _rejudge_scenario
+
+    entry = {"scenario_id": "s.err", "verdict": "error", "domain": "unknown",
+             "health_score": None, "turns": []}
+    out = _rejudge_scenario(dict(entry), FakeJudge(), 0.0)
+    assert out["verdict"] == "error"
+    assert "rejudge_partial" not in out
+
+
+def test_rejudge_uses_blind_scenario_context() -> None:
+    """Judges are scenario-blind in live scans (engine/turn.py passes a fixed
+    constant). Rejudge must mirror that — both for fidelity and so council
+    trace replay fingerprints match."""
+    from sapien_score.engine.turn import _BLIND_SCENARIO_CONTEXT
+
+    judge = FakeJudge()
+    rejudge_payload(
+        payload=_make_payload([_make_scenario_entry()]),
+        judge=judge,
+        judge_model="test/j",
+        source_path="in.json",
+    )
+    assert judge.calls, "judge was never invoked"
+    assert all(c["scenario_context"] == _BLIND_SCENARIO_CONTEXT for c in judge.calls)
+
+
+def test_rejudged_payload_is_publishable() -> None:
+    """Rejudged output must satisfy the schema-v3 ingest contract."""
+    scenarios = [_make_scenario_entry(),
+                 {"scenario_id": "s.err", "verdict": "error", "turns": [],
+                  "domain": "unknown", "health_score": None,
+                  "total_tokens": 0, "cost_usd": 0.0}]
+    out = rejudge_payload(
+        payload=_make_payload(scenarios),
+        judge=FakeJudge(),
+        judge_model="test/j",
+        source_path="in.json",
+    )
+    assert out["n_requested"] == 2
+    assert out["n_completed"] == 1
+    assert out["n_failed"] == 1
+    assert out["rejudge_summary"]["passed_through_errors"] == 1
+    assert "risk_summary" in out and "risk_band" in out["risk_summary"]
+    assert out["run_id"]
+    assert out["content_hash"]
+    assert out["_checksum"]
+    assert out["scoring_mode"] == "single"
+
+
+def test_single_judge_rejudge_drops_stale_council_scoring() -> None:
+    entry = _make_scenario_entry()
+    entry["council_scoring"] = {"council_version": "1.0", "surface_result": "FAIL"}
+    out = rejudge_payload(
+        payload=_make_payload([entry]),
+        judge=FakeJudge(),
+        judge_model="test/j",
+        source_path="in.json",
+    )
+    assert "council_scoring" not in out["results"][0]
+    assert out["scoring_mode"] == "single"
