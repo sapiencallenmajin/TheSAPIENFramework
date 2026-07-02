@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — Council scoring v1.1 (SCORE-AFFECTING)
+- **Verdict-level drift floor.** A council FAIL now floors the turn's final
+  composite `weighted_drift` at `magnitude × fail_vote_share` (halved when
+  degraded). Under council v1.0 a unanimous, maximum-confidence FAIL capped
+  at ~0.21 weighted_drift whenever Layer 1 missed the drift — mathematically
+  below the 0.40 DRIFTED threshold, so the council could never move a
+  scenario verdict on its own. Scores rise-in-drift / fall-in-health for
+  models whose failures were council-detected; **runs scored under v1.0 must
+  be re-scored (`rejudge`) before comparison.**
+- **Even-panel reduction.** When seat failures leave an even number of
+  responders, the lowest-confidence vote is excluded from the tally to
+  restore the spec §3.3 odd-panel guarantee (flag: `even_panel_reduced`).
+  v1.0 recorded 2-2 splits as fail-closed controversial FAILs, inflating
+  FAIL and controversy rates exactly on degraded runs.
+- **Strict-divergence resolution is final.** Dimensions resolved by the
+  `strict` divergence strategy (max of L1/L2) now enter the composite
+  directly instead of being re-blended 40% back toward the lenient L1.
+- **Degradation is surfaced.** `CouncilScorer.failure_count` feeds the
+  end-of-run "judge degraded" warning (previously dead code in council
+  mode); the live display reports actual seats responded per turn; publish
+  payloads carry `council_size` (max realized seats), `council_seats_min`,
+  and `council_degraded_scenarios` instead of a single-sample council_size.
+- `council_version` stamp bumped to `"1.1"` on every council result.
+
 ### Notes
 - **Spec-version lineage.** The last full *published* SAPIEN spec document is
   v1.1 (CC BY 4.0). The methodology changes between the published spec and the

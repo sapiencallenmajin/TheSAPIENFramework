@@ -413,6 +413,22 @@ def build_output_payload(
         if skipped_scenarios:
             payload["skipped_scenarios"] = list(skipped_scenarios)
         payload["risk_summary"] = _build_risk_summary(success_entries)
+        # Top-level scoring provenance. council_version is SCORE-AFFECTING
+        # (v1.0→v1.1 changed how council FAILs reach the composite), so two
+        # files with the same framework_version can still disagree — this
+        # stamp is what `verify` and downstream comparisons key on. Derived
+        # from the per-scenario council_scoring records so resumed/merged
+        # files stay accurate.
+        council_versions = {
+            e["council_scoring"].get("council_version")
+            for e in new_entries
+            if isinstance(e, dict) and isinstance(e.get("council_scoring"), dict)
+        } - {None}
+        if council_versions:
+            payload["scoring_mode"] = "council"
+            payload["council_version"] = max(council_versions)
+        else:
+            payload["scoring_mode"] = "single"
         # Risk summary excludes error entries — they have no verdict/tier.
         payload["content_hash"] = compute_content_hash(new_entries)
         payload["_checksum"] = compute_results_checksum(new_entries)
@@ -508,6 +524,24 @@ def build_output_payload(
     if merged_skipped:
         payload["skipped_scenarios"] = merged_skipped
     payload["risk_summary"] = _build_risk_summary(success_combined)
+    # Top-level scoring provenance across the MERGED entry set (see the
+    # fresh-payload branch above). On a resume, old and new entries can carry
+    # different council_versions; max() surfaces the newest so a mixed file
+    # is flagged by `verify` rather than passing as uniformly old.
+    council_versions = {
+        e["council_scoring"].get("council_version")
+        for e in combined_entries
+        if isinstance(e, dict) and isinstance(e.get("council_scoring"), dict)
+    } - {None}
+    if council_versions:
+        payload["scoring_mode"] = "council"
+        payload["council_version"] = max(council_versions)
+        if len(council_versions) > 1:
+            # Mixed provenance (e.g. v1.0 scenarios + v1.1 resumed re-runs).
+            # Recorded so downstream consumers can require a full re-score.
+            payload["council_version_mixed"] = sorted(council_versions)
+    else:
+        payload["scoring_mode"] = "single"
     payload["content_hash"] = compute_content_hash(combined_entries)
     payload["_checksum"] = compute_results_checksum(combined_entries)
     if resume_path:

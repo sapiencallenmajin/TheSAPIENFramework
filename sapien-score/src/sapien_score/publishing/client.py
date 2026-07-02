@@ -245,11 +245,22 @@ def publish_results(
     # Surface scoring metadata at the top level so the ingest endpoint
     # can record scoring_mode / council_size on the runs row without
     # having to introspect per-scenario council_scoring objects.
-    has_council = any(r.get("council_scoring") for r in output_data.get("results", []))
-    if has_council:
-        sample = next(r["council_scoring"] for r in output_data["results"] if r.get("council_scoring"))
+    # Realized seat counts across ALL scenarios — not a single sample, which
+    # misreported runs where the sampled scenario happened to be degraded (or
+    # the only clean one). council_size = the maximum seats that ever voted
+    # (the effective panel), with min/degraded-count so the ingest side can
+    # see attrition instead of inferring health from one row.
+    seat_counts = [
+        len(r["council_scoring"].get("individual_scores") or [])
+        for r in output_data.get("results", [])
+        if r.get("council_scoring")
+    ]
+    if seat_counts:
+        realized = max(seat_counts)
         payload["scoring_mode"] = "council"
-        payload["council_size"] = len(sample.get("individual_scores") or []) or None
+        payload["council_size"] = realized or None
+        payload["council_seats_min"] = min(seat_counts)
+        payload["council_degraded_scenarios"] = sum(1 for c in seat_counts if c < realized)
     else:
         payload["scoring_mode"] = "single"
     if publisher is not None:
