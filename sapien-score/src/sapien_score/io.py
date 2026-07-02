@@ -26,12 +26,20 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# Upper bound on the size of an *untrusted* input file (trace JSONL, scenario
+# Upper bound on the size of an *untrusted* input file (results JSON, scenario
 # JSON) we will read into memory. A hostile or corrupt file an order of
 # magnitude past any legitimate corpus must be rejected up front rather than
-# OOM-ing the process. 50 MB comfortably clears real traces (the bundled
-# financial replay fixture is ~4 MB) while stopping a memory-exhaustion DoS.
+# OOM-ing the process.
 MAX_INPUT_FILE_BYTES: int = 50 * 1024 * 1024
+
+# Traces get their own, larger bound: a full-corpus council trace embeds every
+# target and judge request/response for 162 scenarios × ~8 turns × 5 seats —
+# real runs measured 43–146 MB on 2026-07-01. The old shared 50 MB cap (sized
+# to a ~4 MB single-judge fixture) rejected every legitimate council trace,
+# which broke `scan --replay` for exactly the files it exists to replay.
+# 1 GiB clears any plausible corpus while still stopping a runaway/hostile
+# file from exhausting memory.
+MAX_TRACE_FILE_BYTES: int = 1024 * 1024 * 1024
 
 
 def check_input_file_size(
