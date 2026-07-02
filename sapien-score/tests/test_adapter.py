@@ -218,6 +218,73 @@ class TestRetryBackoff:
         mock_sleep.assert_not_called()
 
 
+class _StatusError(Exception):
+    """Bare exception carrying an HTTP status_code, like litellm's do."""
+
+    def __init__(self, message: str, status_code: int):
+        super().__init__(message)
+        self.status_code = status_code
+
+
+class TestStatusCodeClassifier:
+    """An explicit status_code on the exception is authoritative over
+    substring-matching the error text (mixed-signal messages misclassify)."""
+
+    def test_429_with_client_keyword_is_still_retried(self):
+        """Regression: '429 ... invalid ...' used to be vetoed by the 'invalid'
+        client keyword and permanently dropped a transient rate-limit."""
+        adapter = LiteLLMAdapter(model="test/model", base_retry_delay=0.01)
+        err = _StatusError("429 Too Many Requests: invalid request queue depth", 429)
+        with patch("litellm.completion", side_effect=[err, _mock_response()]):
+            with patch("sapien_score.engine.adapter.time.sleep") as mock_sleep:
+                result = adapter.send_message([{"role": "user", "content": "Hi"}])
+        assert result == "Test response"
+        assert mock_sleep.call_count == 1
+
+    def test_400_with_retryable_keyword_is_not_retried(self):
+        """A concrete 400 must not be retried even if the message mentions
+        'rate limit' (e.g. a validation error about rate-limit params)."""
+        adapter = LiteLLMAdapter(model="test/model")
+        err = _StatusError("400 Bad Request: rate limit config invalid", 400)
+        with patch("litellm.completion", side_effect=err):
+            with patch("sapien_score.engine.adapter.time.sleep") as mock_sleep:
+                try:
+                    adapter.send_message([{"role": "user", "content": "Hi"}])
+                except Exception:
+                    pass
+        mock_sleep.assert_not_called()
+
+    def test_408_is_retried(self):
+        """408 request-timeout is transient, same as the old 'timeout' keyword."""
+        adapter = LiteLLMAdapter(model="test/model", base_retry_delay=0.01)
+        err = _StatusError("Request Timeout", 408)
+        with patch("litellm.completion", side_effect=[err, _mock_response()]):
+            with patch("sapien_score.engine.adapter.time.sleep") as mock_sleep:
+                result = adapter.send_message([{"role": "user", "content": "Hi"}])
+        assert result == "Test response"
+        assert mock_sleep.call_count == 1
+
+
+class TestAuthErrorPrecision:
+    """is_auth_error aborts the whole scan — false positives are expensive."""
+
+    def test_status_401_is_auth(self):
+        from sapien_score.engine.adapter import is_auth_error
+
+        assert is_auth_error(_StatusError("nope", 401)) is True
+
+    def test_500_echoing_api_key_text_is_not_auth(self):
+        """Regression: a provider 500 whose body echoes a prompt discussing
+        'api key' used to be misread as an auth failure and abort the scan."""
+        from sapien_score.engine.adapter import is_auth_error
+
+        err = _StatusError(
+            "500 Internal Server Error: while processing 'store your api key safely'",
+            500,
+        )
+        assert is_auth_error(err) is False
+
+
 class TestEmptyResponseRetry:
     """P1-14: empty/None LLM content triggers exactly one retry, then raises."""
 

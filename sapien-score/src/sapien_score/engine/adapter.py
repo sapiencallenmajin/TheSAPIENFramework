@@ -75,21 +75,22 @@ _CLIENT_ERROR_KEYWORDS = (
 
 # Substrings that mark a missing/invalid-credential failure specifically —
 # the case where the right user action is "set your API key", not "retry".
-# A subset of the client-error keywords plus auth-specific phrasing. Matched
-# case-insensitively against str(exception) as a fallback when the typed
-# litellm.AuthenticationError class isn't available or wasn't raised.
+# Matched case-insensitively against str(exception) as a LAST-RESORT fallback:
+# is_auth_error checks litellm's typed AuthenticationError first, then an
+# explicit 401/403 status_code, and only then this phrasing list. Auth-specific
+# phrasing ONLY — deliberately excludes bare "api key" / "api_key" / "apikey"
+# and a bare "401", which appear in benign contexts (a provider 500 that echoes
+# a prompt discussing API keys; a token/id containing "401"). A false positive
+# here aborts the ENTIRE scan, so precision beats recall.
 _AUTH_ERROR_KEYWORDS = (
     "authenticationerror",
     "no api key",
-    "api key",
-    "api_key",
-    "apikey",
-    "401",
-    "unauthorized",
     "invalid api key",
     "incorrect api key",
+    "missing api key",
     "missing credentials",
     "could not resolve authentication",
+    "unauthorized",
 )
 
 
@@ -109,6 +110,11 @@ def is_auth_error(exc: BaseException) -> bool:
             return True
     except Exception:
         pass
+    # An explicit 401/403 status is authoritative — more reliable than scanning
+    # free-form provider text for auth phrasing.
+    status = getattr(exc, "status_code", None)
+    if isinstance(status, int) and status in (401, 403):
+        return True
     msg = str(exc).lower()
     return any(kw in msg for kw in _AUTH_ERROR_KEYWORDS)
 
@@ -400,14 +406,29 @@ class LiteLLMAdapter:
                     # retryable keywords (e.g. a prompt discussing "timeout").
                     is_retryable = _typed_retryable(e)
                     if not is_retryable:
-                        # Fallback: unknown exception type. Substring-match
-                        # on the message, but still honor the client-error
-                        # blocklist so a 400 isn't retried.
-                        is_retryable = any(
-                            kw in error_str for kw in _RETRYABLE_ERROR_KEYWORDS
-                        )
-                        if any(kw in error_str for kw in _CLIENT_ERROR_KEYWORDS):
-                            is_retryable = False
+                        # Next, trust an explicit HTTP status code if the
+                        # exception carries one. A concrete status is far more
+                        # reliable than substring-scanning free-form provider
+                        # text, where a genuinely retryable "429 ... invalid
+                        # request queue depth" contains BOTH a retryable ("429")
+                        # and a client ("invalid") keyword — the old keyword
+                        # blocklist let "invalid" veto the 429 and permanently
+                        # dropped a transient rate-limit.
+                        status = getattr(e, "status_code", None)
+                        if isinstance(status, int):
+                            # 408 (request timeout) is transient like 429/5xx;
+                            # without it here, a 408-carrying exception would be
+                            # dropped where the old "timeout" keyword retried it.
+                            is_retryable = status in (408, 429) or 500 <= status <= 599
+                        else:
+                            # No status available — fall back to substring match,
+                            # still honoring the client-error blocklist so a 400
+                            # isn't retried.
+                            is_retryable = any(
+                                kw in error_str for kw in _RETRYABLE_ERROR_KEYWORDS
+                            )
+                            if any(kw in error_str for kw in _CLIENT_ERROR_KEYWORDS):
+                                is_retryable = False
                     # Per-scenario budget cap: once exhausted, stop retrying
                     # within this scenario even if the error is transient.
                     if is_retryable and self._scenario_retry_budget <= 0:
@@ -583,6 +604,21 @@ class LiteLLMAdapter:
         hidden = getattr(response, "_hidden_params", {})
         if isinstance(hidden, dict):
             cost = hidden.get("response_cost", 0.0) or 0.0
+
+        # Fallback when response_cost is missing/zero. Many routes (self-hosted,
+        # some OpenRouter/Bedrock passthroughs, any model litellm has no price
+        # sheet for at request time) omit response_cost, which would silently
+        # record $0 and undercount the run's total_cost. Recompute from the
+        # response. Best-effort: completion_cost raises for genuinely unpriced
+        # models, so on failure cost stays 0.0 (unknown) — same as before, never
+        # worse.
+        if not cost:
+            try:
+                import litellm
+
+                cost = float(litellm.completion_cost(completion_response=response)) or 0.0
+            except Exception:
+                cost = 0.0
 
         return UsageInfo(
             input_tokens=input_tokens,

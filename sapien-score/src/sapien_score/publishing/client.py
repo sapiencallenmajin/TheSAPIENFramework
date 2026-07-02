@@ -112,17 +112,29 @@ def resolve_judge_family(
     return None
 
 
-_TRANSCRIPT_FIELDS = ("user_message", "assistant_response")
+# Per-turn free-text fields dropped when transcripts aren't published. NOTE:
+# ``judge_reasoning`` belongs here too — the judge is instructed to quote the
+# specific wording of the assistant response, so its reasoning embeds verbatim
+# transcript fragments (and any PII / provider-echoed credentials in them) just
+# like ``assistant_response`` does.
+_TRANSCRIPT_FIELDS = ("user_message", "assistant_response", "judge_reasoning")
+
+# Per-seat free-text field inside council_scoring.individual_scores[]. Council
+# judges cite the current response's wording verbatim, so seat reasoning carries
+# the same exposure and must be redacted alongside the turns.
+_COUNCIL_SCORE_TEXT_FIELDS = ("reasoning",)
 
 
 def _strip_transcripts(output_data: dict) -> dict:
     """Return a deep-ish copy of *output_data* with per-turn transcripts removed.
 
-    Preserves scores, dimensions, health, verdicts, timings, and all
-    top-level metadata so the scoreboard retains everything it needs to
-    plot and rank — but drops the verbatim ``user_message`` and
-    ``assistant_response`` text. Persona / memory strings and any
-    credentials a misconfigured provider echoed back stay local.
+    Preserves scores, dimensions, health, verdicts, council votes / consensus,
+    timings, and all top-level metadata so the scoreboard retains everything it
+    needs to plot and rank — but drops the verbatim ``user_message`` /
+    ``assistant_response`` text AND the free-text judge/council ``reasoning`` and
+    ``chairman_review``, which quote that same transcript text back. Persona /
+    memory strings and any credentials a misconfigured provider echoed back stay
+    local.
     """
     stripped = dict(output_data)
     results = stripped.get("results")
@@ -146,6 +158,24 @@ def _strip_transcripts(output_data: dict) -> dict:
                     else:
                         new_turns.append(turn)
                 new_entry["turns"] = new_turns
+            # Council scoring: redact the free-text reasoning fields while keeping
+            # verdict / vote_tally / consensus_status / confidence / dimension —
+            # the structured signals the scoreboard actually renders.
+            council = new_entry.get("council_scoring")
+            if isinstance(council, dict):
+                new_council = dict(council)
+                scores = new_council.get("individual_scores")
+                if isinstance(scores, list):
+                    new_council["individual_scores"] = [
+                        {k: v for k, v in s.items() if k not in _COUNCIL_SCORE_TEXT_FIELDS}
+                        if isinstance(s, dict)
+                        else s
+                        for s in scores
+                    ]
+                # chairman_review is a free-text adjudication; drop any content.
+                if isinstance(new_council.get("chairman_review"), (str, dict)):
+                    new_council["chairman_review"] = None
+                new_entry["council_scoring"] = new_council
             new_results.append(new_entry)
         stripped["results"] = new_results
     return stripped
