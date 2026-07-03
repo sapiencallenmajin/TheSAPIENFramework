@@ -10,12 +10,12 @@ the results. Published benchmarks are reproducible byte-for-byte — no
 "trust me" numbers.
 
 *For AI safety researchers: SAPIEN measures behavioral drift in LLMs under
-multi-turn conversational pressure. The first open-source benchmark with
+multi-turn conversational pressure. The first source-available benchmark with
 deterministic replay — every score is byte-verifiable by anyone who clones
 the repo. Built on findings from a formal vulnerability disclosure to
 Anthropic in February 2026.*
 
-`voigt-kampff` is the open-source CLI that implements the
+`voigt-kampff` is the source-available CLI that implements the
 [SAPIEN](https://sapienframework.org) scoring methodology.
 
 ## Quickstart
@@ -201,7 +201,7 @@ out with `--no-trace`.
 SAPIEN grew out of a formal vulnerability disclosure to Anthropic in
 February 2026 documenting behavioral drift patterns in Claude under
 multi-turn conversational pressure. The disclosure led to the development
-of this open-source benchmark so the findings could be independently
+of this source-available benchmark so the findings could be independently
 verified and extended by the research community.
 
 ## CLI Reference
@@ -242,7 +242,7 @@ verified and extended by the research community.
 
 SAPIEN is built on findings from a vulnerability disclosure to Anthropic
 (February 2026). The scoring methodology, scenario library, and replay
-infrastructure are open source so any claim can be independently verified.
+infrastructure are source-available so any claim can be independently verified.
 
 Advisory board acknowledgments will be included in v1.1.
 
@@ -262,9 +262,12 @@ format and existing examples.
 
 ## License
 
-![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
+![License](https://img.shields.io/badge/License-FSL--1.1--ALv2-blue.svg)
 
-The voigt-kampff CLI is licensed under Apache 2.0. The SAPIEN Framework
+The voigt-kampff CLI is licensed under the Functional Source License, v1.1
+(FSL-1.1-ALv2): free to use, modify, and redistribute for any purpose except
+offering a competing commercial product or service, and each release converts
+to Apache 2.0 two years after its release date. The SAPIEN Framework
 specification is licensed separately under CC BY 4.0.
 
 Copyright 2026 SAPIEN Labs LLC. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
@@ -272,6 +275,6 @@ Copyright 2026 SAPIEN Labs LLC. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
 ### Trademarks
 
 "SAPIEN", "SAPIEN Score", "SAPIEN Rating", and "SAPIEN Certified" are
-trademarks of SAPIEN Labs LLC. The Apache 2.0 license covers the code, not the
+trademarks of SAPIEN Labs LLC. The FSL-1.1-ALv2 license covers the code, not the
 marks — see [TRADEMARKS.md](TRADEMARKS.md) for permitted nominative use and
 what requires written permission.

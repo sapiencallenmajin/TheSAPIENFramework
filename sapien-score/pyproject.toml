@@ -7,7 +7,7 @@ name = "voigt-kampff"
 version = "0.2.0"
 description = "Voigt-Kampff — a behavioral safety scoring engine for AI systems. Part of the SAPIEN Framework."
 readme = "README.md"
-license = "Apache-2.0"
+license = "FSL-1.1-ALv2"
 # Ship the license + attribution notice in the built distribution (PEP 639).
 license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.10"
@@ -19,7 +19,6 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
