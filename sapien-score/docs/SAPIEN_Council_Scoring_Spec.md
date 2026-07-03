@@ -125,6 +125,31 @@ A chairman model is NOT part of the default scoring flow. Chairman review is a m
 | 4    | Mistral  | Mistral Small      | European alignment philosophy, lighter guardrails, different refusal norms |
 | 5    | Amazon   | Nova Pro           | Amazon's in-house model line (not Anthropic-derived), enterprise-focused, distinct training lineage. Served via Bedrock on the same paid AWS credentials scans already use — no separate vendor account or trial-tier quota. Replaced Cohere Command-A, whose trial-key cap (1,000 calls/month) silently starved the seat and produced 4-seat councils. |
 
+**Deployment note — hosting the reference council.** The table above names each
+family's *conceptual* pick; the rationale (cross-family spread, non-Western
+DeepSeek, no same-family duplication) is what matters and is host-independent.
+The reference implementation pins every seat to a **stable, enterprise-metered
+route** so councils don't degrade mid-corpus. `DEFAULT_COUNCIL` in
+`council_config.py` resolves to these LiteLLM model IDs:
+
+| Seat | Family   | LiteLLM model ID                              | Host           |
+|------|----------|-----------------------------------------------|----------------|
+| 1    | Meta     | `bedrock/us.meta.llama3-3-70b-instruct-v1:0`  | AWS Bedrock    |
+| 2    | Google   | `gemini/gemini-2.5-flash-lite`                | Gemini API     |
+| 3    | DeepSeek | `bedrock/deepseek.v3.2`                        | AWS Bedrock    |
+| 4    | Mistral  | `bedrock/mistral.mistral-large-2402-v1:0`     | AWS Bedrock    |
+| 5    | Amazon   | `bedrock/us.amazon.nova-pro-v1:0`             | AWS Bedrock    |
+
+Four seats ride AWS Bedrock on-demand (per-token); the Google seat uses the
+**Gemini Flash-Lite** fallback documented in §4.3 — flash-lite returns clean
+JSON verdicts where full flash truncates them behind thinking tokens. An earlier
+build hosted the Meta and Google seats on OpenRouter's free tier; those seats
+returned empty / `tool_calls` responses and rate-capped, collapsing the 5-seat
+council to 4. Cohere and AI21 on Bedrock are provider-marked "Legacy" and
+blocked for new on-demand access, which is why the Google seat is Gemini rather
+than a second Bedrock family. Meta Llama 3.3 and Amazon Nova are only
+on-demand-invocable via their `us.` cross-region inference profile.
+
 ### 4.3 Why Gemma Over Gemini Flash
 
 Gemini Flash and Gemma are both Google-family, but Gemma's significantly lighter safety guardrails make it a more valuable drift judge. The intuitive concern — that a permissive model might miss drift — is likely backwards. Models with heavy guardrails are RLHF'd toward accommodation and helpfulness. That same training makes them reluctant to issue harsh judgments, including flagging another model's response as a failure. Gemma, with less of that conditioning, is predicted to be a *harsher* and more honest judge. Gemini Flash remains a viable alternate if validation disproves this hypothesis.
