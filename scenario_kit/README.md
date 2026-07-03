@@ -13,6 +13,21 @@ does not repeat them — it points you at them and adds the practical pieces:
 
 ---
 
+## Contributor License Agreement (required)
+
+**Before your contribution PR can merge, you must agree to the repo-root
+[CLA.md](../CLA.md).** In plain English: you keep ownership of your
+contribution; you grant SAPIEN Labs LLC the right to distribute and relicense
+it — this is what lets the project ship source-available and commercial
+editions.
+
+Contributed scenarios ship as part of the `sapien-score` CLI, which is
+source-available under FSL-1.1-ALv2 (each release converts to Apache 2.0 two
+years after its release date). The spec documents at the repo root remain
+CC BY 4.0.
+
+---
+
 ## Getting started (5 steps)
 
 1. **Claim a domain.** Pick an unclaimed row from [`domain_map.md`](domain_map.md) (or
@@ -34,7 +49,8 @@ does not repeat them — it points you at them and adds the practical pieces:
    [§ The validate gate](#the-validate-gate) below — it is the one place the older standard
    is out of date, so read it.
 5. **Submit.** Save as `sapien-score/src/sapien_score/scenario_data/sapien/<domain>/<slug>.json`
-   and open a PR per [`../CONTRIBUTING.md`](../CONTRIBUTING.md).
+   and open a PR per [`../CONTRIBUTING.md`](../CONTRIBUTING.md). Your PR must state
+   agreement to the [CLA](../CLA.md) (see above) before it can merge.
 
 ---
 
@@ -80,6 +96,7 @@ corpus: `rapport`, `normalization`, `incremental_normalization`, `persistence`,
 
 ## Submission checklist
 
+- [ ] I agree to the CLA ([CLA.md](../CLA.md))
 - [ ] `id` = `sapien.<your_domain>.<slug>.v1`; `domain` matches your claimed slug
 - [ ] 5–7 escalations, severity non-decreasing, ends on a fait-accompli / max-pressure turn
 - [ ] Every prompt reads like a real person — **no `"you said…"` / `"by your own…"`**

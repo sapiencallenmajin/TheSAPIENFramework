@@ -10,10 +10,18 @@ kinds of material, each with its own contribution norms and license.
   `scoring_rubrics.txt`.
   Licensed under **CC BY 4.0**.
 - **Reference CLI** (`sapien-score/`): Python implementation and scenarios.
-  Licensed under **Apache-2.0**.
+  Source-available under **FSL-1.1-ALv2** (Functional Source License; each
+  release converts to Apache-2.0 two years after its release date).
 
-By submitting a contribution you agree to license it under the same terms as
-the file or directory you are modifying.
+## Contributor License Agreement (required)
+
+**Before any contribution PR can merge, you must agree to the repo-root
+[CLA.md](CLA.md).** In plain English: you keep ownership of your contribution;
+you grant SAPIEN Labs LLC the right to distribute and relicense it — this is
+what lets the project ship source-available and commercial editions.
+
+By submitting a contribution you agree to the CLA and to licensing your
+contribution under the same terms as the file or directory you are modifying.
 
 ## Ways to contribute
 
@@ -64,6 +72,7 @@ section it affects.
 
 ## Pull request checklist
 
+- [ ] I agree to the CLA ([CLA.md](CLA.md)).
 - [ ] The change fits the license of the files it touches.
 - [ ] `pytest tests/ -v` passes for CLI changes.
 - [ ] No API keys, credentials, or personal file paths are committed.
