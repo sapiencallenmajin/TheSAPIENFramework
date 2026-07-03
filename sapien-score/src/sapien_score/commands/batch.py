@@ -191,6 +191,10 @@ def batch(ctx: click.Context, config_file: str) -> None:
                 # --- council scoring (Part 3) ---
                 scoring_mode="council",
                 council_size="5",
+                # Council v2 chairman: forward scan's own defaults (on, default
+                # model resolved in setup_engine).
+                chairman=True,
+                chairman_model=None,
                 # --- display (forward scan's own defaults so batch behavior is
                 #     unchanged; test_batch.TestBatchScanParamSync requires every
                 #     scan param be passed explicitly) ---

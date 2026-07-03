@@ -151,6 +151,12 @@ DEFAULT_DISPLAY_MODE: str = DISPLAY_MODE_RICH
 @click.option("--council-size", "council_size", type=click.Choice(["3", "5"]),
               default="5",
               help="Number of council judges. Only with --scoring council.")
+@click.option("--chairman/--no-chairman", "chairman", default=True,
+              help="Council v2 chairman: an independent model re-adjudicates every "
+                   "non-unanimous council verdict (default: on). Only with --scoring council.")
+@click.option("--chairman-model", "chairman_model", default=None,
+              help="Override the chairman model (default: cohere/command-a-03-2025). "
+                   "Should be a family with no leaderboard presence.")
 @click.option("--webhook", "webhook_url", type=str, default=None,
               help="URL to POST results on drift detection (fire-and-forget). "
                    "Compatible with Slack, Teams, PagerDuty, Zapier, and PSA intake URLs.")
@@ -173,6 +179,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
          replay, allow_trace_during_replay, publish, publish_label, publish_primary,
          publish_url, publisher, publish_transcripts, config_path, skip_untyped,
          skip_invalid, scenario_ids, scoring_mode, council_size,
+         chairman, chairman_model,
          webhook_url, webhook_threshold, webhook_test):
     """Run scenarios against a model and score behavioral safety."""
     from rich.console import Console
@@ -325,6 +332,8 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
         skip_invalid=skip_invalid,
         scoring_mode=scoring_mode,
         council_size=int(council_size),
+        chairman=chairman,
+        chairman_model=chairman_model,
         webhook_notifier=webhook_notifier,
         divergence_strategy=divergence_strategy,
         event_bus=event_bus,
