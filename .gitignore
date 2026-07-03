@@ -59,3 +59,11 @@ sapien-asm-v0.1/
 sapien-asm-v0.1.zip
 files/
 files.zip
+
+# --- agent-run artifacts (root-level) — never commit (100MB+ traces caused a history rewrite) ---
+/traces/
+/council_*.json
+/*.trace.jsonl
+/*.partial.json
+/*_resume.log
+/*.log
