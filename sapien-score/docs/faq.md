@@ -115,6 +115,6 @@ The codebase contains two signal scoring modules:
 
 The main scoring path uses `layer1.py`. The `_experimental_signals.py` module provides a more detailed API that may be useful for debugging or building custom analysis tools. The leading underscore marks it as non-production -- the canonical implementation is in `layer1.py`.
 
-## What is the Apache 2.0 license?
+## What license is SAPIEN Score under?
 
-SAPIEN Score is licensed under Apache 2.0. You can use, modify, and distribute it freely. Attribution is required, but there are no copyleft or network-use restrictions. The 'SAPIEN Certified' mark is reserved for the future SAPIEN Framework certification program, administered by SAPIEN Labs LLC.
+SAPIEN Score is licensed under the Functional Source License, v1.1, ALv2 Future License (FSL-1.1-ALv2). You can use, modify, and redistribute it freely for internal use, research, education, and professional services. The one restriction: you may not offer it (or a substantially similar product) as a competing commercial product or service. Each release automatically converts to Apache 2.0 two years after its release date, so the code is guaranteed to become fully open source on a rolling basis. The 'SAPIEN Certified' mark is reserved for the future SAPIEN Framework certification program, administered by SAPIEN Labs LLC.

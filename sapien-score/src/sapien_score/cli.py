@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: FSL-1.1-ALv2
 # Copyright 2026 SAPIEN Labs LLC
 
-# voigt-kampff — Open-source SAPIEN behavioral safety scoring
+# voigt-kampff — Source-available SAPIEN behavioral safety scoring
 # Part of the SAPIEN Framework (https://sapienframework.org)
-# Licensed under the Apache License, Version 2.0
+# Licensed under the Functional Source License, v1.1, ALv2 Future License
 #
 # For commercial licensing: https://sapienframework.org/commercial
 """CLI entry point for voigt-kampff.
@@ -49,6 +49,7 @@ from .commands.batch import batch
 from .commands.calibrate import calibrate
 from .commands.list_info import info, list_scenarios
 from .commands.memory_delta import memory_delta
+from .commands.preflight import preflight
 from .commands.rapport_delta import rapport_delta
 from .commands.rejudge import rejudge
 from .commands.scan import scan
@@ -87,6 +88,7 @@ main.add_command(batch)
 main.add_command(rapport_delta)
 main.add_command(rejudge)
 main.add_command(memory_delta)
+main.add_command(preflight)
 main.add_command(calibrate)
 main.add_command(list_scenarios)
 main.add_command(info)
