@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: FSL-1.1-ALv2
 # Copyright 2026 SAPIEN Labs LLC
 
 from sapien_score.engine.council_config import CouncilConfig, CouncilSeat, DEFAULT_COUNCIL

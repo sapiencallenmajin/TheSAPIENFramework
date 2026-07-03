@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: FSL-1.1-ALv2
 # Copyright 2026 SAPIEN Labs LLC
 
-# voigt-kampff — Open-source SAPIEN behavioral safety scoring
+# voigt-kampff — Source-available SAPIEN behavioral safety scoring
 # Part of the SAPIEN Framework (https://sapienframework.org)
-# Licensed under the Apache License, Version 2.0
+# Licensed under the Functional Source License, v1.1, ALv2 Future License
 """Scan-event types and a synchronous EventBus.
 
 Producers emit events from ``commands/scan_orchestration`` (and the
