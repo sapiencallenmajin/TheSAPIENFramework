@@ -46,21 +46,26 @@ class CouncilSeat:
 # return parseable JSON verdicts. Meta Llama 3.3 and Amazon Nova are only
 # on-demand-invocable through their US cross-region inference profile, so both
 # carry the `us.` prefix — the bare `meta.llama3-3-*` / non-geo IDs return
-# "on-demand throughput isn't supported". The Meta seat is Llama 3.3 70B, the
-# same generation as the retired openrouter/meta-llama/llama-3.3-70b seat.
+# "on-demand throughput isn't supported". The Meta seat is Llama 3.3 70B and
+# the Google seat is Gemma 4 26B — the SAME models the retired OpenRouter
+# seats ran, so historical board comparability is preserved; only the hosts
+# changed. Gemma rides Google AI Studio (the `gemini/` LiteLLM prefix is the
+# host route, not the model family) — keeping the spec §4.3 low-guardrail
+# Gemma judge and avoiding Gemini 2.5 Pro, which is itself a board target and
+# must not judge. A 54-scenario live calibration showed gemini-2.5-flash-lite
+# flagged drift 0% of the time (rubber-stamp seat) — do not use it here.
 # (Cohere/AI21 on Bedrock are provider-marked "Legacy" and blocked for new
-# on-demand access, hence Gemini for the Google seat rather than a second
-# Bedrock family.)
+# on-demand access.)
 #
 # Required env vars / credentials:
 #   AWS creds for Bedrock (seats 1, 3, 4, 5 — Meta, DeepSeek, Mistral, Amazon).
 #       Resolved via boto3's default chain: env (AWS_ACCESS_KEY_ID /
 #       AWS_SECRET_ACCESS_KEY / AWS_REGION_NAME) OR ~/.aws/credentials +
 #       ~/.aws/config. Region must be one the inference profiles serve (us-east-1).
-#   GEMINI_API_KEY   (seat 2 — Google / Gemini)
+#   GEMINI_API_KEY   (seat 2 — Gemma 4 via Google AI Studio)
 DEFAULT_COUNCIL: tuple[CouncilSeat, ...] = (
     CouncilSeat(family="meta",     model="bedrock/us.meta.llama3-3-70b-instruct-v1:0"),
-    CouncilSeat(family="google",   model="gemini/gemini-2.5-flash-lite"),
+    CouncilSeat(family="google",   model="gemini/gemma-4-26b-a4b-it"),
     CouncilSeat(family="deepseek", model="bedrock/deepseek.v3.2"),
     CouncilSeat(family="mistral",  model="bedrock/mistral.mistral-large-2402-v1:0"),
     CouncilSeat(family="amazon",   model="bedrock/us.amazon.nova-pro-v1:0"),

@@ -132,23 +132,28 @@ The reference implementation pins every seat to a **stable, enterprise-metered
 route** so councils don't degrade mid-corpus. `DEFAULT_COUNCIL` in
 `council_config.py` resolves to these LiteLLM model IDs:
 
-| Seat | Family   | LiteLLM model ID                              | Host           |
-|------|----------|-----------------------------------------------|----------------|
-| 1    | Meta     | `bedrock/us.meta.llama3-3-70b-instruct-v1:0`  | AWS Bedrock    |
-| 2    | Google   | `gemini/gemini-2.5-flash-lite`                | Gemini API     |
-| 3    | DeepSeek | `bedrock/deepseek.v3.2`                        | AWS Bedrock    |
-| 4    | Mistral  | `bedrock/mistral.mistral-large-2402-v1:0`     | AWS Bedrock    |
-| 5    | Amazon   | `bedrock/us.amazon.nova-pro-v1:0`             | AWS Bedrock    |
+| Seat | Family   | LiteLLM model ID                              | Host             |
+|------|----------|-----------------------------------------------|------------------|
+| 1    | Meta     | `bedrock/us.meta.llama3-3-70b-instruct-v1:0`  | AWS Bedrock      |
+| 2    | Google   | `gemini/gemma-4-26b-a4b-it`                   | Google AI Studio |
+| 3    | DeepSeek | `bedrock/deepseek.v3.2`                        | AWS Bedrock      |
+| 4    | Mistral  | `bedrock/mistral.mistral-large-2402-v1:0`     | AWS Bedrock      |
+| 5    | Amazon   | `bedrock/us.amazon.nova-pro-v1:0`             | AWS Bedrock      |
 
-Four seats ride AWS Bedrock on-demand (per-token); the Google seat uses the
-**Gemini Flash-Lite** fallback documented in §4.3 — flash-lite returns clean
-JSON verdicts where full flash truncates them behind thinking tokens. An earlier
-build hosted the Meta and Google seats on OpenRouter's free tier; those seats
+Four seats ride AWS Bedrock on-demand (per-token); the Google seat keeps the
+**Gemma** judge from §4.3, served through Google AI Studio (the `gemini/`
+LiteLLM prefix is the host route, not the model family). The Meta and Google
+seats are the SAME models the earlier OpenRouter-hosted panel used — only the
+hosts changed — so judge behavior stays comparable across board runs. An
+earlier build hosted those two seats on OpenRouter's free tier; the seats
 returned empty / `tool_calls` responses and rate-capped, collapsing the 5-seat
-council to 4. Cohere and AI21 on Bedrock are provider-marked "Legacy" and
-blocked for new on-demand access, which is why the Google seat is Gemini rather
-than a second Bedrock family. Meta Llama 3.3 and Amazon Nova are only
-on-demand-invocable via their `us.` cross-region inference profile.
+council to 4. Two Google-seat candidates were rejected on live calibration:
+`gemini-2.5-flash-lite` flagged drift 0% across a 54-scenario sample (a
+rubber-stamp judge — consistent with §4.3's guardrail-conditioning hypothesis),
+and Gemini 2.5 Pro is itself a leaderboard target and must not judge. Cohere
+and AI21 on Bedrock are provider-marked "Legacy" and blocked for new on-demand
+access. Meta Llama 3.3 and Amazon Nova are only on-demand-invocable via their
+`us.` cross-region inference profile.
 
 ### 4.3 Why Gemma Over Gemini Flash
 
