@@ -28,31 +28,46 @@ class CouncilSeat:
     model_version: Optional[str] = None
 
 
-# One model per family, cheapest capable variant. LiteLLM provider/model
-# strings — keep these in sync with litellm's model registry.
+# One judge per model family, on stable enterprise-metered routes.
 #
-# Mixed-provider routing: OpenRouter's free tier hosts Meta and Google
-# (seats 1-2) but has no free DeepSeek or Mistral endpoint, so those
-# seats hit their native providers directly. Seat 5 rides Bedrock with
-# the same AWS credentials the scans already require. Every seat MUST
-# be on a paid/metered route: the previous seat 5 (Cohere Command-A on
-# a trial key, 1,000 calls/month) silently exhausted its quota and
-# starved the seat mid-corpus, publishing 4-seat councils from a
-# 5-seat config.
+# Every seat MUST be on a reliable, metered endpoint. Earlier configs
+# starved mid-corpus: a Cohere trial key (1,000 calls/mo) that silently
+# drained, then OpenRouter's free Meta/Google seats that returned empty /
+# `tool_calls` responses and rate-capped — collapsing the 5-seat council to
+# 4 and killing re-judge runs. So all five now ride AWS Bedrock on-demand
+# (per-token), except the Google seat which uses the Gemini API. Same
+# family mix as before (Meta / Google / DeepSeek / Mistral / Amazon), just
+# moved off the flaky free hosts onto stable ones.
 #
-# Family note: Nova is Amazon's in-house model line, not
-# Anthropic-derived, so the seat stays cross-family for Claude runs.
+# Family note: Nova is Amazon's in-house line and Gemini is Google's; there
+# is no Anthropic seat, so the panel stays cross-family for Claude runs.
 #
-# Required env vars:
-#   OPENROUTER_API_KEY   (seats 1-2: Meta, Google)
-#   DEEPSEEK_API_KEY     (seat 3)
-#   MISTRAL_API_KEY      (seat 4)
-#   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_REGION_NAME  (seat 5)
+# All Bedrock model IDs below are ON_DEMAND-invocable and were confirmed to
+# return parseable JSON verdicts. Meta Llama 3.3 and Amazon Nova are only
+# on-demand-invocable through their US cross-region inference profile, so both
+# carry the `us.` prefix — the bare `meta.llama3-3-*` / non-geo IDs return
+# "on-demand throughput isn't supported". The Meta seat is Llama 3.3 70B and
+# the Google seat is Gemma 4 26B — the SAME models the retired OpenRouter
+# seats ran, so historical board comparability is preserved; only the hosts
+# changed. Gemma rides Google AI Studio (the `gemini/` LiteLLM prefix is the
+# host route, not the model family) — keeping the spec §4.3 low-guardrail
+# Gemma judge and avoiding Gemini 2.5 Pro, which is itself a board target and
+# must not judge. A 54-scenario live calibration showed gemini-2.5-flash-lite
+# flagged drift 0% of the time (rubber-stamp seat) — do not use it here.
+# (Cohere/AI21 on Bedrock are provider-marked "Legacy" and blocked for new
+# on-demand access.)
+#
+# Required env vars / credentials:
+#   AWS creds for Bedrock (seats 1, 3, 4, 5 — Meta, DeepSeek, Mistral, Amazon).
+#       Resolved via boto3's default chain: env (AWS_ACCESS_KEY_ID /
+#       AWS_SECRET_ACCESS_KEY / AWS_REGION_NAME) OR ~/.aws/credentials +
+#       ~/.aws/config. Region must be one the inference profiles serve (us-east-1).
+#   GEMINI_API_KEY   (seat 2 — Gemma 4 via Google AI Studio)
 DEFAULT_COUNCIL: tuple[CouncilSeat, ...] = (
-    CouncilSeat(family="meta",     model="openrouter/meta-llama/llama-3.3-70b-instruct"),
-    CouncilSeat(family="google",   model="openrouter/google/gemma-4-26b-a4b-it"),
-    CouncilSeat(family="deepseek", model="deepseek/deepseek-chat"),
-    CouncilSeat(family="mistral",  model="mistral/mistral-small-latest"),
+    CouncilSeat(family="meta",     model="bedrock/us.meta.llama3-3-70b-instruct-v1:0"),
+    CouncilSeat(family="google",   model="gemini/gemma-4-26b-a4b-it"),
+    CouncilSeat(family="deepseek", model="bedrock/deepseek.v3.2"),
+    CouncilSeat(family="mistral",  model="bedrock/mistral.mistral-large-2402-v1:0"),
     CouncilSeat(family="amazon",   model="bedrock/us.amazon.nova-pro-v1:0"),
 )
 
