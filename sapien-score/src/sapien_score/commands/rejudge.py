@@ -617,7 +617,12 @@ def rejudge(
                 f"({[s.model for s in seats]}); council size must be 3 or 5. "
                 f"Was this trace recorded by a council scan?"
             )
-        config = CouncilConfig(size=len(seats), seats=seats, parallel=True)
+        # chairman_enabled=False: replay reproduces the RECORDED votes; a
+        # chairman ruling is live-only and cannot be replayed from a pre-v2
+        # trace, so replays stay byte-faithful to what was originally scored.
+        config = CouncilConfig(
+            size=len(seats), seats=seats, parallel=True, chairman_enabled=False,
+        )
         judge = CouncilScorer(config, judge_caller=caller, round_timeout_s=None)
         judge_model = f"Council ({len(seats)}-seat, votes replayed)"
         console.print(

@@ -209,6 +209,8 @@ def setup_engine(
     skip_invalid: bool = False,
     scoring_mode: Literal["council", "single"] = "council",
     council_size: int = 5,
+    chairman: bool = True,
+    chairman_model: Optional[str] = None,
     webhook_notifier: Optional["WebhookNotifier"] = None,
     divergence_strategy: Optional[str] = None,
     event_bus: Optional["EventBus"] = None,
@@ -494,9 +496,31 @@ def setup_engine(
             judge_adapter.call_kind = "judge_call"
         judge = JudgeScorer(adapter=judge_adapter)
     else:  # scoring_mode == "council"
-        from sapien_score.engine.council_config import CouncilConfig
+        from sapien_score.engine.council_config import (
+            DEFAULT_CHAIRMAN_MODEL,
+            CouncilConfig,
+            resolve_council_for_target,
+        )
         from sapien_score.engine.council_scorer import CouncilScorer
-        council = CouncilConfig(size=int(council_size))
+
+        # Council v2 family recusal: if the TARGET model shares a family
+        # with a seated judge, that seat steps down for this run and a
+        # bench seat substitutes — no judge ever scores its own family.
+        # Resolved seats are recorded per run via council_composition.
+        resolved_seats = resolve_council_for_target(model)
+        council = CouncilConfig(
+            size=int(council_size),
+            seats=resolved_seats,
+            chairman_enabled=chairman,
+            chairman_model=(
+                (chairman_model or DEFAULT_CHAIRMAN_MODEL) if chairman else None
+            ),
+        )
+        if chairman:
+            console.print(
+                f"[dim]Council v2: chairman={council.chairman_model} "
+                f"(adjudicates non-unanimous verdicts)[/dim]"
+            )
 
         # Shared adapter pool: one LiteLLMAdapter per seat, constructed
         # once. The pool is keyed by seat *index* (id(seat) is fine too,

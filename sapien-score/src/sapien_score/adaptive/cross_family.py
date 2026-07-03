@@ -17,6 +17,55 @@ from __future__ import annotations
 # region code would be mistaken for the model family.
 _BEDROCK_REGION_PREFIXES = ("us.", "eu.", "apac.", "us-gov.")
 
+# Provider prefixes that ARE a family, just under a host-route name. The
+# `gemini/` LiteLLM prefix is Google AI Studio (it serves Gemma too), and
+# `meta-llama` is how OpenRouter spells Meta.
+_PREFIX_FAMILY_ALIASES = {
+    "gemini": "google",
+    "meta-llama": "meta",
+}
+
+# Model-NAME keywords → family, for multi-family hosts whose model ids don't
+# carry a vendor segment (Fireworks serverless paths like
+# ``fireworks_ai/accounts/fireworks/models/minimax-m3``, Together, etc.).
+# Matched as substrings of the final path segment, FIRST match wins — so
+# order specific before generic (``gpt-oss`` before ``gpt``, ``gemma``
+# before nothing). Keep in sync with the leaderboard's vendor map when new
+# families are benchmarked.
+_MODEL_NAME_FAMILIES: tuple[tuple[str, str], ...] = (
+    ("minimax", "minimax"),
+    ("kimi", "moonshot"),
+    ("glm", "zhipu"),
+    ("qwen", "alibaba"),
+    ("gpt-oss", "openai"),
+    ("deepseek", "deepseek"),
+    ("llama", "meta"),
+    ("mixtral", "mistral"),
+    ("mistral", "mistral"),
+    ("gemma", "google"),
+    ("gemini", "google"),
+    ("claude", "anthropic"),
+    ("command", "cohere"),
+    ("nova", "amazon"),
+    ("grok", "xai"),
+    ("gpt", "openai"),
+    ("o1", "openai"),
+    ("o3", "openai"),
+)
+
+# Hosts that serve many families under path-style model ids; classify by
+# the model NAME instead of the provider prefix.
+_MULTI_FAMILY_HOSTS = ("fireworks_ai", "together_ai", "openrouter")
+
+
+def _family_from_model_name(name: str) -> str | None:
+    """Classify a bare model name (last path segment) into a family."""
+    lowered = name.lower()
+    for keyword, family in _MODEL_NAME_FAMILIES:
+        if keyword in lowered:
+            return family
+    return None
+
 
 def get_provider(model_string: str) -> str:
     """Return the raw provider/hosting prefix (everything before the first ``/``).
@@ -35,7 +84,7 @@ def get_model_family(model_string: str) -> str:
     families, so the ``provider/`` prefix alone is not a family identifier.
     """
     if "/" not in model_string:
-        return model_string
+        return _family_from_model_name(model_string) or model_string
 
     prefix, remainder = model_string.split("/", 1)
 
@@ -49,6 +98,21 @@ def get_model_family(model_string: str) -> str:
 
     if prefix == "vertex_ai":
         return "google"
+
+    if prefix in _PREFIX_FAMILY_ALIASES:
+        return _PREFIX_FAMILY_ALIASES[prefix]
+
+    if prefix in _MULTI_FAMILY_HOSTS:
+        # Path-style ids (Fireworks: accounts/<org>/models/<name>;
+        # OpenRouter: <vendor>/<name>) — classify by the model NAME, falling
+        # back to a vendor path segment alias, then to the raw prefix so the
+        # function never returns less information than before.
+        name = remainder.rsplit("/", 1)[-1]
+        family = _family_from_model_name(name)
+        if family:
+            return family
+        vendor_seg = remainder.split("/", 1)[0]
+        return _PREFIX_FAMILY_ALIASES.get(vendor_seg, vendor_seg or prefix)
 
     return prefix
 
