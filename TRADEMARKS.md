@@ -57,9 +57,9 @@ certifier's role must be set up with counsel **before** the mark is used in
 commerce.
 
 > **Critical:** a certification-mark owner generally may **not** also sell the
-> goods/services it certifies. SAPIEN Labs LLC / Synthreo must **not** place
-> "SAPIEN Certified" on their own scanner, reports, or services — the mark
-> certifies *third-party* implementations and models. Brand Synthreo's own
+> goods/services it certifies. SAPIEN Labs LLC must **not** place
+> "SAPIEN Certified" on its own scanner, reports, or services — the mark
+> certifies *third-party* implementations and models. Brand SAPIEN Labs' own
 > offerings with the ordinary **SAPIEN™** trademark. **Decide this structure in
 > Phase 0:** running "SAPIEN Certified" from the same entity that sells the
 > scanner risks cancellation and discriminatory-administration challenges, so
