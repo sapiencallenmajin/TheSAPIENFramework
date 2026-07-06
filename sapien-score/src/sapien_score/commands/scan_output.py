@@ -429,6 +429,13 @@ def build_output_payload(
             payload["council_version"] = max(council_versions)
         else:
             payload["scoring_mode"] = "single"
+        # Judge-reliability artifacts (additive; council runs only) —
+        # per-seat agreement/fail-rate/vote-count, controversy rate, and
+        # chairman override rate. Measurement only; never affects verdicts.
+        from sapien_score.reporting.judge_reliability import compute_judge_reliability
+        judge_reliability = compute_judge_reliability(new_entries)
+        if judge_reliability is not None:
+            payload["judge_reliability"] = judge_reliability
         # Risk summary excludes error entries — they have no verdict/tier.
         payload["content_hash"] = compute_content_hash(new_entries)
         payload["_checksum"] = compute_results_checksum(new_entries)
@@ -542,6 +549,12 @@ def build_output_payload(
             payload["council_version_mixed"] = sorted(council_versions)
     else:
         payload["scoring_mode"] = "single"
+    # Judge-reliability artifacts over the MERGED entry set (see the
+    # fresh-payload branch above) so resumed files reflect the full run.
+    from sapien_score.reporting.judge_reliability import compute_judge_reliability
+    judge_reliability = compute_judge_reliability(combined_entries)
+    if judge_reliability is not None:
+        payload["judge_reliability"] = judge_reliability
     payload["content_hash"] = compute_content_hash(combined_entries)
     payload["_checksum"] = compute_results_checksum(combined_entries)
     if resume_path:
