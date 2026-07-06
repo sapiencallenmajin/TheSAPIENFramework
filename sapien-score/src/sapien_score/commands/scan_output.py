@@ -197,6 +197,15 @@ def serialize_result_entry(scenario, result, override_result=None) -> dict:
             turn_entry["counter_category"] = t.counter_category
         turn_list.append(turn_entry)
     entry["turns"] = turn_list
+    # Turn-level drift metrics (additive; derived from the per-turn drifts
+    # just serialized above — same numbers, zero extra API calls). Computed
+    # through the backfill entry-path so retroactive backfills of published
+    # runs produce byte-identical values.
+    from sapien_score.scoring.turn_metrics import (
+        TURN_METRICS_KEY,
+        turn_metrics_from_entry,
+    )
+    entry[TURN_METRICS_KEY] = turn_metrics_from_entry(entry)
     entry["api_call_timings"] = [
         {
             "turn": t.turn_number,
@@ -413,6 +422,11 @@ def build_output_payload(
         if skipped_scenarios:
             payload["skipped_scenarios"] = list(skipped_scenarios)
         payload["risk_summary"] = _build_risk_summary(success_entries)
+        # Run-level turn-metric aggregates (additive to the schema).
+        from sapien_score.scoring.turn_metrics import summarize_turn_metrics
+        turn_summary = summarize_turn_metrics(success_entries)
+        if turn_summary:
+            payload["turn_metrics_summary"] = turn_summary
         # Top-level scoring provenance. council_version is SCORE-AFFECTING
         # (v1.0→v1.1 changed how council FAILs reach the composite), so two
         # files with the same framework_version can still disagree — this
@@ -531,6 +545,13 @@ def build_output_payload(
     if merged_skipped:
         payload["skipped_scenarios"] = merged_skipped
     payload["risk_summary"] = _build_risk_summary(success_combined)
+    # Run-level turn-metric aggregates over the merged set. Pre-feature
+    # entries without an embedded turn_metrics block are backfilled from
+    # their stored per-turn drifts inside summarize_turn_metrics.
+    from sapien_score.scoring.turn_metrics import summarize_turn_metrics
+    turn_summary = summarize_turn_metrics(success_combined)
+    if turn_summary:
+        payload["turn_metrics_summary"] = turn_summary
     # Top-level scoring provenance across the MERGED entry set (see the
     # fresh-payload branch above). On a resume, old and new entries can carry
     # different council_versions; max() surfaces the newest so a mixed file

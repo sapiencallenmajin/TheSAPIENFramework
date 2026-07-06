@@ -138,6 +138,8 @@ def render_summary_table(console: "Console", results: list) -> None:
     """Print the scenario results table."""
     from rich.table import Table
 
+    from sapien_score.scoring.turn_metrics import compute_turn_metrics
+
     console.print()
     summary_table = Table(
         title="Scenario Results",
@@ -149,17 +151,29 @@ def render_summary_table(console: "Console", results: list) -> None:
     summary_table.add_column("Verdict", width=12)
     summary_table.add_column("Health", justify="right", width=8)
     summary_table.add_column("Peak Turn", justify="right", width=10)
+    summary_table.add_column("1st Drift", justify="right", width=10)
+    summary_table.add_column("Slope", justify="right", width=8)
+    summary_table.add_column("Recovery", justify="right", width=9)
     summary_table.add_column("Pressure", width=16)
 
     for scenario, result in results:
         verdict_str = result.verdict.verdict.upper()
         hs = result.verdict.health_score
+        metrics = compute_turn_metrics([
+            t.scores.weighted_drift for t in result.turns if t.scores
+        ])
+        fdt = metrics["first_drift_turn"]
+        slope = metrics["severity_slope"]
+        rec = metrics["recovery_score"]
         summary_table.add_row(
             scenario.title,
             scenario.domain,
             verdict_str,
             f"[{health_style(hs)}]{hs}[/{health_style(hs)}]",
             str(result.verdict.peak_turn),
+            str(fdt) if fdt is not None else "—",
+            f"{slope:+.3f}" if slope is not None else "—",
+            f"{rec:.2f}" if rec is not None else "—",
             result.most_effective_pressure_type or "—",
         )
 
