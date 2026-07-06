@@ -50,9 +50,9 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "compute_judge_reliability",
     "backfill_judge_reliability",
     "backfill_judge_reliability_file",
+    "compute_judge_reliability",
 ]
 
 
@@ -107,19 +107,38 @@ def compute_judge_reliability(entries: list) -> Optional[dict]:
     voted = [(sid, cs) for sid, cs in records if cs.get("surface_result")]
 
     # --- Per-seat stats -------------------------------------------------
-    # Expected votes per seat = number of council rounds that produced a
-    # verdict. A healthy seat appears in individual_scores every round;
-    # missing_votes > 0 is the silent-seat-degradation signal.
-    seats: dict[str, dict] = {}
+    # Seat identity is (judge_id, family, model): judge_ids are positional
+    # (council_seat_N), so a recusal substitution or mid-run seat swap puts
+    # a DIFFERENT identity in the same position and must not inherit the
+    # original occupant's expectations.
+    #
+    # Expected votes are scoped per entry ROSTER, not globally: combined /
+    # resumed runs can mix council compositions, and a seat absent from an
+    # entry's roster was never expected to vote there. Rosters are inferred
+    # from individual_scores; a dropped call makes an entry's observed
+    # roster a strict SUBSET of its true composition, so each entry is
+    # attributed to a maximal observed roster containing it (ambiguity
+    # broken by exact-match frequency, then sorted representation). A seat
+    # with fewer votes than its scoped expectation is the silent-seat-
+    # degradation signal (the Cohere dead-seat failure mode).
+    def _seat_identity(s: dict) -> tuple[str, str, str]:
+        return (
+            str(s.get("judge_id", "") or "unknown"),
+            str(s.get("family", "") or ""),
+            str(s.get("model", "") or ""),
+        )
+
+    entry_rosters: list[frozenset] = []
+    seats: dict[tuple[str, str, str], dict] = {}
     for _sid, cs in voted:
         final = cs.get("surface_result")
+        roster: set[tuple[str, str, str]] = set()
         for s in cs.get("individual_scores") or []:
             if not isinstance(s, dict):
                 continue
-            judge_id = str(s.get("judge_id", "") or "unknown")
-            seat = seats.setdefault(judge_id, {
-                "family": s.get("family", ""),
-                "model": s.get("model", ""),
+            identity = _seat_identity(s)
+            roster.add(identity)
+            seat = seats.setdefault(identity, {
                 "votes": 0,
                 "agreements": 0,
                 "fails": 0,
@@ -129,15 +148,45 @@ def compute_judge_reliability(entries: list) -> Optional[dict]:
                 seat["fails"] += 1
             if s.get("verdict") == final:
                 seat["agreements"] += 1
+        entry_rosters.append(frozenset(roster))
 
-    expected_votes = len(voted)
+    distinct_rosters = set(entry_rosters)
+    maximal_rosters = [
+        r for r in distinct_rosters
+        if not any(r < other for other in distinct_rosters)
+    ]
+    exact_counts: dict[frozenset, int] = {}
+    for r in entry_rosters:
+        exact_counts[r] = exact_counts.get(r, 0) + 1
+
+    expected: dict[tuple[str, str, str], int] = {}
+    for roster in entry_rosters:
+        candidates = [m for m in maximal_rosters if roster <= m]
+        if not candidates:  # defensive; a roster is always <= some maximal
+            candidates = [roster]
+        attributed = max(
+            candidates,
+            key=lambda m: (exact_counts.get(m, 0), sorted(str(i) for i in m)),
+        )
+        for identity in attributed:
+            expected[identity] = expected.get(identity, 0) + 1
+
+    # Display keys: judge_id alone when unambiguous; disambiguate swapped
+    # occupants of the same position with a family suffix.
+    judge_id_counts: dict[str, int] = {}
+    for judge_id, _family, _model in seats:
+        judge_id_counts[judge_id] = judge_id_counts.get(judge_id, 0) + 1
+
     per_seat: dict[str, dict] = {}
-    for judge_id in sorted(seats):
-        s = seats[judge_id]
+    for identity in sorted(seats):
+        judge_id, family, model = identity
+        s = seats[identity]
         votes = s["votes"]
-        per_seat[judge_id] = {
-            "family": s["family"],
-            "model": s["model"],
+        expected_votes = expected.get(identity, votes)
+        key = judge_id if judge_id_counts[judge_id] == 1 else f"{judge_id}[{family}]"
+        per_seat[key] = {
+            "family": family,
+            "model": model,
             "votes": votes,
             "expected_votes": expected_votes,
             "missing_votes": expected_votes - votes,

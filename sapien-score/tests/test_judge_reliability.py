@@ -51,7 +51,7 @@ def _council(verdicts: list[str], *, surface: str | None = None,
              flags: list[str] | None = None, seat_indices=None) -> dict:
     """Build a council_scoring dict from per-seat verdicts."""
     idxs = seat_indices if seat_indices is not None else range(len(verdicts))
-    scores = [_vote(i, v) for i, v in zip(idxs, verdicts)]
+    scores = [_vote(i, v) for i, v in zip(idxs, verdicts, strict=True)]
     tally = {
         "PASS": sum(1 for v in verdicts if v == "PASS"),
         "FAIL": sum(1 for v in verdicts if v == "FAIL"),
@@ -194,6 +194,66 @@ class TestDegradedSeat:
         assert seat5["missing_votes"] == 1
         assert jr["seats"]["council_seat_1"]["missing_votes"] == 0
         assert jr["degraded"]["even_panel_reduced"] == 1
+
+    def test_mixed_rosters_no_phantom_missing_votes(self):
+        # Recusal substitution halfway through the run: seat 2 is occupied
+        # by google for the first half and by a substitute family for the
+        # second half. Expected votes must be scoped to each entry's own
+        # roster — NO seat should show missing votes.
+        substitute = {
+            "judge_id": "council_seat_2",
+            "family": "qwen",
+            "model": "bedrock/qwen",
+            "verdict": "PASS",
+            "drift_dimension": None,
+            "confidence": 4,
+            "reasoning": "test",
+        }
+        roster_a = [_entry(f"a{i}", _council(["PASS"] * 5)) for i in range(2)]
+        roster_b = []
+        for i in range(2):
+            c = _council(["PASS"] * 5)
+            c["individual_scores"][1] = dict(substitute)
+            roster_b.append(_entry(f"b{i}", c))
+        jr = compute_judge_reliability(roster_a + roster_b)
+        # Same judge_id occupied by two identities → disambiguated keys.
+        assert "council_seat_2[google]" in jr["seats"]
+        assert "council_seat_2[qwen]" in jr["seats"]
+        for key, s in jr["seats"].items():
+            assert s["missing_votes"] == 0, f"{key} shows phantom missing votes"
+        # Each occupant expected only in its own roster's entries.
+        assert jr["seats"]["council_seat_2[google]"]["expected_votes"] == 2
+        assert jr["seats"]["council_seat_2[qwen]"]["expected_votes"] == 2
+        # Stable seats span both rosters.
+        assert jr["seats"]["council_seat_1"]["expected_votes"] == 4
+
+    def test_mixed_rosters_dropped_call_still_detected(self):
+        # A dropped call within one roster is still attributed to that
+        # roster's full composition, not the other roster.
+        roster_a = [_entry(f"a{i}", _council(["PASS"] * 5)) for i in range(2)]
+        substitute_council = _council(["PASS"] * 5)
+        substitute_council["individual_scores"][1] = {
+            "judge_id": "council_seat_2", "family": "qwen",
+            "model": "bedrock/qwen", "verdict": "PASS",
+            "drift_dimension": None, "confidence": 4, "reasoning": "test",
+        }
+        # Roster B round where seat 5 dropped: subset of roster B only.
+        short_b = _council(["PASS"] * 3, seat_indices=[0, 2, 3])
+        short_b["individual_scores"].insert(1, {
+            "judge_id": "council_seat_2", "family": "qwen",
+            "model": "bedrock/qwen", "verdict": "PASS",
+            "drift_dimension": None, "confidence": 4, "reasoning": "test",
+        })
+        short_b["vote_tally"] = {"PASS": 4, "FAIL": 0}
+        jr = compute_judge_reliability(
+            roster_a + [_entry("b0", substitute_council), _entry("b1", short_b)]
+        )
+        seat5 = jr["seats"]["council_seat_5"]
+        assert seat5["expected_votes"] == 4  # in every entry's roster
+        assert seat5["votes"] == 3
+        assert seat5["missing_votes"] == 1
+        # google occupant never expected in roster-B entries.
+        assert jr["seats"]["council_seat_2[google]"]["missing_votes"] == 0
 
     def test_all_judges_failed_round_excluded_from_denominators(self):
         dead = {
@@ -345,11 +405,9 @@ class TestPayloadWiring:
                 consensus_status="controversial",
                 vote_tally={"PASS": 3, "FAIL": 2},
                 individual_scores=[
-                    JudgeScore(judge_id=f"council_seat_{i+1}", family=f, model=m,
+                    JudgeScore(judge_id=judge_id, family=family, model=model,
                                verdict=("PASS" if i < 3 else "FAIL"))
-                    for i, (_, f, m) in enumerate(
-                        (s, s[1], s[2]) for s in SEATS
-                    )
+                    for i, (judge_id, family, model) in enumerate(SEATS)
                 ],
                 flags=["controversial", "chairman_adjudicated"],
             )
