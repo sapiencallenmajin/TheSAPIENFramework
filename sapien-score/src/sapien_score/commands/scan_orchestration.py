@@ -191,6 +191,7 @@ def setup_engine(
     avg_tokens: int,
     resume: Optional[str],
     retry_delay: float,
+    max_tokens: int = 4096,
     debug: bool,
     collection: Optional[str],
     authorship: Optional[str],
@@ -453,7 +454,9 @@ def setup_engine(
         from sapien_score.tracing.replay import ReplayAdapter
         adapter = ReplayAdapter(trace_reader, call_kind="target_call")
     else:
-        adapter = get_adapter(model=model, base_retry_delay=retry_delay)
+        adapter = get_adapter(
+            model=model, base_retry_delay=retry_delay, max_tokens=max_tokens,
+        )
 
     # --- Trace recording ---
     trace_writer = None
