@@ -72,6 +72,10 @@ DEFAULT_DISPLAY_MODE: str = DISPLAY_MODE_RICH
                    "files written before checksum support; tampering is not detected.")
 @click.option("--retry-delay", "retry_delay", type=float, default=2.0,
               help="Base delay in seconds between retries on rate limit / 5xx (default: 2)")
+@click.option("--max-tokens", "max_tokens", type=click.IntRange(min=1), default=4096,
+              help="Max output tokens per target call (default: 4096). Raise for "
+                   "reasoning models (e.g. gpt-5.5-pro) whose hidden reasoning counts "
+                   "against the output budget and can starve the visible reply.")
 @click.option("--debug", "-d", is_flag=True, default=False,
               help="Show detailed scoring debug output including raw judge responses")
 @click.option("--collection", type=click.Choice(["sapien", "community", "red-team", "custom", "all"]),
@@ -170,7 +174,7 @@ DEFAULT_DISPLAY_MODE: str = DISPLAY_MODE_RICH
                    "Use to verify your endpoint before running a real scan.")
 def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
          delay, persona, memory, profile, estimate, avg_tokens, cost_csv, resume,
-         force_resume, retry_delay, debug, collection, authorship, audience,
+         force_resume, retry_delay, max_tokens, debug, collection, authorship, audience,
          scenarios_dir_override,
          tier_override, scan_mode, display_mode, theme, no_anim,
          layer2_threshold, divergence_strategy,
@@ -321,7 +325,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
         model=model, judge_model=judge_model, domain=domain, domains=domains,
         run_all=run_all, output=output, verbose=verbose,
         persona=persona, memory=memory, profile=profile, avg_tokens=avg_tokens,
-        resume=resume, retry_delay=retry_delay, debug=debug,
+        resume=resume, retry_delay=retry_delay, max_tokens=max_tokens, debug=debug,
         collection=collection, authorship=authorship, audience=audience,
         scenarios_dir_override=scenarios_dir_override, tier_override=tier_override,
         no_counter_refusals=no_counter_refusals, no_trace=no_trace, replay=replay,
