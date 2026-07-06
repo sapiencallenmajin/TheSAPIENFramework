@@ -283,6 +283,83 @@ def render_timing_summary(
 
 
 # ---------------------------------------------------------------------------
+# Judge reliability (council runs only)
+# ---------------------------------------------------------------------------
+
+def render_judge_reliability(console: "Console", results: list) -> None:
+    """Print the judge-reliability summary for council-scored runs.
+
+    Compact per-seat table (votes, agreement with final verdict, FAIL
+    rate) plus run-level controversy and chairman-override lines.
+    Silently skips single-judge runs — reliability artifacts only exist
+    when a council voted. Measurement display only; verdicts unchanged.
+    """
+    from rich.table import Table
+
+    from sapien_score.reporting.judge_reliability import compute_judge_reliability
+
+    entries = []
+    for _scenario, result in results:
+        council_result = getattr(result, "council_result", None)
+        if council_result is not None:
+            entries.append({
+                "scenario_id": _scenario.id,
+                "council_scoring": council_result.to_dict(),
+            })
+    jr = compute_judge_reliability(entries)
+    if jr is None:
+        return
+
+    console.print()
+    seat_table = Table(
+        title="Judge Reliability (council)",
+        show_header=True,
+        header_style="bold",
+    )
+    seat_table.add_column("Seat", min_width=16)
+    seat_table.add_column("Family", width=10)
+    seat_table.add_column("Votes", justify="right", width=7)
+    seat_table.add_column("Missing", justify="right", width=9)
+    seat_table.add_column("Agree w/ Final", justify="right", width=15)
+    seat_table.add_column("FAIL Rate", justify="right", width=10)
+
+    for judge_id, s in jr["seats"].items():
+        missing = s["missing_votes"]
+        missing_str = f"[red]{missing}[/red]" if missing > 0 else "0"
+        seat_table.add_row(
+            judge_id,
+            s["family"] or "—",
+            f"{s['votes']}/{s['expected_votes']}",
+            missing_str,
+            f"{s['agreement_with_final'] * 100:.0f}%",
+            f"{s['fail_rate'] * 100:.0f}%",
+        )
+    console.print(seat_table)
+
+    dis = jr["disagreement"]
+    chair = jr["chairman"]
+    deg = jr["degraded"]
+    split_str = ", ".join(f"{k}: {v}" for k, v in dis["splits"].items()) or "—"
+    console.print(
+        f"  Controversy rate: {dis['controversy_rate'] * 100:.0f}% "
+        f"({dis['non_unanimous']}/{jr['scored_records']} non-unanimous)  |  "
+        f"Splits: {split_str}"
+    )
+    console.print(
+        f"  Chairman: {chair['adjudicated']} adjudicated, "
+        f"{chair['overrides']} overrides "
+        f"({chair['override_rate'] * 100:.0f}% of non-unanimous), "
+        f"{chair['failed']} failed"
+    )
+    if any(deg.values()):
+        console.print(
+            f"  [yellow]Degraded rounds: {deg['council_degraded']} council_degraded, "
+            f"{deg['all_judges_failed']} all_judges_failed, "
+            f"{deg['even_panel_reduced']} even_panel_reduced[/yellow]"
+        )
+
+
+# ---------------------------------------------------------------------------
 # Cost estimation (--estimate)
 # ---------------------------------------------------------------------------
 

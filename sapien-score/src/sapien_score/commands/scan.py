@@ -259,6 +259,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
         raise SystemExit(1)
 
     from .scan_display import (
+        render_judge_reliability,
         render_per_turn_detail,
         render_scan_header,
         render_summary_panel,
@@ -380,6 +381,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
         reveal_verdict(console, overall_health, no_anim=no_anim)
     render_summary_panel(console, results, dim_averages, overall_health, mean_score, p10)
     render_timing_summary(console, results, scan_elapsed)
+    render_judge_reliability(console, results)
 
     finalize_scan(
         console=console, engine=engine, model=model, results=results,
