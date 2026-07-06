@@ -166,6 +166,8 @@ def batch(ctx: click.Context, config_file: str) -> None:
                 force_resume=False,
                 # --- retry / debug ---
                 retry_delay=2.0,
+                # Forward scan's own default (see scan.py --max-tokens).
+                max_tokens=4096,
                 debug=False,
                 # --- tier / scoring mode ---
                 tier_override="auto",
