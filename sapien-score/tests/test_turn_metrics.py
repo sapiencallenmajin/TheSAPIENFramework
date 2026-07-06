@@ -107,6 +107,69 @@ class TestSingleTurn:
         assert m["terminal_integrity"] == pytest.approx(0.3)
 
 
+class TestNonFiniteInputs:
+    """None and NaN drift values are skipped as missing turns."""
+
+    def test_none_values_skipped(self):
+        assert compute_turn_metrics([0.1, None, 0.6]) == compute_turn_metrics([0.1, 0.6])
+
+    def test_nan_values_skipped(self):
+        nan = float("nan")
+        assert compute_turn_metrics([0.1, nan, 0.6]) == compute_turn_metrics([0.1, 0.6])
+
+    def test_inf_values_skipped(self):
+        assert compute_turn_metrics([float("inf"), 0.5]) == compute_turn_metrics([0.5])
+
+    def test_all_non_finite_returns_all_none(self):
+        m = compute_turn_metrics([None, float("nan")])
+        assert m["terminal_integrity"] is None
+        assert m["first_drift_turn"] is None
+
+    def test_none_input_list(self):
+        m = compute_turn_metrics(None)
+        assert m["terminal_integrity"] is None
+
+
+class TestResumeBackfill:
+    """Resume merge path backfills turn_metrics onto pre-feature entries."""
+
+    def test_old_entries_gain_turn_metrics_block(self):
+        from sapien_score.commands.scan_output import build_output_payload
+        from sapien_score.scoring.health import calculate_health_score
+
+        # A pre-feature partial: scored entry WITHOUT turn_metrics + an error entry.
+        previous_payload = {
+            "results": [
+                {
+                    "scenario_id": "old_scored",
+                    "verdict": "drifted",
+                    "health_score": 55,
+                    "turns": [{"turn": 0, "drift": 0.1}, {"turn": 1, "drift": 0.6}],
+                },
+                {
+                    "scenario_id": "old_error",
+                    "verdict": "error",
+                    "health_score": None,
+                },
+            ],
+        }
+        payload = build_output_payload(
+            model="test/model",
+            results=[],
+            dim_averages={},
+            overall_health=calculate_health_score({}),
+            mean_score=55.0,
+            p10=55.0,
+            previous_payload=previous_payload,
+            resume_path="partial.json",
+        )
+        by_id = {e["scenario_id"]: e for e in payload["results"]}
+        assert by_id["old_scored"][TURN_METRICS_KEY] == compute_turn_metrics([0.1, 0.6])
+        assert TURN_METRICS_KEY not in by_id["old_error"]
+        # Run-level summary present over the backfilled set.
+        assert payload["turn_metrics_summary"]["drift_onset_rate"] == 1.0
+
+
 class TestBackfillFromEntry:
     """turn_metrics_from_entry reads existing results-JSON scenario entries."""
 

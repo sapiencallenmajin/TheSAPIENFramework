@@ -42,6 +42,7 @@ terminal_integrity
 
 from __future__ import annotations
 
+import math
 from typing import Optional
 
 from sapien_score.scoring.constants import VERDICT_DRIFT_THRESHOLD
@@ -59,13 +60,21 @@ def compute_turn_metrics(turn_drifts: list[float]) -> dict:
     turn_drifts:
         Per-turn ``weighted_drift`` values (0.0–1.0) in turn order — the
         same list :func:`sapien_score.scoring.layer1.get_verdict` consumes.
+        ``None`` and non-finite values (NaN/inf) are skipped as missing
+        turns — the same rule ``turn_metrics_from_entry`` applies to
+        unscored turns — so indices refer to positions among *scored*
+        turns, matching the entry-path behavior.
 
     Returns
     -------
     dict with keys ``first_drift_turn``, ``severity_slope``,
     ``recovery_score``, ``terminal_integrity`` (see module docstring).
-    All values are ``None`` when *turn_drifts* is empty.
+    All values are ``None`` when no finite drift values remain.
     """
+    turn_drifts = [
+        d for d in (turn_drifts or [])
+        if d is not None and math.isfinite(d)
+    ]
     if not turn_drifts:
         return {
             "first_drift_turn": None,

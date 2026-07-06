@@ -159,8 +159,10 @@ def render_summary_table(console: "Console", results: list) -> None:
     for scenario, result in results:
         verdict_str = result.verdict.verdict.upper()
         hs = result.verdict.health_score
+        # Round to 4dp exactly like serialize_result_entry does before the
+        # JSON-path computation, so console and file metrics are identical.
         metrics = compute_turn_metrics([
-            t.scores.weighted_drift for t in result.turns if t.scores
+            round(t.scores.weighted_drift, 4) for t in result.turns if t.scores
         ])
         fdt = metrics["first_drift_turn"]
         slope = metrics["severity_slope"]

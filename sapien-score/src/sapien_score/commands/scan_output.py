@@ -465,6 +465,21 @@ def build_output_payload(
     # results.
     rerun_ids = {e.get("scenario_id") for e in new_entries if e.get("scenario_id")}
     old_entries = [e for e in old_entries if e.get("scenario_id") not in rerun_ids]
+    # Backfill per-entry turn metrics on prior entries written before the
+    # feature existed — otherwise a resumed run emits a mixed schema (new
+    # entries carry turn_metrics, old ones don't). Pure arithmetic over the
+    # per-turn drifts already stored in each entry.
+    from sapien_score.scoring.turn_metrics import (
+        TURN_METRICS_KEY,
+        turn_metrics_from_entry,
+    )
+    for e in old_entries:
+        if (
+            isinstance(e, dict)
+            and e.get("verdict") != "error"
+            and TURN_METRICS_KEY not in e
+        ):
+            e[TURN_METRICS_KEY] = turn_metrics_from_entry(e)
     combined_entries = old_entries + new_entries
 
     # Exclude error entries (health_score is None) from aggregates.
