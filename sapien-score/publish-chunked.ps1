@@ -154,13 +154,15 @@ $runMeta = [ordered]@{
 }
 $runMetaObj = [pscustomobject]$runMeta
 
-# Forward all optional run-level fields the endpoint knows about.
+# Forward run-IDENTIFYING optional fields on CHUNK 1 only.
 # scoring_mode / council_size / council_seats_min are REQUIRED for council v2
 # runs to be labeled correctly — without them the endpoint defaults the run to
 # 'single' even when every scenario was council-scored.
+# NOTE: overall_health / mean_health / p10_health are AGGREGATES and must ride
+# ONLY the last chunk (see below) — sending them on chunk 1 risks the endpoint
+# recording/finalizing run-level health before all scenarios are appended.
 foreach ($field in @(
     'prompt_version', 'framework_version', 'total_cost_usd',
-    'overall_health', 'mean_health', 'p10_health',
     'publisher', 'owner_id',
     'scoring_mode', 'council_size', 'council_seats_min'
 )) {

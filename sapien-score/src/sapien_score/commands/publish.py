@@ -35,23 +35,45 @@ import click
 def _post_json(url, payload, headers, timeout, fallback_url=None):
     """POST *payload* as JSON. Returns (status_code, body_dict_or_None, error_str).
 
-    Tries *fallback_url* only on connection/timeout errors against the primary
-    (mirrors the scan --publish fallback). Never follows redirects — a bearer
-    token must not bounce to another host.
+    Never follows redirects — a bearer token must not bounce to another host.
+
+    Fallback policy (deliberately conservative for chunked publishing):
+
+    * A ``fallback_url`` is tried ONLY on a genuine **connection error**
+      (``httpx.ConnectError`` — the socket never opened, so the request body
+      was never delivered; safe to try another host). Callers pass a
+      ``fallback_url`` ONLY for single-POST, non-chunked publishes where
+      nothing has been created server-side yet.
+    * A **timeout** (``httpx.TimeoutException``, including ``ConnectTimeout`` /
+      ``ReadTimeout``) is AMBIGUOUS — the server may have already received and
+      committed the request. It is NEVER retried and NEVER falls back, even to
+      the same URL. This is what stops a chunked re-POST from duplicating
+      ``scenario_results`` (or orphaning a run on a chunk-1 timeout). The error
+      string is prefixed ``timeout`` so callers surface the orphan warning.
     """
     import httpx
 
     urls = [url] + ([fallback_url] if fallback_url and fallback_url != url else [])
     last_err = None
-    for attempt in urls:
+    for idx, attempt in enumerate(urls):
+        is_last = idx == len(urls) - 1
         try:
             resp = httpx.post(
                 attempt, json=payload, headers=headers,
                 timeout=timeout, follow_redirects=False,
             )
-        except (httpx.ConnectError, httpx.TimeoutException, httpx.ConnectTimeout) as exc:
+        except httpx.TimeoutException as exc:
+            # Ambiguous — the request may already have been received and
+            # committed server-side. Do NOT retry or fall back; abort so the
+            # caller can warn loudly about a possibly-orphaned run.
+            return (None, None, f"timeout (ambiguous — request may have been received): {exc}")
+        except httpx.ConnectError as exc:
+            # Socket never opened — nothing was sent. Safe to try the fallback
+            # URL (single-POST callers only; chunked callers pass no fallback).
             last_err = str(exc)
-            continue
+            if not is_last:
+                continue
+            return (None, None, str(exc))
         except Exception as exc:  # noqa: BLE001 — surface any transport error
             return (None, None, str(exc))
         body = None
@@ -312,7 +334,11 @@ def _publish_one(*, console, url, fallback, headers, full_payload, plan,
         n = len(chunk.get("results") or [])
         kb = payload_bytes_kb(chunk)
         console.print(f"[cyan]-> POST chunk {i}/{total} ({n} scenarios, {kb:.1f} KB)[/cyan]")
-        status, body, err = _post_json(url, chunk, headers, 120.0, fallback)
+        # Chunked POSTs pass NO fallback URL: once we are splitting a run, a
+        # timeout is ambiguous and a fallback/retry could duplicate rows or
+        # orphan the run. _post_json enforces the same (never falls back on a
+        # timeout); withholding fallback_url here is belt-and-suspenders.
+        status, body, err = _post_json(url, chunk, headers, 120.0, fallback_url=None)
 
         if status != 200:
             console.print(f"[red]Chunk {i}/{total} FAILED[/red]")
@@ -325,6 +351,17 @@ def _publish_one(*, console, url, fallback, headers, full_payload, plan,
                     f"[yellow]Do NOT naively retry — duplicate scenario_results "
                     f"would be inserted. Diagnose, then decide: abandon (orphan "
                     f"run) or DB-surgery to resume.[/yellow]"
+                )
+            else:
+                # Chunk 1 failed before we captured a run_id. On a timeout the
+                # server may STILL have created the run (ambiguous) — we just
+                # don't know its id. Warn against a naive retry regardless.
+                console.print(
+                    "[yellow]No run_id was captured (chunk 1 failed).[/yellow]\n"
+                    "[yellow]If this was a timeout, the server MAY have created a "
+                    "run you cannot see — do NOT naively retry, or you risk a "
+                    "duplicate/orphaned run. Check the scoreboard/DB for a "
+                    "partial run before re-publishing.[/yellow]"
                 )
             return False
 

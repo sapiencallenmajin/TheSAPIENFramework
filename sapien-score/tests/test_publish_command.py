@@ -108,16 +108,25 @@ def _write(tmp_path: Path, name: str, data: dict) -> str:
 
 
 class _FakePost:
-    """Records POST calls and returns a run_id on chunk 1 / OK otherwise."""
+    """Records POST calls and returns a run_id on chunk 1 / OK otherwise.
 
-    def __init__(self, fail_on_chunk: int | None = None):
+    ``fail_on_chunk`` returns HTTP 500 on that (1-based) call; ``timeout_on_chunk``
+    returns the ambiguous-timeout tuple (status None) on that call.
+    """
+
+    def __init__(self, fail_on_chunk: int | None = None,
+                 timeout_on_chunk: int | None = None):
         self.calls: list[dict] = []
+        self.fallbacks: list = []
         self.fail_on_chunk = fail_on_chunk
+        self.timeout_on_chunk = timeout_on_chunk
 
     def __call__(self, url, payload, headers, timeout, fallback_url=None):
         self.calls.append(payload)
-        chunk_idx = (payload.get("chunk_info") or {}).get("chunk_index")
+        self.fallbacks.append(fallback_url)
         n = len(self.calls)
+        if self.timeout_on_chunk is not None and n == self.timeout_on_chunk:
+            return (None, None, "timeout (ambiguous — request may have been received): x")
         if self.fail_on_chunk is not None and n == self.fail_on_chunk:
             return (500, {"error": "boom"}, None)
         body = {"run_id": "srv-run-1", "scenarios_processed": len(payload.get("results") or [])}
@@ -337,3 +346,98 @@ class TestPublishCLI:
             res = CliRunner().invoke(publish, [f, "--run-label", "L"])
         assert res.exit_code != 0
         assert fake.calls == []
+
+    def test_chunk_timeout_aborts_no_retry(self, tmp_path, monkeypatch):
+        # BLOCKING regression: a timeout on chunk 2 must NOT retry/fall back —
+        # the loop stops (no chunk 3), surfaces the run_id, and exits non-zero.
+        monkeypatch.setenv("SAPIEN_INGEST_API_KEY", "tok")
+        f = _write(tmp_path, "run.json", council_run(6))
+        fake = _FakePost(timeout_on_chunk=2)
+        with patch("sapien_score.commands.publish._post_json", fake):
+            res = CliRunner().invoke(
+                publish, [f, "--run-label", "L", "--chunk-size", "2"])
+        assert res.exit_code != 0
+        assert len(fake.calls) == 2  # chunk 1 + chunk 2 timeout; NO chunk 3
+        # chunked POSTs are invoked with NO fallback URL
+        assert all(fb is None for fb in fake.fallbacks)
+        assert "srv-run-1" in res.output          # run_id surfaced
+        assert "NON-FINALIZED" in res.output
+        assert "retry" in res.output.lower()
+
+    def test_chunk1_timeout_warns_no_runid(self, tmp_path, monkeypatch):
+        # Chunk-1 timeout: no run_id captured, but the server may have created
+        # the run — warn against a naive retry anyway.
+        monkeypatch.setenv("SAPIEN_INGEST_API_KEY", "tok")
+        f = _write(tmp_path, "run.json", council_run(6))
+        fake = _FakePost(timeout_on_chunk=1)
+        with patch("sapien_score.commands.publish._post_json", fake):
+            res = CliRunner().invoke(
+                publish, [f, "--run-label", "L", "--chunk-size", "2"])
+        assert res.exit_code != 0
+        assert len(fake.calls) == 1  # stopped immediately
+        assert "no run_id" in res.output.lower()
+        assert "retry" in res.output.lower()
+
+
+class TestPostJsonFallback:
+    """Unit tests for _post_json's fallback policy (the BLOCKING fix)."""
+
+    def _resp(self, status=200, body=None):
+        import httpx
+        return httpx.Response(status, json=(body or {"run_id": "r"}))
+
+    def test_timeout_never_falls_back(self, monkeypatch):
+        import httpx
+
+        from sapien_score.commands.publish import _post_json
+
+        calls = []
+
+        def fake_post(url, **kw):
+            calls.append(url)
+            raise httpx.ReadTimeout("slow", request=httpx.Request("POST", url))
+
+        monkeypatch.setattr(httpx, "post", fake_post)
+        status, body, err = _post_json(
+            "https://primary/x", {"a": 1}, {}, 30.0, fallback_url="https://fallback/x")
+        # Exactly ONE attempt — no retry, no fallback — even though fallback_url set.
+        assert calls == ["https://primary/x"]
+        assert status is None
+        assert "timeout" in err.lower()
+
+    def test_connect_error_falls_back_once(self, monkeypatch):
+        import httpx
+
+        from sapien_score.commands.publish import _post_json
+
+        calls = []
+
+        def fake_post(url, **kw):
+            calls.append(url)
+            if url == "https://primary/x":
+                raise httpx.ConnectError("refused", request=httpx.Request("POST", url))
+            return self._resp(200, {"run_id": "r2"})
+
+        monkeypatch.setattr(httpx, "post", fake_post)
+        status, body, err = _post_json(
+            "https://primary/x", {"a": 1}, {}, 30.0, fallback_url="https://fallback/x")
+        assert calls == ["https://primary/x", "https://fallback/x"]
+        assert status == 200
+        assert body["run_id"] == "r2"
+
+    def test_connect_error_no_fallback_returns_error(self, monkeypatch):
+        import httpx
+
+        from sapien_score.commands.publish import _post_json
+
+        calls = []
+
+        def fake_post(url, **kw):
+            calls.append(url)
+            raise httpx.ConnectError("refused", request=httpx.Request("POST", url))
+
+        monkeypatch.setattr(httpx, "post", fake_post)
+        status, body, err = _post_json("https://primary/x", {"a": 1}, {}, 30.0)
+        assert calls == ["https://primary/x"]  # no fallback given
+        assert status is None
+        assert "refused" in err
