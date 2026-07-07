@@ -30,7 +30,23 @@ from __future__ import annotations
 
 import json
 import math
+import uuid
 from typing import Optional
+
+# Namespace for deriving a stable idempotency key from a run's identity.
+_IDEMPOTENCY_NAMESPACE = uuid.NAMESPACE_URL
+
+
+def _idempotency_key(full_payload: dict) -> str:
+    """UUID the endpoint requires on chunk 1 to dedup run creation.
+
+    Derived deterministically from the run's own identity (``run_id``, else
+    ``content_hash``) via uuid5, so re-publishing the SAME run reuses the same
+    key and the server dedups instead of creating a duplicate run. Falls back
+    to a random uuid4 only when the run carries no stable identifier.
+    """
+    stable = str(full_payload.get("run_id") or full_payload.get("content_hash") or "")
+    return str(uuid.uuid5(_IDEMPOTENCY_NAMESPACE, stable)) if stable else str(uuid.uuid4())
 
 # Aggregate fields carried ONLY on the final chunk (they describe the whole
 # run and finalize it). Mirrors publish-chunked.ps1's last-chunk field list.
@@ -156,6 +172,10 @@ def build_chunk_payloads(full_payload: dict, plan: ChunkPlan) -> list[dict]:
         if idx == 0:
             # Run metadata rides chunk 1 (does not clobber results/chunk_info).
             chunk.update(meta)
+            # The endpoint requires a UUID idempotency_key on chunk 1 to dedup
+            # run creation (a chunk-1 retry with the same key is a safe no-op
+            # server-side rather than a duplicate run).
+            chunk["idempotency_key"] = _idempotency_key(full_payload)
         if idx == total - 1:
             chunk.update(aggregates)
         chunks.append(chunk)
