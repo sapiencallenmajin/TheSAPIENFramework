@@ -281,6 +281,100 @@ Persona is always prepended first, then memory, then the original prompt.
 
 ---
 
+## diff
+
+Compare two completed scan result files scenario-by-scenario and gate CI on
+regressions. Post-hoc analysis only — makes **zero LLM calls**. Design
+inspired by Inspect AI's eval-log comparison pattern, implemented natively
+over voigt-kampff's results JSON.
+
+```
+voigt-kampff diff BASELINE.json CANDIDATE.json [OPTIONS]
+
+Options:
+  --output PATH                        Write the full machine-readable diff
+                                       report as JSON
+  --fail-on [regression|any-change|none]
+                                       CI gate: exit 1 on regressions (or on
+                                       any change)  [default: none]
+  --min-delta FLOAT                    Noise floor in health points (0-100):
+                                       a same-verdict health change counts
+                                       only when it strictly exceeds this
+                                       value  [default: 1.0]
+  --help                               Show this message and exit.
+```
+
+### How comparison works
+
+Scenarios are matched by `scenario_id` over the **intersection** of the two
+runs; added/removed scenarios are reported loudly and excluded from deltas.
+Entries with `verdict: error` (or `rejudge_failed`) in either run are
+excluded with a warning — they carry no scores.
+
+The verdict vocabulary is ordered by severity:
+
+```
+held (0)  <  recovered (1)  <  drifted (2)  <  capitulated (3)
+```
+
+- A transition to a **higher** rank (e.g. `held -> drifted`) is a
+  **regression**; to a lower rank, an **improvement**. Verdict movement
+  dominates the health delta.
+- Within the same verdict, a health-score change strictly exceeding
+  `--min-delta` (default 1.0 health points on the 0-100 scale) counts as a
+  regression/improvement; a change at or inside the band is unchanged. A
+  zero delta is always unchanged, even with `--min-delta 0`.
+- Duplicate `scenario_id` entries within a file are warned about loudly;
+  the last scored entry wins (matching the resume-merge convention).
+- All deltas are `candidate - baseline` (positive = candidate scored higher).
+
+Per common scenario the report includes the verdict transition, the
+health-score delta, and turn-metric deltas (`first_drift_turn`,
+`severity_slope`, `recovery_score`, `terminal_integrity`); missing
+`turn_metrics` blocks (older runs) degrade to `null` deltas, never a crash.
+
+### Comparability guardrails
+
+The command warns loudly — it never silently proceeds — when the two runs
+differ in: target `model`, `scoring_mode` (council vs single),
+`council_version`, council composition (derived from `judge_reliability`
+seats or per-scenario council votes), or completed scenario counts. The
+JSON report carries a `comparability` block with per-run provenance and
+`comparable: true/false`.
+
+### Examples
+
+```bash
+# Human-readable comparison of two runs of the same model
+voigt-kampff diff results_v1.json results_v2.json
+
+# CI regression gate: exit 1 when any scenario regressed
+voigt-kampff diff baseline.json candidate.json --fail-on regression
+
+# Machine-readable report with a wider noise floor
+voigt-kampff diff a.json b.json --min-delta 2.5 --output diff.json
+```
+
+### Output
+
+Console output shows the comparability warnings, a verdict transition
+matrix (rows: baseline, columns: candidate), the regressions ranked worst
+first (verdict-rank jump, then largest health drop), domains ranked by net
+health delta, and a run-level summary (regression/improvement/unchanged
+counts, mean/overall health deltas, and — when both runs carry a
+`judge_reliability` block — chairman override rate and controversy rate
+deltas).
+
+`--output` writes the full report: `comparability`, `warnings`,
+`scenarios` (`common`/`added`/`removed` ids plus per-scenario diffs),
+`transition_matrix`, and `summary`.
+
+Exit code: `0` normally; `1` when the `--fail-on` gate trips
+(`regression`: regressions >= 1; `any-change`: regressions + improvements
++ added + removed scenarios >= 1 — a changed scenario set is a change).
+
+---
+
 ## list
 
 List all built-in scenarios.
