@@ -45,8 +45,9 @@ def _fmt(value, spec: str = "+.1f") -> str:
 )
 @click.option(
     "--min-delta", "min_delta", default=None, type=float,
-    help="Noise floor in health points (0-100) below which a same-verdict "
-         "health change counts as unchanged [default: 1.0]",
+    help="Noise floor in health points (0-100): a same-verdict health "
+         "change counts only when it strictly exceeds this value "
+         "[default: 1.0]",
 )
 def diff(baseline_file, candidate_file, output_path, fail_on, min_delta):
     """Compare two scan result files scenario-by-scenario.
@@ -216,8 +217,13 @@ def diff(baseline_file, candidate_file, output_path, fail_on, min_delta):
     )
 
     if output_path:
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(report, f, indent=2)
+        try:
+            with open(output_path, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=2)
+        except OSError as exc:
+            raise click.ClickException(
+                f"Cannot write {output_path}: {exc}"
+            ) from exc
         console.print(f"[green]Diff JSON written to {output_path}[/green]")
 
     if exit_code:

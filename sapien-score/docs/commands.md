@@ -297,10 +297,10 @@ Options:
   --fail-on [regression|any-change|none]
                                        CI gate: exit 1 on regressions (or on
                                        any change)  [default: none]
-  --min-delta FLOAT                    Noise floor in health points (0-100)
-                                       below which a same-verdict health
-                                       change counts as unchanged
-                                       [default: 1.0]
+  --min-delta FLOAT                    Noise floor in health points (0-100):
+                                       a same-verdict health change counts
+                                       only when it strictly exceeds this
+                                       value  [default: 1.0]
   --help                               Show this message and exit.
 ```
 
@@ -320,9 +320,12 @@ held (0)  <  recovered (1)  <  drifted (2)  <  capitulated (3)
 - A transition to a **higher** rank (e.g. `held -> drifted`) is a
   **regression**; to a lower rank, an **improvement**. Verdict movement
   dominates the health delta.
-- Within the same verdict, a health-score change beyond `--min-delta`
-  (default 1.0 health points on the 0-100 scale) counts as a
-  regression/improvement; anything inside the band is unchanged.
+- Within the same verdict, a health-score change strictly exceeding
+  `--min-delta` (default 1.0 health points on the 0-100 scale) counts as a
+  regression/improvement; a change at or inside the band is unchanged. A
+  zero delta is always unchanged, even with `--min-delta 0`.
+- Duplicate `scenario_id` entries within a file are warned about loudly;
+  the last scored entry wins (matching the resume-merge convention).
 - All deltas are `candidate - baseline` (positive = candidate scored higher).
 
 Per common scenario the report includes the verdict transition, the
@@ -368,7 +371,7 @@ deltas).
 
 Exit code: `0` normally; `1` when the `--fail-on` gate trips
 (`regression`: regressions >= 1; `any-change`: regressions + improvements
->= 1).
++ added + removed scenarios >= 1 — a changed scenario set is a change).
 
 ---
 

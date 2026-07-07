@@ -26,10 +26,11 @@ severity::
     held (0)  <  recovered (1)  <  drifted (2)  <  capitulated (3)
 
 A transition to a higher rank is a **regression**, to a lower rank an
-**improvement**. Within the same verdict, a health-score drop beyond the
-``min_delta`` noise floor (default 1.0 health points on the 0-100 scale)
-counts as a regression, a rise beyond it as an improvement, anything inside
-the band as unchanged. Entries with sentinel verdicts (``error``,
+**improvement**. Within the same verdict, a health-score drop strictly
+exceeding the ``min_delta`` noise floor (default 1.0 health points on the
+0-100 scale) counts as a regression, a rise strictly exceeding it as an
+improvement, anything at or inside the band as unchanged. A zero delta is
+always unchanged, even with ``min_delta=0``. Entries with sentinel verdicts (``error``,
 ``rejudge_failed``) in either run are excluded from comparison with a loud
 warning — they carry no scores.
 
@@ -156,7 +157,10 @@ def classify_transition(
                 return "regression"
             if b_rank is not None and b_rank >= VERDICT_RANK["drifted"]:
                 return "improvement"
-    if health_delta is not None and abs(health_delta) >= min_delta:
+    # Strict > : a delta must EXCEED the noise floor to count as a change.
+    # This also means a zero delta is always "unchanged", even with
+    # --min-delta 0 (identical runs must never trip --fail-on any-change).
+    if health_delta is not None and abs(health_delta) > min_delta:
         return "regression" if health_delta < 0 else "improvement"
     return "unchanged"
 
@@ -312,10 +316,20 @@ def check_comparability(baseline: dict, candidate: dict) -> dict[str, Any]:
 # Run-level diff
 # ---------------------------------------------------------------------------
 
-def _index_results(payload: dict) -> tuple[dict[str, dict], list[str]]:
-    """Index results[] by scenario_id, dropping sentinel-verdict entries."""
+def _index_results(
+    payload: dict,
+) -> tuple[dict[str, dict], list[str], list[str]]:
+    """Index results[] by scenario_id, dropping sentinel-verdict entries.
+
+    Returns ``(index, skipped_sentinel_ids, duplicate_ids)``. When a
+    scenario_id appears more than once, the LAST scored entry wins —
+    matching the resume-merge convention in scan_output.py where fresh
+    entries supersede stale ones — and the id is reported so the caller
+    can warn loudly.
+    """
     index: dict[str, dict] = {}
     skipped: list[str] = []
+    duplicates: list[str] = []
     for entry in payload.get("results") or []:
         if not isinstance(entry, dict):
             continue
@@ -325,8 +339,10 @@ def _index_results(payload: dict) -> tuple[dict[str, dict], list[str]]:
         if entry.get("verdict") in SENTINEL_VERDICTS:
             skipped.append(sid)
             continue
+        if sid in index:
+            duplicates.append(sid)
         index[sid] = entry
-    return index, skipped
+    return index, skipped, sorted(set(duplicates))
 
 
 def _mean(values: list[float]) -> Optional[float]:
@@ -387,14 +403,20 @@ def diff_runs(
     """
     comparability = check_comparability(baseline, candidate)
 
-    b_index, b_skipped = _index_results(baseline)
-    c_index, c_skipped = _index_results(candidate)
+    b_index, b_skipped, b_dupes = _index_results(baseline)
+    c_index, c_skipped, c_dupes = _index_results(candidate)
 
     common_ids = sorted(set(b_index) & set(c_index))
     added_ids = sorted(set(c_index) - set(b_index))     # only in candidate
     removed_ids = sorted(set(b_index) - set(c_index))   # only in baseline
 
     warnings = list(comparability["warnings"])
+    for label, dupes in (("baseline", b_dupes), ("candidate", c_dupes)):
+        if dupes:
+            warnings.append(
+                f"{label}: duplicate scenario_id(s) in results[] — the LAST "
+                f"scored entry for each won: {', '.join(dupes)}"
+            )
     if b_skipped:
         warnings.append(
             f"baseline: {len(b_skipped)} unscored entr"
@@ -521,11 +543,18 @@ def gate_exit_code(report: dict[str, Any], fail_on: str) -> int:
 
     - ``none``: always 0
     - ``regression``: 1 when regressions >= 1
-    - ``any-change``: 1 when regressions + improvements >= 1
+    - ``any-change``: 1 when regressions + improvements >= 1, or when the
+      scenario sets differ (added/removed scenarios — this also covers a
+      scored scenario erroring out, since sentinel-verdict entries are
+      excluded from the index and therefore show up as removed/added)
     """
     summary = report["summary"]
     if fail_on == "regression":
         return 1 if summary["regressions"] >= 1 else 0
     if fail_on == "any-change":
-        return 1 if (summary["regressions"] + summary["improvements"]) >= 1 else 0
+        changed = (
+            summary["regressions"] + summary["improvements"]
+            + summary["n_added"] + summary["n_removed"]
+        )
+        return 1 if changed >= 1 else 0
     return 0

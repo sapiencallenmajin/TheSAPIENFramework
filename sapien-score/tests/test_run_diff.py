@@ -112,6 +112,17 @@ class TestClassifyTransition:
         assert classify_transition("held", "held", -0.5, 1.0) == "unchanged"
         assert classify_transition("held", "held", 0.9, 1.0) == "unchanged"
 
+    def test_delta_exactly_at_floor_is_unchanged(self):
+        # Strict >: a delta must EXCEED the floor to count.
+        assert classify_transition("held", "held", -1.0, 1.0) == "unchanged"
+        assert classify_transition("held", "held", 1.0, 1.0) == "unchanged"
+        assert classify_transition("held", "held", -1.01, 1.0) == "regression"
+        assert classify_transition("held", "held", 1.01, 1.0) == "improvement"
+
+    def test_zero_delta_unchanged_even_with_zero_floor(self):
+        assert classify_transition("held", "held", 0.0, 0.0) == "unchanged"
+        assert classify_transition("held", "held", -0.1, 0.0) == "regression"
+
     def test_verdict_rank_dominates_health_delta(self):
         # Verdict worsens even though health improved: still a regression.
         assert classify_transition("held", "drifted", +10.0, 1.0) == "regression"
@@ -280,26 +291,30 @@ class TestDiffRuns:
 # CI gating
 # ---------------------------------------------------------------------------
 
+def _summary(regressions=0, improvements=0, n_added=0, n_removed=0):
+    return {"summary": {
+        "regressions": regressions, "improvements": improvements,
+        "n_added": n_added, "n_removed": n_removed,
+    }}
+
+
 class TestGateExitCode:
     def test_none_never_fails(self):
-        report = {"summary": {"regressions": 5, "improvements": 2}}
-        assert gate_exit_code(report, "none") == 0
+        assert gate_exit_code(_summary(regressions=5, improvements=2), "none") == 0
 
     def test_regression_gate(self):
-        assert gate_exit_code(
-            {"summary": {"regressions": 1, "improvements": 0}}, "regression"
-        ) == 1
-        assert gate_exit_code(
-            {"summary": {"regressions": 0, "improvements": 3}}, "regression"
-        ) == 0
+        assert gate_exit_code(_summary(regressions=1), "regression") == 1
+        assert gate_exit_code(_summary(improvements=3), "regression") == 0
 
     def test_any_change_gate(self):
-        assert gate_exit_code(
-            {"summary": {"regressions": 0, "improvements": 1}}, "any-change"
-        ) == 1
-        assert gate_exit_code(
-            {"summary": {"regressions": 0, "improvements": 0}}, "any-change"
-        ) == 0
+        assert gate_exit_code(_summary(improvements=1), "any-change") == 1
+        assert gate_exit_code(_summary(), "any-change") == 0
+
+    def test_any_change_gate_trips_on_scenario_set_changes(self):
+        assert gate_exit_code(_summary(n_added=1), "any-change") == 1
+        assert gate_exit_code(_summary(n_removed=2), "any-change") == 1
+        # regression gate ignores set changes.
+        assert gate_exit_code(_summary(n_added=1, n_removed=1), "regression") == 0
 
 
 # ---------------------------------------------------------------------------
@@ -377,6 +392,55 @@ class TestDiffCli:
         result = CliRunner().invoke(diff, [b, c, "--min-delta", "-1"])
         assert result.exit_code != 0
         assert "min-delta" in result.output
+
+    def test_identical_runs_min_delta_zero_any_change_exit_zero(self, tmp_path):
+        # Exact-zero deltas must never count as a change, even at floor 0.
+        baseline, candidate = identical_payloads()
+        b, c = write_pair(tmp_path, baseline, candidate)
+        result = CliRunner().invoke(
+            diff, [b, c, "--fail-on", "any-change", "--min-delta", "0"]
+        )
+        assert result.exit_code == 0, result.output
+
+    def test_disjoint_sets_trip_any_change_gate(self, tmp_path):
+        baseline = make_payload([make_entry("s1")])
+        candidate = make_payload([make_entry("s2")])
+        b, c = write_pair(tmp_path, baseline, candidate)
+        result = CliRunner().invoke(diff, [b, c, "--fail-on", "any-change"])
+        assert result.exit_code == 1, result.output
+
+    def test_duplicate_scenario_ids_warn_loudly(self, tmp_path):
+        baseline = make_payload([
+            make_entry("dupe", "held", 90),
+            make_entry("dupe", "drifted", 50),
+        ])
+        candidate = make_payload([make_entry("dupe", "drifted", 50)])
+        b, c = write_pair(tmp_path, baseline, candidate)
+        result = CliRunner().invoke(diff, [b, c])
+        assert result.exit_code == 0, result.output
+        assert "duplicate scenario_id" in result.output
+        assert "dupe" in result.output
+
+    def test_duplicate_last_entry_wins(self):
+        baseline = make_payload([
+            make_entry("dupe", "held", 90),
+            make_entry("dupe", "drifted", 50),
+        ])
+        candidate = make_payload([make_entry("dupe", "drifted", 50)])
+        report = diff_runs(baseline, candidate)
+        d = report["scenarios"]["diffs"][0]
+        assert d["verdict"]["baseline"] == "drifted"  # last entry won
+        assert d["status"] == "unchanged"
+        assert any("duplicate scenario_id" in w for w in report["warnings"])
+
+    def test_output_write_failure_clean_error(self, tmp_path):
+        baseline, candidate = identical_payloads()
+        b, c = write_pair(tmp_path, baseline, candidate)
+        # A directory path is unwritable as a file -> OSError.
+        result = CliRunner().invoke(diff, [b, c, "--output", str(tmp_path)])
+        assert result.exit_code != 0
+        assert "Cannot write" in result.output
+        assert "Traceback" not in result.output
 
     def test_invalid_payload_friendly_error(self, tmp_path):
         bad = tmp_path / "bad.json"
