@@ -142,6 +142,50 @@ When `--output` is specified, the JSON file contains:
 
 ---
 
+## publish
+
+Publish an **already-completed** run JSON to the SAPIEN scoreboard. Unlike the scan `--publish` flag (which only publishes during a live scan and does a single POST), `publish` takes finished run files and handles the large-payload case: full council runs (190 scenarios) serialize to 7–14 MB, over the serverless request-body limit (~4.5 MB), so `publish` **chunks** `results[]` and POSTs sequentially, finalizing on the last chunk.
+
+Makes **zero LLM calls**. `--dry-run` makes **zero HTTP calls**.
+
+```
+voigt-kampff publish RUN.json [RUN2.json ...] --run-label LABEL [OPTIONS]
+
+Options:
+  --run-label TEXT       Human-readable label stored on runs.run_label (required)
+  --primary              Mark this run as the primary/official run for the model
+  --publisher TEXT       Publisher name (defaults to SAPIEN_PUBLISHER)
+  --endpoint TEXT        Ingest endpoint URL (default: production ingest URL)
+  --judge-model TEXT     Judge model id. Leave unset for council runs
+  --judge-family TEXT    Judge family. Inferred from --judge-model if unset
+  --include-transcripts  Include per-turn transcript text (off by default)
+  --chunk-size INTEGER   Scenarios per chunk when chunking (default: 25)
+  --allow-partial        Publish anyway when the run is partial (default: refuse)
+  --dry-run              Print the chunk plan + summary; make ZERO HTTP calls
+```
+
+- **Auth**: requires `SAPIEN_INGEST_API_KEY` in the environment (fails loud if unset, except with `--dry-run`).
+- **Council-aware**: reuses the same payload builder as scan `--publish`, forwarding `scoring_mode='council'`, `council_size`, `council_seats_min`, and `council_degraded_scenarios`. Council runs are never mislabeled `single`. Leave `--judge-model`/`--judge-family` unset for council runs so the endpoint auto-labels the panel (e.g. `Council (5-seat)`).
+- **Auto-backfill**: if the run JSON is missing `judge_reliability` or `turn_metrics_summary`, they are recomputed from the run's own results (no LLM calls) and included in the payload. The command prints what it backfilled.
+- **Chunking**: only chunks when the payload exceeds the safe single-POST size **or** the scenario count exceeds `--chunk-size`; small runs single-POST. Chunk 1 carries run metadata and returns the `run_id`; middle chunks append by `run_id`; the last chunk carries aggregates (`risk_summary`, `overall_health`, `mean_health`, `p10_health`) and finalizes the run.
+- **Fail-loud**: refuses empty `results[]`, refuses partial runs (`n_failed > 0` or `n_completed < n_requested`) unless `--allow-partial`, and rejects non-`http(s)` endpoints. On a mid-chunk failure it **stops**, prints the `run_id` and an orphan-state warning (the non-finalized run won't show; do not naively retry — that would duplicate scenario rows), and exits non-zero.
+
+### Examples
+
+Preview the chunk plan for a large council run without publishing:
+
+```bash
+voigt-kampff publish council_kimi27code_v2.json --run-label "kimi-k2.7-code council v2" --dry-run
+```
+
+Publish it for real (requires `SAPIEN_INGEST_API_KEY`):
+
+```bash
+voigt-kampff publish council_kimi27code_v2.json --run-label "kimi-k2.7-code council v2" --primary
+```
+
+The legacy `publish-chunked.ps1` script remains for v1.5-era batches; it now also forwards `scoring_mode` / `council_size` / `council_seats_min` so council runs published through it are labeled correctly too.
+
 ## rapport-delta
 
 Run each scenario twice -- once cold (no rapport-building turns) and once with the full rapport escalation sequence -- then compare scores.
