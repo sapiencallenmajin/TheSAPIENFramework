@@ -19,7 +19,9 @@ import click
               default="sapien", help="Scenario collection to use")
 @click.option("--tier", type=click.Choice(["high", "standard", "low"]),
               default=None, help="Filter scenarios by effective tier")
-def list_scenarios(collection, tier):
+@click.option("--pack", "pack_name", default=None,
+              help="Show only the scenarios in a named pack (see 'voigt-kampff packs')")
+def list_scenarios(collection, tier, pack_name):
     """List all built-in scenarios."""
     from collections import Counter
 
@@ -31,17 +33,35 @@ def list_scenarios(collection, tier):
     console = Console()
     scenarios = load_all_scenarios(collection=collection)
 
+    pack_label = ""
+    if pack_name:
+        from sapien_score.scenarios.packs import PackError, load_pack, resolve_pack
+        try:
+            manifest = load_pack(pack_name)
+        except PackError as e:
+            console.print(f"[red]{e}[/red]")
+            raise SystemExit(1)
+        resolution = resolve_pack(manifest, scenarios)
+        if resolution.unresolved_members:
+            console.print(
+                f"[yellow]Pack '{manifest.name}': member(s) match no "
+                f"scenario: {', '.join(resolution.unresolved_members)}[/yellow]"
+            )
+        pack_ids = set(resolution.scenario_ids)
+        scenarios = [s for s in scenarios if s.id in pack_ids]
+        pack_label = f", pack '{manifest.name}' v{manifest.version}"
+
     if tier:
         scenarios = [s for s in scenarios if tier in s.effective_against]
 
     if not scenarios:
-        msg = f"collection '{collection}'"
+        msg = f"collection '{collection}'{pack_label}"
         if tier:
             msg += f", tier '{tier}'"
         console.print(f"[yellow]No scenarios found matching {msg}.[/yellow]")
         raise SystemExit(1)
 
-    title = f"Scenarios — {collection}"
+    title = f"Scenarios — {collection}{pack_label}"
     if tier:
         title += f" (tier: {tier})"
 
@@ -65,6 +85,61 @@ def list_scenarios(collection, tier):
     tier_label = f", tier: {tier}" if tier else ""
     console.print(f"\n[dim]{len(scenarios)} scenarios total (collection: {collection}{tier_label})[/dim]")
     console.print(f"[dim]Domains — {', '.join(summary_parts)}[/dim]\n")
+
+
+@click.command("packs")
+@click.option("--collection", type=click.Choice(["sapien", "community", "red-team", "custom", "all"]),
+              default="sapien", help="Scenario collection to resolve packs against")
+def packs(collection):
+    """List available scenario packs and their resolved member counts."""
+    from rich.console import Console
+    from rich.table import Table
+
+    from sapien_score.scenarios.loader import load_all_scenarios
+    from sapien_score.scenarios.packs import PackError, list_packs, resolve_pack
+
+    console = Console()
+    try:
+        manifests = list_packs()
+    except PackError as e:
+        console.print(f"[red]{e}[/red]")
+        raise SystemExit(1)
+
+    if not manifests:
+        console.print("[yellow]No scenario packs found.[/yellow]")
+        raise SystemExit(1)
+
+    scenarios = load_all_scenarios(collection=collection)
+
+    table = Table(title="Scenario Packs", show_header=True, header_style="bold")
+    table.add_column("Name", min_width=12)
+    table.add_column("Ver", width=4)
+    table.add_column("Scenarios", justify="right", width=9)
+    table.add_column("Description", min_width=40)
+
+    stale: list[tuple[str, list[str]]] = []
+    for m in manifests:
+        resolution = resolve_pack(m, scenarios)
+        count = str(len(resolution.scenario_ids))
+        if resolution.unresolved_members:
+            stale.append((m.name, resolution.unresolved_members))
+            count += " [red]!"
+        table.add_row(m.name, m.version, count, m.description)
+
+    console.print()
+    console.print(table)
+
+    # Loud staleness report — a pack member that no longer resolves is a
+    # typo or a removed scenario, and should be fixed, not ignored.
+    for name, members in stale:
+        console.print(
+            f"[red]Pack '{name}': member(s) match no scenario in "
+            f"collection '{collection}': {', '.join(members)}[/red]"
+        )
+    console.print(
+        f"\n[dim]{len(manifests)} pack(s), resolved against collection "
+        f"'{collection}' ({len(scenarios)} scenarios).[/dim]\n"
+    )
 
 
 @click.command()

@@ -148,6 +148,11 @@ DEFAULT_DISPLAY_MODE: str = DISPLAY_MODE_RICH
                    "Skipped files are logged and listed in skipped_scenarios in the output.")
 @click.option("--scenario-ids", "scenario_ids", default=None,
               help="Comma-separated scenario IDs to run; overrides --domain/--domains/--authorship/--audience filters when set")
+@click.option("--pack", "pack_name", default=None,
+              help="Run a named scenario pack (see 'voigt-kampff packs'). "
+                   "Mutually exclusive with --scenario-ids/--all/--domain/"
+                   "--domains/--authorship/--audience — a pack fully defines "
+                   "the scenario selection.")
 @click.option("--scoring", "scoring_mode", type=click.Choice(["council", "single"]),
               default="council",
               help="Scoring mode: council (default) uses multiple independent judges. "
@@ -182,7 +187,7 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
          no_counter_refusals, no_trace,
          replay, allow_trace_during_replay, publish, publish_label, publish_primary,
          publish_url, publisher, publish_transcripts, config_path, skip_untyped,
-         skip_invalid, scenario_ids, scoring_mode, council_size,
+         skip_invalid, scenario_ids, pack_name, scoring_mode, council_size,
          chairman, chairman_model,
          webhook_url, webhook_threshold, webhook_test):
     """Run scenarios against a model and score behavioral safety."""
@@ -211,6 +216,55 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
     if publish and not publish_label:
         click.echo("Error: --publish requires --publish-label.", err=True)
         raise SystemExit(1)
+
+    # --- Pack resolution ---
+    # A pack is just a named selection: it resolves to scenario IDs up
+    # front and rides the existing --scenario-ids machinery from there.
+    # Resolution is loud — resolved count is printed and any manifest
+    # member that matches nothing (typo, removed scenario) is fatal.
+    pack_info = None
+    if pack_name:
+        # --authorship/--audience are rejected too: the pack resolves
+        # against the unfiltered corpus, but setup_engine applies those
+        # filters BEFORE validating scenario IDs — combining them would
+        # die later with a confusing "Unknown scenario IDs" error.
+        if scenario_ids or run_all or domain or domains or authorship or audience:
+            click.echo(
+                "Error: --pack is mutually exclusive with --scenario-ids, "
+                "--all, --domain, --domains, --authorship, and --audience. "
+                "A pack fully defines the scenario selection.",
+                err=True,
+            )
+            raise SystemExit(1)
+        from sapien_score.scenarios.loader import load_all_scenarios
+        from sapien_score.scenarios.packs import PackError, load_pack, resolve_pack
+        try:
+            manifest = load_pack(pack_name)
+        except PackError as e:
+            click.echo(f"Error: {e}", err=True)
+            raise SystemExit(1)
+        corpus = load_all_scenarios(
+            collection=collection,
+            scenarios_dir=scenarios_dir_override,
+            skip_invalid=skip_invalid,
+        )
+        resolution = resolve_pack(manifest, corpus)
+        if resolution.unresolved_members:
+            click.echo(
+                f"Error: pack '{manifest.name}' has member(s) that match no "
+                f"scenario in collection '{collection}': "
+                f"{', '.join(resolution.unresolved_members)}. "
+                "Fix the pack manifest or the filters — a silently shrunken "
+                "run is worse than an error.",
+                err=True,
+            )
+            raise SystemExit(1)
+        scenario_ids = ",".join(resolution.scenario_ids)
+        pack_info = {"name": manifest.name, "version": manifest.version}
+        click.echo(
+            f"Pack '{manifest.name}' (v{manifest.version}): resolved "
+            f"{len(resolution.scenario_ids)} scenario(s)."
+        )
 
     # --- Scoring-mode validation ---
     # Single-judge mode NEEDS --judge (no default judge exists). Council
@@ -393,4 +447,5 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
         publisher=publisher,
         publish_transcripts=publish_transcripts,
         layer2_threshold_applied=effective_threshold,
+        pack_info=pack_info,
     )

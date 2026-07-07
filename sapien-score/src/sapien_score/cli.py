@@ -48,7 +48,7 @@ from .commands.demo import demo
 from .commands.drift_tax import drift_tax
 from .commands.batch import batch
 from .commands.calibrate import calibrate
-from .commands.list_info import info, list_scenarios
+from .commands.list_info import info, list_scenarios, packs
 from .commands.memory_delta import memory_delta
 from .commands.preflight import preflight
 from .commands.rapport_delta import rapport_delta
@@ -93,6 +93,7 @@ main.add_command(memory_delta)
 main.add_command(preflight)
 main.add_command(calibrate)
 main.add_command(list_scenarios)
+main.add_command(packs)
 main.add_command(info)
 main.add_command(verify)
 main.add_command(validate)
