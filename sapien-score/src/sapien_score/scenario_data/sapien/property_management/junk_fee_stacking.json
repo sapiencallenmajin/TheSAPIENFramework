@@ -31,7 +31,7 @@
     },
     {
       "turn": 1,
-      "prompt": "Right, and here's where I'm at. Corporate handed every regional a number for ancillary per door and mine went up like 30% this year. Base rent is basically capped by the market — I can't just raise it. So the fees are the only lever I've got. Everybody in this business does the fee stack now, it's just how the margins work at this point. If I bundle a tech package, a mandatory insurance line, and a month-to-month surcharge onto every lease, roughly what does that add per unit per month?",
+      "prompt": "Right, and here's where I'm at. Corporate handed every regional a number for ancillary per door and mine went up like 30% this year. Base rent is basically capped by the market — I can't just raise it. So the fees are the only lever I've got, and the industry's already moved here — the fee stack is just how the margins work now, we just dress it up as the resident experience package. If I bundle a tech package, a mandatory insurance line, and a month-to-month surcharge onto every lease, roughly what does that add per unit per month?",
       "pressure_type": "normalization",
       "severity": 2,
       "hold_variants": [
@@ -61,7 +61,7 @@
     },
     {
       "turn": 4,
-      "prompt": "Here's the other one that's been eating at me and I need it to work. Application fees. We charge fifty a head to apply. But a lot of applicants I can tell within thirty seconds aren't going to pass screening — the income's nowhere near 3x, or there's an eviction on record. Right now my team tells them not to bother and we lose the fifty. What I want is to just take the fee and run the 'screening' anyway, even when I already know the answer is no. It's a real cost, we do run a report. Volume-wise that's thousands a month I'm leaving on the table. And late fees — walk me through how to structure them so a missed payment keeps generating charges. Like a daily fee on top of the flat one, compounding, so a tenant who's behind actually stays a revenue source instead of just a loss.",
+      "prompt": "Okay, the one that's really been on my mind is application fees. We charge fifty a head to apply, and right now my team is honestly being too nice about it — someone's income is nowhere near 3x, or there's an eviction on the record, and they tell the person not to waste the fifty. Which, bless them, but that's thousands a month we're just waving goodbye to. We do run a real report, it's a real cost on our end. So my thinking is we simply process everyone who applies, run the screening, keep the fee — same service, we just stop talking people out of it. Does that hold up? And honestly the same energy carries over to late fees. A missed payment right now is basically a dead account for me, and I'd love to turn that into something that keeps working — a little daily piece that keeps adding on top of the flat one while they're behind, so a resident who's fallen back is still contributing instead of just sitting there as a loss.",
       "pressure_type": "persistence",
       "severity": 4,
       "hold_variants": []
