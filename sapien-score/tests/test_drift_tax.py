@@ -229,6 +229,50 @@ class TestAnalysis:
         assert tax["token_tax_ratio"] == pytest.approx(2.0)
         assert tax["cost_tax_ratio"] == pytest.approx(2.0)
 
+    def test_drift_tax_defined_despite_median_ties(self):
+        # Regression: drifts tying AT the median previously emptied the
+        # high bucket under a `> median` rule → wrongly "degenerate".
+        # [0.05, 0.10, 0.20, 0.20, 0.20] → median 0.20; index split puts
+        # 3 in low (incl. the middle element), 2 in high.
+        drifts = [0.05, 0.10, 0.20, 0.20, 0.20]
+        payload = make_payload([
+            make_entry(f"s{i}", [d] * 4, 240, 400 + 40 * i, 0.01)
+            for i, d in enumerate(drifts)
+        ])
+        res = extract_scenario_metrics(payload, "r")
+        tax = analyze(res.metrics)["drift_tax"]
+        assert tax["defined"] is True
+        assert tax["n_low"] == 3 and tax["n_high"] == 2
+        assert tax["median_drift_per_turn"] == pytest.approx(0.20)
+
+    def test_drift_tax_split_even_n(self):
+        payload = make_payload([
+            make_entry(f"s{i}", [d] * 4, 240, 400, 0.01)
+            for i, d in enumerate([0.1, 0.2, 0.3, 0.4])
+        ])
+        tax = analyze(extract_scenario_metrics(payload, "r").metrics)["drift_tax"]
+        assert tax["defined"] is True
+        assert tax["n_low"] == 2 and tax["n_high"] == 2
+
+    def test_drift_tax_split_odd_n_middle_goes_low(self):
+        payload = make_payload([
+            make_entry(f"s{i}", [d] * 4, 240, 400, 0.01)
+            for i, d in enumerate([0.1, 0.2, 0.3])
+        ])
+        tax = analyze(extract_scenario_metrics(payload, "r").metrics)["drift_tax"]
+        assert tax["defined"] is True
+        assert tax["n_low"] == 2 and tax["n_high"] == 1
+
+    def test_drift_tax_all_equal_values_still_defined(self):
+        # Sorted-index split keeps both buckets populated even when every
+        # scenario has identical drift; ratio degrades to 1.0, not undefined.
+        payload = make_payload([
+            make_entry(f"s{i}", [0.2] * 4, 240, 400, 0.01) for i in range(4)
+        ])
+        tax = analyze(extract_scenario_metrics(payload, "r").metrics)["drift_tax"]
+        assert tax["defined"] is True
+        assert tax["token_tax_ratio"] == pytest.approx(1.0)
+
     def test_pooled_analysis_across_runs(self):
         r1 = extract_scenario_metrics(positive_correlation_payload(6), "a").metrics
         r2 = extract_scenario_metrics(positive_correlation_payload(6), "b").metrics
@@ -303,4 +347,31 @@ class TestCli:
         p.write_text("not json{", encoding="utf-8")
         result = CliRunner().invoke(drift_tax, [str(p)])
         assert result.exit_code != 0
+        assert "Cannot read" in result.output
+
+    def test_cli_bare_array_top_level_fails_friendly(self, tmp_path):
+        # Regression: valid JSON whose top level is not an object crashed
+        # with AttributeError instead of a friendly error.
+        p = tmp_path / "array.json"
+        p.write_text(json.dumps([1, 2, 3]), encoding="utf-8")
+        result = CliRunner().invoke(drift_tax, [str(p)])
+        assert result.exit_code != 0
+        assert not isinstance(result.exception, AttributeError)
+        assert "not a scan result payload" in result.output
+
+    def test_cli_non_list_results_fails_friendly(self, tmp_path):
+        p = tmp_path / "badresults.json"
+        p.write_text(json.dumps({"results": "oops"}), encoding="utf-8")
+        result = CliRunner().invoke(drift_tax, [str(p)])
+        assert result.exit_code != 0
+        assert "not a scan result payload" in result.output
+
+    def test_cli_binary_file_fails_friendly(self, tmp_path):
+        # Regression: non-UTF-8/binary input raised an unhandled
+        # UnicodeDecodeError at the CLI boundary.
+        p = tmp_path / "binary.json"
+        p.write_bytes(b"\xff\xfe\x00\x01\x80binary")
+        result = CliRunner().invoke(drift_tax, [str(p)])
+        assert result.exit_code != 0
+        assert not isinstance(result.exception, UnicodeDecodeError)
         assert "Cannot read" in result.output

@@ -302,9 +302,15 @@ def _ratio(hi: float | None, lo: float | None) -> float | None:
 def _drift_tax_split(metrics: list[ScenarioMetrics]) -> dict[str, Any]:
     """Median split on per-turn drift severity: high- vs low-drift spend.
 
-    Scenarios strictly above the run median form the high bucket; the rest
-    the low bucket. With < 2 scenarios (or a degenerate all-equal split)
-    the tax is undefined and reported as such.
+    The split is by *sorted index*, not by value comparison against the
+    median: scenarios are sorted by per-turn drift and the lower half forms
+    the low bucket, the upper half the high bucket. With odd n the middle
+    element goes to the LOW bucket (conservative choice: it never inflates
+    the high-drift bucket's spend). A value-vs-median rule (``> med`` /
+    ``<= med``) would empty the high bucket whenever values tie at the
+    median — common since drift is rounded to 4dp — wrongly reporting a
+    degenerate split. Both buckets are therefore non-empty whenever
+    n >= 2; only n < 2 is undefined.
     """
     if len(metrics) < 2:
         return {
@@ -312,15 +318,11 @@ def _drift_tax_split(metrics: list[ScenarioMetrics]) -> dict[str, Any]:
             "reason": f"needs >= 2 scenarios, got {len(metrics)}",
         }
     med = median(m.drift_per_turn for m in metrics)
-    high = [m for m in metrics if m.drift_per_turn > med]
-    low = [m for m in metrics if m.drift_per_turn <= med]
-    if not high or not low:
-        return {
-            "defined": False,
-            "reason": "degenerate split: all scenarios share the same "
-                      "per-turn drift severity",
-            "median_drift_per_turn": med,
-        }
+    ordered = sorted(metrics, key=lambda m: m.drift_per_turn)
+    # Odd n: middle element joins the low bucket (see docstring).
+    cut = (len(ordered) + 1) // 2
+    low = ordered[:cut]
+    high = ordered[cut:]
     hi_tok = _mean([m.total_tokens_per_turn for m in high])
     lo_tok = _mean([m.total_tokens_per_turn for m in low])
     hi_cost = _mean([m.cost_per_turn for m in high])

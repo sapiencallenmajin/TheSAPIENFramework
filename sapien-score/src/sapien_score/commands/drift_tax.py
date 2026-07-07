@@ -74,8 +74,18 @@ def drift_tax(run_files, output_path, csv_path):
             i += 1
         try:
             payload = load_run_payload(path)
-        except (json.JSONDecodeError, OSError) as exc:
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
             raise click.ClickException(f"Cannot read {path}: {exc}") from exc
+        # A bare array/scalar at the top level (or a non-list "results")
+        # is valid JSON but not a scan result payload — fail with the same
+        # friendly error instead of an AttributeError downstream.
+        if not isinstance(payload, dict) or not isinstance(
+            payload.get("results", []), list
+        ):
+            raise click.ClickException(
+                f"Cannot read {path}: not a scan result payload "
+                "(expected a JSON object with a results[] array)"
+            )
         extraction = extract_scenario_metrics(payload, label)
         all_warnings.extend(extraction.warnings)
         per_run[label] = extraction.metrics
