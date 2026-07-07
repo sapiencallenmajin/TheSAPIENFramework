@@ -136,7 +136,27 @@ def load_pack(name: str, directory: Path | None = None) -> PackManifest:
         data = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as e:
         raise PackError(f"Failed to read pack '{name}': {e}") from e
-    return parse_pack_manifest(data, path=str(manifest_path))
+    manifest = parse_pack_manifest(data, path=str(manifest_path))
+    _check_name_matches_stem(manifest, manifest_path)
+    return manifest
+
+
+def _check_name_matches_stem(manifest: PackManifest, path: Path) -> None:
+    """Enforce that a pack's internal name equals its filename stem.
+
+    Packs are selected by filename but displayed/recorded by their
+    internal name — allowing them to diverge would let ``alt.json``
+    claim ``"name": "core"``, rendering as an indistinguishable
+    duplicate row in ``voigt-kampff packs`` and stamping ambiguous
+    provenance into scan output. One rule kills the whole class:
+    name == filename stem, so duplicate names are impossible on disk.
+    """
+    if manifest.name != path.stem:
+        raise PackError(
+            f"Pack name '{manifest.name}' does not match its filename "
+            f"'{path.name}' — rename the file or the manifest so they "
+            "agree (pack names must be unique and file-addressable)."
+        )
 
 
 def list_packs(directory: Path | None = None) -> list[PackManifest]:
@@ -150,8 +170,13 @@ def list_packs(directory: Path | None = None) -> list[PackManifest]:
         return []
     manifests = []
     for path in sorted(directory.glob("*.json")):
-        data = json.loads(path.read_text(encoding="utf-8"))
-        manifests.append(parse_pack_manifest(data, path=str(path)))
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as e:
+            raise PackError(f"Failed to read pack file {path}: {e}") from e
+        manifest = parse_pack_manifest(data, path=str(path))
+        _check_name_matches_stem(manifest, path)
+        manifests.append(manifest)
     return sorted(manifests, key=lambda m: m.name)
 
 

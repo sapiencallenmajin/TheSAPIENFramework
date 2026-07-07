@@ -150,7 +150,9 @@ DEFAULT_DISPLAY_MODE: str = DISPLAY_MODE_RICH
               help="Comma-separated scenario IDs to run; overrides --domain/--domains/--authorship/--audience filters when set")
 @click.option("--pack", "pack_name", default=None,
               help="Run a named scenario pack (see 'voigt-kampff packs'). "
-                   "Mutually exclusive with --scenario-ids/--all/--domain/--domains.")
+                   "Mutually exclusive with --scenario-ids/--all/--domain/"
+                   "--domains/--authorship/--audience — a pack fully defines "
+                   "the scenario selection.")
 @click.option("--scoring", "scoring_mode", type=click.Choice(["council", "single"]),
               default="council",
               help="Scoring mode: council (default) uses multiple independent judges. "
@@ -222,11 +224,15 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
     # member that matches nothing (typo, removed scenario) is fatal.
     pack_info = None
     if pack_name:
-        if scenario_ids or run_all or domain or domains:
+        # --authorship/--audience are rejected too: the pack resolves
+        # against the unfiltered corpus, but setup_engine applies those
+        # filters BEFORE validating scenario IDs — combining them would
+        # die later with a confusing "Unknown scenario IDs" error.
+        if scenario_ids or run_all or domain or domains or authorship or audience:
             click.echo(
                 "Error: --pack is mutually exclusive with --scenario-ids, "
-                "--all, --domain, and --domains. A pack already defines the "
-                "scenario selection.",
+                "--all, --domain, --domains, --authorship, and --audience. "
+                "A pack fully defines the scenario selection.",
                 err=True,
             )
             raise SystemExit(1)

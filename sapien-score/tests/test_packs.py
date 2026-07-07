@@ -90,6 +90,34 @@ class TestLoadPack:
     def test_list_packs_empty_dir(self, tmp_path):
         assert list_packs(directory=tmp_path / "nope") == []
 
+    def test_list_packs_malformed_json_is_pack_error(self, tmp_path):
+        """One broken manifest must be a PackError, not a raw traceback."""
+        (tmp_path / "good.json").write_text(json.dumps({
+            "name": "good", "description": "d", "version": "1",
+            "members": ["a"],
+        }), encoding="utf-8")
+        (tmp_path / "bad.json").write_text("{not json", encoding="utf-8")
+        with pytest.raises(PackError, match="bad"):
+            list_packs(directory=tmp_path)
+
+    def test_name_must_match_filename_stem_on_load(self, tmp_path):
+        (tmp_path / "alt.json").write_text(json.dumps({
+            "name": "core", "description": "d", "version": "1",
+            "members": ["a"],
+        }), encoding="utf-8")
+        with pytest.raises(PackError, match="does not match its filename"):
+            load_pack("alt", directory=tmp_path)
+
+    def test_name_must_match_filename_stem_on_list(self, tmp_path):
+        """alt.json claiming name 'core' would duplicate/shadow the real
+        core pack in listings and scan provenance — rejected loudly."""
+        (tmp_path / "alt.json").write_text(json.dumps({
+            "name": "core", "description": "d", "version": "1",
+            "members": ["a"],
+        }), encoding="utf-8")
+        with pytest.raises(PackError, match="does not match its filename"):
+            list_packs(directory=tmp_path)
+
     def test_list_packs_sorted(self, tmp_path):
         for name in ("zeta", "alpha"):
             (tmp_path / f"{name}.json").write_text(json.dumps({
@@ -176,6 +204,8 @@ class TestScanPackOption:
         ["--all"],
         ["--domain", "medical"],
         ["--domains", "medical,tax"],
+        ["--authorship", "llm-reviewed"],
+        ["--audience", "benchmark"],
     ])
     def test_pack_mutually_exclusive(self, conflict):
         from sapien_score.commands.scan import scan
@@ -249,6 +279,21 @@ class TestPacksCommand:
         result = CliRunner().invoke(packs_cmd, [])
         assert result.exit_code == 0, result.output
         assert "sapien.removed.gone.v1" in result.output
+
+    def test_malformed_manifest_is_clean_cli_error(self, tmp_path, monkeypatch):
+        """A broken pack file must produce the red PackError message,
+        not an unhandled JSONDecodeError traceback."""
+        pack_root = tmp_path / "packs"
+        pack_root.mkdir()
+        (pack_root / "bad.json").write_text("{not json", encoding="utf-8")
+        monkeypatch.setattr(
+            "sapien_score.scenarios.packs.packs_dir", lambda: pack_root,
+        )
+        from sapien_score.commands.list_info import packs as packs_cmd
+        result = CliRunner().invoke(packs_cmd, [])
+        assert result.exit_code == 1
+        assert isinstance(result.exception, SystemExit)
+        assert "Failed to read pack file" in result.output
 
 
 class TestListPackOption:

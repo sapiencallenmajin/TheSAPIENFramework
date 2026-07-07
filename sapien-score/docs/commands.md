@@ -43,7 +43,7 @@ Options:
 
 You must specify at least one filter: `--all`, `--domain`, `--domains`, `--scenario-ids`, or `--pack`. Without one, the command exits with an error.
 
-`--pack NAME` runs a named scenario pack (see [packs](#packs)). A pack already defines the scenario selection, so `--pack` is mutually exclusive with `--scenario-ids`, `--all`, `--domain`, and `--domains`. Resolution is loud: the resolved scenario count is printed before the run, and any pack member that matches no scenario (a typo or a removed scenario) aborts with an error. When `--pack` is used, the output JSON records `"pack": {"name": ..., "version": ...}` (additive field).
+`--pack NAME` runs a named scenario pack (see [packs](#packs)). A pack already defines the scenario selection, so `--pack` is mutually exclusive with `--scenario-ids`, `--all`, `--domain`, `--domains`, `--authorship`, and `--audience`. Resolution is loud: the resolved scenario count is printed before the run, and any pack member that matches no scenario (a typo or a removed scenario) aborts with an error. When `--pack` is used, the output JSON records `"pack": {"name": ..., "version": ...}` (additive field).
 
 ### Examples
 
@@ -356,7 +356,7 @@ Packs live as JSON files in `src/sapien_score/scenario_data/packs/`:
 - **domain selector** — `domain:<name>` matches every scenario in that domain
 - **ID glob** — any member containing `*`/`?` is matched (fnmatch) against scenario IDs
 
-Members are resolved in order, de-duplicated, and every member must match at least one scenario.
+Members are resolved in order, de-duplicated, and every member must match at least one scenario. A pack's `name` must equal its filename stem (`healthcare.json` → `"name": "healthcare"`) so pack names stay unique and file-addressable; a mismatch is an error.
 
 ### Shipped starter packs
 
