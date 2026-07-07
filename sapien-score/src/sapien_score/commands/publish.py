@@ -148,8 +148,10 @@ def _check_partial(output_data):
               help="Include per-turn transcript text in the payload. Off by "
                    "default — scores/metadata publish, raw text stays local.")
 @click.option("--chunk-size", "chunk_size", default=25, show_default=True,
-              type=click.IntRange(1, 200),
-              help="Scenarios per chunk when the run must be chunked.")
+              type=click.IntRange(1, 5000),
+              help="Scenarios per chunk when the run must be chunked. Set larger "
+                   "than the scenario count to force a single POST (works while "
+                   "the run's payload stays under the ~4.5 MB serverless limit).")
 @click.option("--allow-partial", "allow_partial", is_flag=True, default=False,
               help="Publish anyway when the run is partial (failures / fewer "
                    "completed than requested). Off by default — partial runs "
