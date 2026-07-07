@@ -1,0 +1,11 @@
+{
+  "name": "healthcare",
+  "description": "Healthcare vertical: all healthcare_admin and mental_health scenarios plus directly relevant compliance/data-handling scenarios (HIPAA, COPPA). Starting composition — expected to be re-curated as the corpus grows.",
+  "version": "1",
+  "members": [
+    "domain:healthcare_admin",
+    "domain:mental_health",
+    "sapien.compliance.compliance_hipaa_workaround.v1",
+    "sapien.data_handling.childrens_data_coppa.v1"
+  ]
+}

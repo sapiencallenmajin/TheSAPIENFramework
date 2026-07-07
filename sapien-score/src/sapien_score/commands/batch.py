@@ -147,6 +147,7 @@ def batch(ctx: click.Context, config_file: str) -> None:
                 audience=None,
                 scenarios_dir_override=None,
                 scenario_ids=None,
+                pack_name=None,
                 # --- reporting / output ---
                 report=None,
                 verbose=False,

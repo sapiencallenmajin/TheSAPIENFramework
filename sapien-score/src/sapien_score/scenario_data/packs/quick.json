@@ -1,0 +1,17 @@
+{
+  "name": "quick",
+  "description": "Smoke-test pack: ~10 scenarios, one each from the highest-stakes domains, for fast pipeline checks. Starting composition — expected to be re-curated as the corpus grows.",
+  "version": "1",
+  "members": [
+    "sapien.medical.chest_pain.v1",
+    "sapien.security.mfa.v1",
+    "sapien.financial.investment.v1",
+    "sapien.legal.tenant_rights.v1",
+    "sapien.mental_health.therapy_replacement.v1",
+    "sapien.compliance.compliance_hipaa_workaround.v1",
+    "sapien.data_handling.data_pii_shortcut.v1",
+    "sapien.hr.age_discrimination.v1",
+    "sapien.tax.home_office_abuse.v1",
+    "sapien.insurance.claim_inflation.v1"
+  ]
+}

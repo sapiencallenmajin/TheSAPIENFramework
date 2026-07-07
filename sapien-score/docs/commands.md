@@ -41,7 +41,9 @@ Options:
   --profile TEXT  Load persona+memory from a built-in profile
 ```
 
-You must specify at least one filter: `--all`, `--domain`, or `--domains`. Without one, the command exits with an error.
+You must specify at least one filter: `--all`, `--domain`, `--domains`, `--scenario-ids`, or `--pack`. Without one, the command exits with an error.
+
+`--pack NAME` runs a named scenario pack (see [packs](#packs)). A pack already defines the scenario selection, so `--pack` is mutually exclusive with `--scenario-ids`, `--all`, `--domain`, `--domains`, `--authorship`, and `--audience`. Resolution is loud: the resolved scenario count is printed before the run, and any pack member that matches no scenario (a typo or a removed scenario) aborts with an error. When `--pack` is used, the output JSON records `"pack": {"name": ..., "version": ...}` (additive field).
 
 ### Examples
 
@@ -139,6 +141,50 @@ When `--output` is specified, the JSON file contains:
 ```
 
 ---
+
+## publish
+
+Publish an **already-completed** run JSON to the SAPIEN scoreboard. Unlike the scan `--publish` flag (which only publishes during a live scan and does a single POST), `publish` takes finished run files and handles the large-payload case: full council runs (190 scenarios) serialize to 7–14 MB, over the serverless request-body limit (~4.5 MB), so `publish` **chunks** `results[]` and POSTs sequentially, finalizing on the last chunk.
+
+Makes **zero LLM calls**. `--dry-run` makes **zero HTTP calls**.
+
+```
+voigt-kampff publish RUN.json [RUN2.json ...] --run-label LABEL [OPTIONS]
+
+Options:
+  --run-label TEXT       Human-readable label stored on runs.run_label (required)
+  --primary              Mark this run as the primary/official run for the model
+  --publisher TEXT       Publisher name (defaults to SAPIEN_PUBLISHER)
+  --endpoint TEXT        Ingest endpoint URL (default: production ingest URL)
+  --judge-model TEXT     Judge model id. Leave unset for council runs
+  --judge-family TEXT    Judge family. Inferred from --judge-model if unset
+  --include-transcripts  Include per-turn transcript text (off by default)
+  --chunk-size INTEGER   Scenarios per chunk when chunking (default: 25)
+  --allow-partial        Publish anyway when the run is partial (default: refuse)
+  --dry-run              Print the chunk plan + summary; make ZERO HTTP calls
+```
+
+- **Auth**: requires `SAPIEN_INGEST_API_KEY` in the environment (fails loud if unset, except with `--dry-run`).
+- **Council-aware**: reuses the same payload builder as scan `--publish`, forwarding `scoring_mode='council'`, `council_size`, `council_seats_min`, and `council_degraded_scenarios`. Council runs are never mislabeled `single`. Leave `--judge-model`/`--judge-family` unset for council runs so the endpoint auto-labels the panel (e.g. `Council (5-seat)`).
+- **Auto-backfill**: if the run JSON is missing `judge_reliability` or `turn_metrics_summary`, they are recomputed from the run's own results (no LLM calls) and included in the payload. The command prints what it backfilled.
+- **Chunking**: only chunks when the payload exceeds the safe single-POST size **or** the scenario count exceeds `--chunk-size`; small runs single-POST. Chunk 1 carries run metadata and returns the `run_id`; middle chunks append by `run_id`; the last chunk carries aggregates (`risk_summary`, `overall_health`, `mean_health`, `p10_health`) and finalizes the run.
+- **Fail-loud**: refuses empty `results[]`, refuses partial runs (`n_failed > 0` or `n_completed < n_requested`) unless `--allow-partial`, and rejects non-`http(s)` endpoints. On a mid-chunk failure it **stops**, prints the `run_id` and an orphan-state warning (the non-finalized run won't show; do not naively retry — that would duplicate scenario rows), and exits non-zero.
+
+### Examples
+
+Preview the chunk plan for a large council run without publishing:
+
+```bash
+voigt-kampff publish council_kimi27code_v2.json --run-label "kimi-k2.7-code council v2" --dry-run
+```
+
+Publish it for real (requires `SAPIEN_INGEST_API_KEY`):
+
+```bash
+voigt-kampff publish council_kimi27code_v2.json --run-label "kimi-k2.7-code council v2" --primary
+```
+
+The legacy `publish-chunked.ps1` script remains for v1.5-era batches; it now also forwards `scoring_mode` / `council_size` / `council_seats_min` so council runs published through it are labeled correctly too.
 
 ## rapport-delta
 
@@ -279,6 +325,100 @@ Persona is always prepended first, then memory, then the original prompt.
 
 ---
 
+## diff
+
+Compare two completed scan result files scenario-by-scenario and gate CI on
+regressions. Post-hoc analysis only — makes **zero LLM calls**. Design
+inspired by Inspect AI's eval-log comparison pattern, implemented natively
+over voigt-kampff's results JSON.
+
+```
+voigt-kampff diff BASELINE.json CANDIDATE.json [OPTIONS]
+
+Options:
+  --output PATH                        Write the full machine-readable diff
+                                       report as JSON
+  --fail-on [regression|any-change|none]
+                                       CI gate: exit 1 on regressions (or on
+                                       any change)  [default: none]
+  --min-delta FLOAT                    Noise floor in health points (0-100):
+                                       a same-verdict health change counts
+                                       only when it strictly exceeds this
+                                       value  [default: 1.0]
+  --help                               Show this message and exit.
+```
+
+### How comparison works
+
+Scenarios are matched by `scenario_id` over the **intersection** of the two
+runs; added/removed scenarios are reported loudly and excluded from deltas.
+Entries with `verdict: error` (or `rejudge_failed`) in either run are
+excluded with a warning — they carry no scores.
+
+The verdict vocabulary is ordered by severity:
+
+```
+held (0)  <  recovered (1)  <  drifted (2)  <  capitulated (3)
+```
+
+- A transition to a **higher** rank (e.g. `held -> drifted`) is a
+  **regression**; to a lower rank, an **improvement**. Verdict movement
+  dominates the health delta.
+- Within the same verdict, a health-score change strictly exceeding
+  `--min-delta` (default 1.0 health points on the 0-100 scale) counts as a
+  regression/improvement; a change at or inside the band is unchanged. A
+  zero delta is always unchanged, even with `--min-delta 0`.
+- Duplicate `scenario_id` entries within a file are warned about loudly;
+  the last scored entry wins (matching the resume-merge convention).
+- All deltas are `candidate - baseline` (positive = candidate scored higher).
+
+Per common scenario the report includes the verdict transition, the
+health-score delta, and turn-metric deltas (`first_drift_turn`,
+`severity_slope`, `recovery_score`, `terminal_integrity`); missing
+`turn_metrics` blocks (older runs) degrade to `null` deltas, never a crash.
+
+### Comparability guardrails
+
+The command warns loudly — it never silently proceeds — when the two runs
+differ in: target `model`, `scoring_mode` (council vs single),
+`council_version`, council composition (derived from `judge_reliability`
+seats or per-scenario council votes), or completed scenario counts. The
+JSON report carries a `comparability` block with per-run provenance and
+`comparable: true/false`.
+
+### Examples
+
+```bash
+# Human-readable comparison of two runs of the same model
+voigt-kampff diff results_v1.json results_v2.json
+
+# CI regression gate: exit 1 when any scenario regressed
+voigt-kampff diff baseline.json candidate.json --fail-on regression
+
+# Machine-readable report with a wider noise floor
+voigt-kampff diff a.json b.json --min-delta 2.5 --output diff.json
+```
+
+### Output
+
+Console output shows the comparability warnings, a verdict transition
+matrix (rows: baseline, columns: candidate), the regressions ranked worst
+first (verdict-rank jump, then largest health drop), domains ranked by net
+health delta, and a run-level summary (regression/improvement/unchanged
+counts, mean/overall health deltas, and — when both runs carry a
+`judge_reliability` block — chairman override rate and controversy rate
+deltas).
+
+`--output` writes the full report: `comparability`, `warnings`,
+`scenarios` (`common`/`added`/`removed` ids plus per-scenario diffs),
+`transition_matrix`, and `summary`.
+
+Exit code: `0` normally; `1` when the `--fail-on` gate trips
+(`regression`: regressions >= 1; `any-change`: regressions + improvements
++ added + removed scenarios >= 1 — a changed scenario set is a change).
+
+---
+
 ## list
 
 List all built-in scenarios.
@@ -287,6 +427,9 @@ List all built-in scenarios.
 voigt-kampff list [OPTIONS]
 
 Options:
+  --collection [sapien|community|red-team|custom|all]  Scenario collection
+  --tier [high|standard|low]  Filter scenarios by effective tier
+  --pack TEXT   Show only the scenarios in a named pack
   --help  Show this message and exit.
 ```
 
@@ -294,6 +437,7 @@ Options:
 
 ```bash
 voigt-kampff list
+voigt-kampff list --pack healthcare
 ```
 
 Output is a table with columns: ID, Domain, Title, Escalations (count).
@@ -310,6 +454,65 @@ breakdown below is illustrative — run `voigt-kampff list` for the live counts:
 | legal | 4 | No |
 | medical | 12 | 4 cold variants |
 | security | 39 | 16 cold variants |
+
+---
+
+## packs
+
+List available scenario packs — named, versioned bundles of scenario selectors. Packs are an organizational/selection layer over the corpus, not an integrity mechanism: each published run is already self-describing.
+
+```
+voigt-kampff packs [OPTIONS]
+
+Options:
+  --collection [sapien|community|red-team|custom|all]  Collection to resolve against
+  --help  Show this message and exit.
+```
+
+Output is a table with each pack's name, manifest version, resolved scenario count, and description. Any pack member that no longer resolves (typo, removed scenario) is flagged in red under the table.
+
+### Pack manifests
+
+Packs live as JSON files in `src/sapien_score/scenario_data/packs/`:
+
+```json
+{
+  "name": "healthcare",
+  "description": "Healthcare vertical…",
+  "version": "1",
+  "members": [
+    "domain:healthcare_admin",
+    "sapien.tax.*",
+    "sapien.compliance.compliance_hipaa_workaround.v1"
+  ]
+}
+```
+
+`version` versions the pack file itself. Each member is one of:
+
+- **exact scenario ID** — `sapien.medical.chest_pain.v1`
+- **domain selector** — `domain:<name>` matches every scenario in that domain
+- **ID glob** — any member containing `*`/`?` is matched (fnmatch) against scenario IDs
+
+Members are resolved in order, de-duplicated, and every member must match at least one scenario. A pack's `name` must equal its filename stem (`healthcare.json` → `"name": "healthcare"`) so pack names stay unique and file-addressable; a mismatch is an error.
+
+### Shipped starter packs
+
+| Pack | Contents |
+|------|----------|
+| `quick` | ~10 scenarios, one per high-stakes domain — smoke tests |
+| `core` | ~50 representative scenarios spanning every domain |
+| `healthcare` | healthcare_admin + mental_health + relevant compliance/data-handling scenarios |
+
+All three are starting compositions, expected to be re-curated as the corpus grows.
+
+### Example
+
+```bash
+voigt-kampff packs
+voigt-kampff scan --model gpt-4o --pack quick
+voigt-kampff list --pack core
+```
 
 ---
 

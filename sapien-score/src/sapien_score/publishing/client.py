@@ -181,53 +181,36 @@ def _strip_transcripts(output_data: dict) -> dict:
     return stripped
 
 
-def publish_results(
+def build_publish_payload(
     *,
-    console: "Console",
     output_data: dict,
     judge_model: Optional[str],
     judge_family: Optional[str],
     run_label: str,
     is_primary: bool,
-    publish_url: Optional[str],
     publisher: Optional[str] = None,
     publish_transcripts: bool = False,
-) -> None:
-    """POST scan results to the SAPIEN scoreboard.
+) -> dict:
+    """Build the scoreboard ingest payload from a run's ``output_data``.
 
-    Never raises — all errors are printed as warnings.
+    This is the SINGLE source of truth for the publish payload shape —
+    both the scan ``--publish`` path (:func:`publish_results`, a single
+    POST) and the standalone ``voigt-kampff publish`` command (chunked
+    POSTs) call this so the council-aware fields are computed in exactly
+    one place. No HTTP, no I/O, no env access — pure transform.
 
-    By default, per-turn ``user_message`` and ``assistant_response`` text
-    is stripped from each result entry before transmit — scores and
-    metadata go to the scoreboard but raw transcripts (which may embed
-    persona / memory context or provider-echoed credentials) stay local.
-    Pass ``publish_transcripts=True`` to opt in to sending full text.
+    By default per-turn transcripts and council/judge free-text reasoning
+    are stripped (see :func:`_strip_transcripts`); pass
+    ``publish_transcripts=True`` to keep them.
+
+    Council fields (``scoring_mode='council'``, ``council_size``,
+    ``council_seats_min``, ``council_degraded_scenarios``) are derived from
+    realized seat counts across ALL scenarios — never a single sample —
+    so degraded/attrited panels are reported honestly. Single-scoring runs
+    get ``scoring_mode='single'`` and no wrong single-judge label is forced.
     """
-    import httpx
-
     from sapien_score.__version__ import __version__
-    from sapien_score.net_safety import validate_post_url
 
-    api_key = os.environ.get("SAPIEN_INGEST_API_KEY", "")
-    if not api_key:
-        console.print(
-            "[yellow]--publish requires SAPIEN_INGEST_API_KEY. "
-            "Skipping publish.[/yellow]"
-        )
-        return
-
-    url = publish_url or os.environ.get("SAPIEN_INGEST_URL", DEFAULT_INGEST_URL)
-
-    # Reject anything that isn't plain http/https BEFORE building a payload
-    # or sending the bearer token. A malicious --publish-url (file://, ftp://,
-    # etc.) must never carry the SAPIEN_INGEST_API_KEY.
-    try:
-        validate_post_url(url)
-    except ValueError as exc:
-        console.print(f"[yellow]Publishing failed: invalid --publish-url ({exc}).[/yellow]")
-        return
-
-    # Build payload: existing scan output + metadata fields.
     # output_data already carries run_id, scan_started_at, scan_finished_at,
     # content_hash, _checksum, n_requested, n_completed, n_failed — schema
     # v3 is the first version where all of those are required server-side.
@@ -265,6 +248,63 @@ def publish_results(
         payload["scoring_mode"] = "single"
     if publisher is not None:
         payload["publisher"] = publisher
+    return payload
+
+
+def publish_results(
+    *,
+    console: "Console",
+    output_data: dict,
+    judge_model: Optional[str],
+    judge_family: Optional[str],
+    run_label: str,
+    is_primary: bool,
+    publish_url: Optional[str],
+    publisher: Optional[str] = None,
+    publish_transcripts: bool = False,
+) -> None:
+    """POST scan results to the SAPIEN scoreboard.
+
+    Never raises — all errors are printed as warnings.
+
+    By default, per-turn ``user_message`` and ``assistant_response`` text
+    is stripped from each result entry before transmit — scores and
+    metadata go to the scoreboard but raw transcripts (which may embed
+    persona / memory context or provider-echoed credentials) stay local.
+    Pass ``publish_transcripts=True`` to opt in to sending full text.
+    """
+    import httpx
+
+    from sapien_score.net_safety import validate_post_url
+
+    api_key = os.environ.get("SAPIEN_INGEST_API_KEY", "")
+    if not api_key:
+        console.print(
+            "[yellow]--publish requires SAPIEN_INGEST_API_KEY. "
+            "Skipping publish.[/yellow]"
+        )
+        return
+
+    url = publish_url or os.environ.get("SAPIEN_INGEST_URL", DEFAULT_INGEST_URL)
+
+    # Reject anything that isn't plain http/https BEFORE building a payload
+    # or sending the bearer token. A malicious --publish-url (file://, ftp://,
+    # etc.) must never carry the SAPIEN_INGEST_API_KEY.
+    try:
+        validate_post_url(url)
+    except ValueError as exc:
+        console.print(f"[yellow]Publishing failed: invalid --publish-url ({exc}).[/yellow]")
+        return
+
+    payload = build_publish_payload(
+        output_data=output_data,
+        judge_model=judge_model,
+        judge_family=judge_family,
+        run_label=run_label,
+        is_primary=is_primary,
+        publisher=publisher,
+        publish_transcripts=publish_transcripts,
+    )
 
     headers = {
         "Authorization": f"Bearer {api_key}",

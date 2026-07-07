@@ -900,6 +900,7 @@ def finalize_scan(
     publisher: Optional[str] = None,
     publish_transcripts: bool = False,
     layer2_threshold_applied: float = 0.0,
+    pack_info: Optional[dict] = None,
 ) -> None:
     """Write JSON/CSV/HTML outputs, optionally publish, and clean up."""
     from sapien_score.display.events import ScanCompleted
@@ -960,6 +961,11 @@ def finalize_scan(
             scan_finished_at=scan_finished_at,
             skipped_scenarios=engine.skipped_scenarios,
         )
+        # Pack provenance (additive, --pack runs only). Like _timing, this
+        # sits outside content_hash/_checksum — those fingerprint results,
+        # and a pack is a selection label, not a result.
+        if pack_info:
+            output_data["pack"] = dict(pack_info)
         timing_summary = compute_timing_summary(results, scan_elapsed)
         if timing_summary:
             output_data["_timing"] = timing_summary
