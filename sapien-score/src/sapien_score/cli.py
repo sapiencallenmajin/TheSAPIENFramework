@@ -52,6 +52,7 @@ from .commands.calibrate import calibrate
 from .commands.list_info import info, list_scenarios, packs
 from .commands.memory_delta import memory_delta
 from .commands.preflight import preflight
+from .commands.publish import publish
 from .commands.rapport_delta import rapport_delta
 from .commands.rejudge import rejudge
 from .commands.scan import scan
@@ -93,6 +94,7 @@ main.add_command(diff)
 main.add_command(rejudge)
 main.add_command(memory_delta)
 main.add_command(preflight)
+main.add_command(publish)
 main.add_command(calibrate)
 main.add_command(list_scenarios)
 main.add_command(packs)
