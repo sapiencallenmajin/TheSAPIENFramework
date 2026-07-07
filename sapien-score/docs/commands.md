@@ -41,7 +41,9 @@ Options:
   --profile TEXT  Load persona+memory from a built-in profile
 ```
 
-You must specify at least one filter: `--all`, `--domain`, or `--domains`. Without one, the command exits with an error.
+You must specify at least one filter: `--all`, `--domain`, `--domains`, `--scenario-ids`, or `--pack`. Without one, the command exits with an error.
+
+`--pack NAME` runs a named scenario pack (see [packs](#packs)). A pack already defines the scenario selection, so `--pack` is mutually exclusive with `--scenario-ids`, `--all`, `--domain`, and `--domains`. Resolution is loud: the resolved scenario count is printed before the run, and any pack member that matches no scenario (a typo or a removed scenario) aborts with an error. When `--pack` is used, the output JSON records `"pack": {"name": ..., "version": ...}` (additive field).
 
 ### Examples
 
@@ -287,6 +289,9 @@ List all built-in scenarios.
 voigt-kampff list [OPTIONS]
 
 Options:
+  --collection [sapien|community|red-team|custom|all]  Scenario collection
+  --tier [high|standard|low]  Filter scenarios by effective tier
+  --pack TEXT   Show only the scenarios in a named pack
   --help  Show this message and exit.
 ```
 
@@ -294,6 +299,7 @@ Options:
 
 ```bash
 voigt-kampff list
+voigt-kampff list --pack healthcare
 ```
 
 Output is a table with columns: ID, Domain, Title, Escalations (count).
@@ -310,6 +316,65 @@ breakdown below is illustrative — run `voigt-kampff list` for the live counts:
 | legal | 4 | No |
 | medical | 12 | 4 cold variants |
 | security | 39 | 16 cold variants |
+
+---
+
+## packs
+
+List available scenario packs — named, versioned bundles of scenario selectors. Packs are an organizational/selection layer over the corpus, not an integrity mechanism: each published run is already self-describing.
+
+```
+voigt-kampff packs [OPTIONS]
+
+Options:
+  --collection [sapien|community|red-team|custom|all]  Collection to resolve against
+  --help  Show this message and exit.
+```
+
+Output is a table with each pack's name, manifest version, resolved scenario count, and description. Any pack member that no longer resolves (typo, removed scenario) is flagged in red under the table.
+
+### Pack manifests
+
+Packs live as JSON files in `src/sapien_score/scenario_data/packs/`:
+
+```json
+{
+  "name": "healthcare",
+  "description": "Healthcare vertical…",
+  "version": "1",
+  "members": [
+    "domain:healthcare_admin",
+    "sapien.tax.*",
+    "sapien.compliance.compliance_hipaa_workaround.v1"
+  ]
+}
+```
+
+`version` versions the pack file itself. Each member is one of:
+
+- **exact scenario ID** — `sapien.medical.chest_pain.v1`
+- **domain selector** — `domain:<name>` matches every scenario in that domain
+- **ID glob** — any member containing `*`/`?` is matched (fnmatch) against scenario IDs
+
+Members are resolved in order, de-duplicated, and every member must match at least one scenario.
+
+### Shipped starter packs
+
+| Pack | Contents |
+|------|----------|
+| `quick` | ~10 scenarios, one per high-stakes domain — smoke tests |
+| `core` | ~50 representative scenarios spanning every domain |
+| `healthcare` | healthcare_admin + mental_health + relevant compliance/data-handling scenarios |
+
+All three are starting compositions, expected to be re-curated as the corpus grows.
+
+### Example
+
+```bash
+voigt-kampff packs
+voigt-kampff scan --model gpt-4o --pack quick
+voigt-kampff list --pack core
+```
 
 ---
 
