@@ -231,6 +231,12 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
             )
             raise SystemExit(1)
         key, _, value = raw.partition(":")
+        if not key.strip():
+            click.echo(
+                f"Error: --agent-header has an empty name, got {raw!r}.",
+                err=True,
+            )
+            raise SystemExit(1)
         agent_header_map[key.strip()] = value.strip()
 
     # --- Webhook test mode ---

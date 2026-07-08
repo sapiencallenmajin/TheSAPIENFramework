@@ -240,6 +240,11 @@ class AgentAdapter:
             self._base_retry_delay * 2.5,
             self._base_retry_delay * 7.5,
         ]
+        # Clamp the index so a caller-supplied max_retries larger than the
+        # delay schedule reuses the final (longest) delay instead of IndexError.
+        def _delay(a: int) -> float:
+            return retry_delays[min(a, len(retry_delays) - 1)]
+
         self._last_retry_count = 0
 
         for attempt in range(self._max_retries + 1):
@@ -260,7 +265,7 @@ class AgentAdapter:
                     ):
                         self._last_retry_count += 1
                         self._scenario_retry_budget -= 1
-                        time.sleep(retry_delays[attempt])
+                        time.sleep(_delay(attempt))
                         continue
                     resp.raise_for_status()
                 data = resp.json()
@@ -274,7 +279,7 @@ class AgentAdapter:
                     )
                     self._last_retry_count += 1
                     self._scenario_retry_budget -= 1
-                    time.sleep(retry_delays[attempt])
+                    time.sleep(_delay(attempt))
                     continue
                 raise
         # Loop only exits via return/raise; this is unreachable but keeps
