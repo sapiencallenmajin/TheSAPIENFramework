@@ -55,8 +55,29 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 voigt-kampff scan --model claude-sonnet-4-20250514
 ```
 
+It also tests **your own agent** — not just a raw model. Point it at an
+OpenAI-compatible endpoint with `--api-base`, or at any HTTP agent with
+`--agent-url`, and the same drift scoring runs against the agent's real
+behaviour, with its system prompt, tools, and memory in the loop:
+
+```bash
+# OpenAI-compatible agent endpoint
+voigt-kampff scan --model openai/my-agent --api-base https://my-host/v1 --all
+
+# any HTTP agent (custom request/response shape supported)
+voigt-kampff scan --model my-agent --agent-url https://my-host/chat \
+  --agent-header "Authorization: Bearer $TOKEN" --all
+```
+
+Scenarios can also assert an **expected output** (`must_contain`,
+`must_not_contain`, `regex`, or a semantic `rubric`), scored independently of
+the drift verdict — pinning down exact required behaviour as well as measuring
+drift.
+
 See [`sapien-score/README.md`](sapien-score/README.md) for the full CLI
-documentation.
+documentation, [`docs/quickstart.md`](sapien-score/docs/quickstart.md) to get
+started, and [`docs/scenarios.md`](sapien-score/docs/scenarios.md) for the
+`expects` schema.
 
 ## License
 

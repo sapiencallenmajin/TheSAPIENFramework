@@ -60,6 +60,45 @@ voigt-kampff scan --model openai/gpt-4o --all
 
 This runs all 162 built-in scenarios across the full set of safety-critical domains (security, medical, legal, financial, HR, education, and more). Takes 10-30 minutes depending on the model's response time and rate limits.
 
+## Test your own agent (not just an LLM)
+
+The same scan runs against a real **agent** — anything reachable over HTTP —
+not only a raw model provider. Because voigt-kampff talks to your agent each
+turn, its system prompt, tools, retrieval, and memory all participate, so the
+drift scoring reflects the agent's actual behaviour under pressure.
+
+If your agent exposes an **OpenAI-compatible** `/chat/completions` endpoint,
+point at it with `--api-base` (no other change needed):
+
+```bash
+voigt-kampff scan --model openai/my-agent --api-base https://my-host/v1 --all
+```
+
+For **any other HTTP agent**, use `--agent-url`. By default voigt-kampff POSTs
+`{"messages": [...], "system": "..."}` and reads the reply from `content`,
+`reply`, or the OpenAI `choices[0].message.content` shape. Add auth headers and
+point at a custom reply field as needed:
+
+```bash
+voigt-kampff scan --model my-support-bot --agent-url https://my-host/chat \
+  --agent-header "Authorization: Bearer $TOKEN" \
+  --agent-response-path "data.answer" --all
+```
+
+Options: `--agent-request-format {sapien|openai}` and `--agent-response-path`
+(a dot-path like `choices.0.message.content`). The judge/council always stays a
+real LLM — only the *target under test* becomes your agent. Run
+`voigt-kampff preflight --agent-url ...` first to fail loud if the endpoint is
+unreachable.
+
+## Assert an expected output
+
+Any scenario can also carry an `expects` block — deterministic
+`must_contain` / `must_not_contain` / `regex` checks plus an optional semantic
+`rubric` judged by the council. Expectation results are reported **alongside**
+the drift verdict (never merged into it), so a run can HOLD on drift yet still
+flag a missed requirement. See [scenarios.md](scenarios.md) for the schema.
+
 ## Filter by multiple domains
 
 ```bash
