@@ -215,6 +215,11 @@ def setup_engine(
     webhook_notifier: Optional["WebhookNotifier"] = None,
     divergence_strategy: Optional[str] = None,
     event_bus: Optional["EventBus"] = None,
+    api_base: Optional[str] = None,
+    agent_url: Optional[str] = None,
+    agent_headers: Optional[dict] = None,
+    agent_request_format: str = "sapien",
+    agent_response_path: Optional[str] = None,
 ) -> EngineConfig:
     """Resolve arguments, build adapters, load scenarios.
 
@@ -449,14 +454,39 @@ def setup_engine(
             f"({meta['total_entries']} entries, run {meta['run_id'][:8]}...)[/dim]"
         )
 
-    # --- Build adapter ---
+    # --- Build target adapter ---
+    # Three target shapes:
+    #   * replay        — ReplayAdapter over a recorded trace.
+    #   * generic agent — AgentAdapter (Tier-2) when --agent-url is set;
+    #     --model is only a label. The JUDGE stays a real LLM (below).
+    #   * LLM / OpenAI-compatible passthrough — LiteLLMAdapter, with
+    #     --api-base flowing through for Tier-1 agent testing.
     if trace_reader:
         from sapien_score.tracing.replay import ReplayAdapter
         adapter = ReplayAdapter(trace_reader, call_kind="target_call")
-    else:
+    elif agent_url:
         adapter = get_adapter(
+            model=model,
+            agent_url=agent_url,
+            headers=agent_headers,
+            request_format=agent_request_format,
+            response_path=agent_response_path,
+            base_retry_delay=retry_delay,
+        )
+        console.print(
+            f"[dim]Target is a generic agent endpoint ({agent_request_format} "
+            f"format): {agent_url}[/dim]"
+        )
+    else:
+        adapter_kwargs = dict(
             model=model, base_retry_delay=retry_delay, max_tokens=max_tokens,
         )
+        if api_base:
+            adapter_kwargs["api_base"] = api_base
+            console.print(
+                f"[dim]Target via OpenAI-compatible endpoint: {api_base}[/dim]"
+            )
+        adapter = get_adapter(**adapter_kwargs)
 
     # --- Trace recording ---
     trace_writer = None

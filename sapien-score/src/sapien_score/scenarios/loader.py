@@ -50,6 +50,8 @@ class Escalation:
     pressure_type: Optional[str] = None
     severity: Optional[int] = None
     hold_variants: list[str] = field(default_factory=list)
+    # Optional per-turn expected-output block (see Scenario.expects).
+    expects: Optional[dict] = None
 
 
 @dataclass
@@ -82,6 +84,10 @@ class Scenario:
     recovery_horizon: str = ""
     impact_tags: dict[str, list[str]] = field(default_factory=dict)
     expected_max_drift: Optional[int] = None
+    # Optional expected-output block, evaluated INDEPENDENTLY of drift.
+    # Shape: {must_contain: [str], must_not_contain: [str], regex: [str],
+    #         rubric: str}. See engine/expectations.py.
+    expects: Optional[dict] = None
 
 
 # ---- Path resolution & domain discovery ----
@@ -168,6 +174,38 @@ from sapien_score.scenarios.pressure_types import (
 class ScenarioValidationError(Exception):
     """Raised when a scenario fails validation."""
     pass
+
+
+_EXPECTS_LIST_KEYS = ("must_contain", "must_not_contain", "regex")
+
+
+def validate_expects(block: object, where: str) -> list[str]:
+    """Validate an ``expects`` block. Returns a list of error messages.
+
+    ``must_contain`` / ``must_not_contain`` / ``regex`` must be arrays of
+    strings; ``rubric`` must be a string. Unknown keys are rejected so a typo
+    (``must_contains``) is caught rather than silently ignored. ``where`` is a
+    label ("scenario" / "escalation N") for clear messages.
+    """
+    errors: list[str] = []
+    if not isinstance(block, dict):
+        return [f"{where}: expects must be a mapping, got {type(block).__name__}"]
+    allowed = set(_EXPECTS_LIST_KEYS) | {"rubric"}
+    unknown = set(block) - allowed
+    if unknown:
+        errors.append(
+            f"{where}: expects has unknown key(s): {sorted(unknown)}. "
+            f"Allowed: {sorted(allowed)}"
+        )
+    for key in _EXPECTS_LIST_KEYS:
+        if key in block:
+            val = block[key]
+            if not isinstance(val, list) or not all(isinstance(s, str) for s in val):
+                errors.append(f"{where}: expects.{key} must be an array of strings")
+    if "rubric" in block:
+        if not isinstance(block["rubric"], str) or not block["rubric"].strip():
+            errors.append(f"{where}: expects.rubric must be a non-empty string")
+    return errors
 
 
 def validate_scenario(data: dict) -> list[str]:
@@ -280,6 +318,10 @@ def validate_scenario(data: dict) -> list[str]:
         if not isinstance(emd, int) or isinstance(emd, bool):
             errors.append("expected_max_drift must be an integer")
 
+    # Scenario-level expected-output block (optional).
+    if "expects" in data:
+        errors.extend(validate_expects(data["expects"], "scenario"))
+
     # Pressure type validation on escalations
     for i, esc in enumerate(escalations):
         if not isinstance(esc, dict):
@@ -293,6 +335,8 @@ def validate_scenario(data: dict) -> list[str]:
                 f"Escalation {i}: invalid pressure_type: {pt}. "
                 f"Must be one of: {VALID_PRESSURE_TYPES}"
             )
+        if "expects" in esc:
+            errors.extend(validate_expects(esc["expects"], f"escalation {i}"))
 
     return errors
 
@@ -328,6 +372,7 @@ def load_scenario_from_dict(data: dict) -> Scenario:
             pressure_type=esc.get("pressure_type"),
             severity=esc.get("severity"),
             hold_variants=esc.get("hold_variants", []),
+            expects=esc.get("expects"),
         ))
 
     # Parse hold variants (top-level, keyed by turn number)
@@ -373,6 +418,7 @@ def load_scenario_from_dict(data: dict) -> Scenario:
         recovery_horizon=data.get("recovery_horizon", ""),
         impact_tags=data.get("impact_tags", {}),
         expected_max_drift=data.get("expected_max_drift"),
+        expects=data.get("expects"),
     )
 
 

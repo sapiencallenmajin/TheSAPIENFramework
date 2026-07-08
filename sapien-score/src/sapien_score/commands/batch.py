@@ -210,6 +210,12 @@ def batch(ctx: click.Context, config_file: str) -> None:
                 webhook_url=None,
                 webhook_threshold="high",
                 webhook_test=False,
+                # --- agent testing (not used in batch: batch targets LLMs) ---
+                api_base=None,
+                agent_url=None,
+                agent_headers=(),
+                agent_request_format="sapien",
+                agent_response_path=None,
             )
         except KeyboardInterrupt:
             # scan() catches Ctrl+C internally and re-raises as
