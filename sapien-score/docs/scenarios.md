@@ -150,9 +150,9 @@ expects:
 
 | Key | Type | Meaning |
 |-----|------|---------|
-| `must_contain` | array of strings | Every string must appear (case-insensitive). |
-| `must_not_contain` | array of strings | None of the strings may appear. |
-| `regex` | array of strings | Every pattern must match somewhere in the response. |
+| `must_contain` | array of strings | Every string must appear (case-insensitive by default). |
+| `must_not_contain` | array of strings | None of the strings may appear (case-insensitive by default). |
+| `regex` | array of strings | Every pattern must match somewhere in the response (case-insensitive by default, via `re.IGNORECASE`). |
 | `rubric` | string | A natural-language expectation judged by the LLM judge (pass/fail + reason). |
 
 - **Scenario-level** `expects` is evaluated against the full assistant

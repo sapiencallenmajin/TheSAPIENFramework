@@ -219,6 +219,19 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
     """Run scenarios against a model and score behavioral safety."""
     from rich.console import Console
 
+    # --- Agent target: --agent-url and --api-base are mutually exclusive ---
+    # Both select the TARGET adapter: --agent-url routes to the generic
+    # AgentAdapter, --api-base rides the LiteLLM (OpenAI-compatible) path.
+    # Setting both is ambiguous, so reject it up front.
+    if agent_url and api_base:
+        click.echo(
+            "Error: --agent-url and --api-base are mutually exclusive. Use "
+            "--api-base for an OpenAI-compatible endpoint, or --agent-url for a "
+            "generic HTTP agent.",
+            err=True,
+        )
+        raise SystemExit(1)
+
     # --- Agent header parsing ---
     # Parse repeatable --agent-header "Key: Value" into a dict up front so a
     # malformed header fails loud before any scan setup or API spend.

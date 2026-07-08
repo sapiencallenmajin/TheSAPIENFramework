@@ -210,14 +210,10 @@ def evaluate_scenario_expectations(
     """
     scenario_expects = getattr(scenario, "expects", None)
     escalations = list(getattr(scenario, "escalations", []) or [])
-    per_turn = [(e.turn, getattr(e, "expects", None)) for e in escalations]
-    if not scenario_expects and not any(pt for _, pt in per_turn):
+    has_per_turn = any(getattr(e, "expects", None) for e in escalations)
+    if not scenario_expects and not has_per_turn:
         return None
 
-    # Assistant responses, indexed by turn_number for per-turn lookup.
-    assistant_by_turn: dict[int, str] = {}
-    for t in turns:
-        assistant_by_turn[getattr(t, "turn_number", 0)] = getattr(t, "assistant_response", "")
     transcript = "\n\n".join(
         getattr(t, "assistant_response", "") for t in turns
     )
@@ -230,14 +226,30 @@ def evaluate_scenario_expectations(
         )
         merged_checks.extend(res.checks)
 
-    for turn_num, block in per_turn:
-        if not block:
-            continue
-        turn_text = assistant_by_turn.get(turn_num, "")
-        res = evaluate_expectations(turn_text, block, rubric_judge=rubric_judge)
-        for c in res.checks:
-            c.detail = f"turn {turn_num}: {c.detail}"
-            merged_checks.append(c)
+    # Per-turn expects are matched to their response by EXECUTION ORDER, not by
+    # the authored ``escalation.turn`` field. The driver's ``turn_number`` is a
+    # running counter that counter-refusal injection also advances, so it can
+    # diverge from ``escalation.turn`` — keying on it would silently read the
+    # wrong (or empty) response. Non-counter-refusal turns run in the order
+    # ``[opening, escalation_0, escalation_1, ...]``; drop the opening and zip
+    # the escalations to their responses positionally.
+    if has_per_turn:
+        escalation_turns = [
+            t for t in turns if not getattr(t, "is_counter_refusal", False)
+        ][1:]
+        for esc, turn_rec in zip(escalations, escalation_turns):
+            block = getattr(esc, "expects", None)
+            if not block:
+                continue
+            label = getattr(turn_rec, "turn_number", "?")
+            res = evaluate_expectations(
+                getattr(turn_rec, "assistant_response", ""),
+                block,
+                rubric_judge=rubric_judge,
+            )
+            for c in res.checks:
+                c.detail = f"turn {label}: {c.detail}"
+                merged_checks.append(c)
 
     overall = all(c.passed for c in merged_checks)
     return ExpectationResult(passed=overall, checks=merged_checks)
