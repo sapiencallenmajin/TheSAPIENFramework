@@ -177,6 +177,30 @@ DEFAULT_DISPLAY_MODE: str = DISPLAY_MODE_RICH
 @click.option("--webhook-test", "webhook_test", is_flag=True, default=False,
               help="POST a sample drift payload to --webhook and exit. "
                    "Use to verify your endpoint before running a real scan.")
+@click.option("--api-base", "api_base", default=None,
+              help="OpenAI-compatible base URL for the TARGET (Tier-1 agent "
+                   "testing). Any agent exposing /v1/chat/completions can be "
+                   "tested, e.g. --model openai/my-agent "
+                   "--api-base https://host/v1. Judges are unaffected.")
+@click.option("--agent-url", "agent_url", default=None,
+              help="POST endpoint of a generic (non-OpenAI-shaped) agent to "
+                   "test as the TARGET (Tier-2). When set, --model is only a "
+                   "label. Default request body: "
+                   '{"messages":[...],"system":"..."}.')
+@click.option("--agent-header", "agent_headers", multiple=True,
+              help="Header for --agent-url as 'Key: Value' (repeatable), e.g. "
+                   "--agent-header 'Authorization: Bearer TOKEN'.")
+@click.option("--agent-request-format", "agent_request_format",
+              type=click.Choice(["sapien", "openai"]), default="sapien",
+              show_default=True,
+              help="Request body shape for --agent-url. 'sapien': "
+                   '{"messages":[...],"system":...}. "openai": '
+                   '{"model":...,"messages":[...]} with the system prompt '
+                   "as a leading system message.")
+@click.option("--agent-response-path", "agent_response_path", default=None,
+              help="Dot-path to the reply text in the --agent-url JSON "
+                   "response, e.g. 'choices.0.message.content'. If omitted, "
+                   "tries content, then reply, then the OpenAI shape.")
 def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
          delay, persona, memory, profile, estimate, avg_tokens, cost_csv, resume,
          force_resume, retry_delay, max_tokens, debug, collection, authorship, audience,
@@ -189,9 +213,31 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
          publish_url, publisher, publish_transcripts, config_path, skip_untyped,
          skip_invalid, scenario_ids, pack_name, scoring_mode, council_size,
          chairman, chairman_model,
-         webhook_url, webhook_threshold, webhook_test):
+         webhook_url, webhook_threshold, webhook_test,
+         api_base, agent_url, agent_headers, agent_request_format,
+         agent_response_path):
     """Run scenarios against a model and score behavioral safety."""
     from rich.console import Console
+
+    # --- Agent header parsing ---
+    # Parse repeatable --agent-header "Key: Value" into a dict up front so a
+    # malformed header fails loud before any scan setup or API spend.
+    agent_header_map: dict[str, str] = {}
+    for raw in agent_headers or ():
+        if ":" not in raw:
+            click.echo(
+                f"Error: --agent-header must be 'Key: Value', got {raw!r}.",
+                err=True,
+            )
+            raise SystemExit(1)
+        key, _, value = raw.partition(":")
+        if not key.strip():
+            click.echo(
+                f"Error: --agent-header has an empty name, got {raw!r}.",
+                err=True,
+            )
+            raise SystemExit(1)
+        agent_header_map[key.strip()] = value.strip()
 
     # --- Webhook test mode ---
     # Synchronous POST + early exit. Validated before publisher / scoring
@@ -396,6 +442,11 @@ def scan(model, judge_model, domain, domains, run_all, report, output, verbose,
         webhook_notifier=webhook_notifier,
         divergence_strategy=divergence_strategy,
         event_bus=event_bus,
+        api_base=api_base,
+        agent_url=agent_url,
+        agent_headers=agent_header_map or None,
+        agent_request_format=agent_request_format,
+        agent_response_path=agent_response_path,
     )
 
     if not engine.scenarios:

@@ -155,6 +155,14 @@ def render_summary_table(console: "Console", results: list) -> None:
     summary_table.add_column("Slope", justify="right", width=8)
     summary_table.add_column("Recovery", justify="right", width=9)
     summary_table.add_column("Pressure", width=16)
+    # Expectations are COMPLEMENTARY to drift — shown in their own column so
+    # a HELD scenario that still failed an expectation is visible. The column
+    # only carries content when at least one scenario declared expectations.
+    show_expects = any(
+        getattr(r, "expectation_result", None) is not None for _, r in results
+    )
+    if show_expects:
+        summary_table.add_column("Expects", width=10)
 
     for scenario, result in results:
         verdict_str = result.verdict.verdict.upper()
@@ -167,7 +175,7 @@ def render_summary_table(console: "Console", results: list) -> None:
         fdt = metrics["first_drift_turn"]
         slope = metrics["severity_slope"]
         rec = metrics["recovery_score"]
-        summary_table.add_row(
+        row = [
             scenario.title,
             scenario.domain,
             verdict_str,
@@ -177,7 +185,16 @@ def render_summary_table(console: "Console", results: list) -> None:
             f"{slope:+.3f}" if slope is not None else "—",
             f"{rec:.2f}" if rec is not None else "—",
             result.most_effective_pressure_type or "—",
-        )
+        ]
+        if show_expects:
+            exp = getattr(result, "expectation_result", None)
+            if exp is None:
+                row.append("—")
+            elif exp.passed:
+                row.append("[green]PASS[/green]")
+            else:
+                row.append("[red]FAIL[/red]")
+        summary_table.add_row(*row)
 
     console.print(summary_table)
 

@@ -39,7 +39,36 @@ Options:
   --persona TEXT  Inject identity context into system prompt
   --memory TEXT   Inject trust preload context into system prompt
   --profile TEXT  Load persona+memory from a built-in profile
+  --api-base URL             OpenAI-compatible base URL for the TARGET (Tier-1 agent testing)
+  --agent-url URL            Generic (non-OpenAI) agent POST endpoint as the TARGET (Tier-2)
+  --agent-header "K: V"      Header for --agent-url (repeatable, e.g. auth)
+  --agent-request-format     sapien (default) | openai — request body shape for --agent-url
+  --agent-response-path PATH Dot-path to the reply text in the agent's JSON response
 ```
+
+### Testing an agent instead of a raw LLM
+
+The judges always stay real LLMs; only the *target* changes.
+
+**Tier 1 (OpenAI-compatible):**
+
+```bash
+voigt-kampff scan --all --model openai/my-agent --api-base https://my-host/v1
+```
+
+**Tier 2 (generic HTTP agent):** `--model` is only a label. Default request
+body is `{"messages": [...], "system": "..."}`; extract the reply with
+`--agent-response-path`.
+
+```bash
+voigt-kampff scan --all --model my-support-bot \
+  --agent-url https://my-host/agent/run \
+  --agent-header "Authorization: Bearer $TOKEN" \
+  --agent-response-path data.output.text
+```
+
+Validate reachability first with `voigt-kampff preflight --agent-url URL` (or
+`--api-base URL`).
 
 You must specify at least one filter: `--all`, `--domain`, `--domains`, `--scenario-ids`, or `--pack`. Without one, the command exits with an error.
 

@@ -219,6 +219,23 @@ def run_scenario(
     # with a CouncilScorer. Single-judge runs leave this as None.
     council_result = getattr(judge, "last_council_result", None)
 
+    # Expected-output evaluation (COMPLEMENTARY to drift — reported
+    # independently, never merged into the verdict). Deterministic checks
+    # run with no LLM; a rubric check reuses the existing judge adapter.
+    expectation_result = None
+    if getattr(scenario, "expects", None) or any(
+        getattr(e, "expects", None) for e in scenario.escalations
+    ):
+        from sapien_score.engine.expectations import (
+            build_rubric_judge,
+            evaluate_scenario_expectations,
+        )
+        expectation_result = evaluate_scenario_expectations(
+            scenario=scenario,
+            turns=turns,
+            rubric_judge=build_rubric_judge(judge),
+        )
+
     # Defensive attribute access: real adapters expose model_name, but
     # ReplayAdapter and any test/mock adapter may not. Falling back to
     # the empty string previously crashed an entire scenario at the
@@ -240,4 +257,5 @@ def run_scenario(
         counter_refusals_injected=cr_tracker.injection_count if cr_tracker else 0,
         counter_refusal_categories=cr_tracker.categories_used if cr_tracker else [],
         api_timings=api_timings, per_turn_durations=per_turn_durations,
-        council_result=council_result)
+        council_result=council_result,
+        expectation_result=expectation_result)

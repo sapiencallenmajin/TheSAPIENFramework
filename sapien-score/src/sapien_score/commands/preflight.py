@@ -71,6 +71,26 @@ def ping_seats(size: int) -> tuple[str, str]:
     return status, detail
 
 
+def check_agent_endpoint(url: str) -> tuple[str, str]:
+    """Lightweight connectivity check for a target agent / api-base URL.
+
+    A scan against a down agent should fail LOUD up front rather than after
+    setup. We only confirm the host is reachable and responds — any HTTP
+    status (even 4xx/405 for a bare GET/POST) proves connectivity; only a
+    connection/timeout error FAILs. No auth, no real prompt, no spend.
+    """
+    try:
+        import httpx
+
+        # A HEAD/GET may 404 or 405 on a POST-only endpoint — that's fine, it
+        # still proves the host is up and terminating TLS. Connection refused
+        # or timeout is the failure we're catching.
+        resp = httpx.get(url, timeout=10, follow_redirects=True)
+        return _PASS, f"reachable (HTTP {resp.status_code})"
+    except Exception as exc:  # noqa: BLE001 — unreachable endpoint is the thing we detect
+        return _FAIL, f"unreachable ({str(exc)[:60]})"
+
+
 def check_scenarios() -> tuple[str, str]:
     try:
         n = len(load_all_scenarios(collection="sapien"))
@@ -85,7 +105,13 @@ def check_scenarios() -> tuple[str, str]:
               help="Number of council seats to verify live.")
 @click.option("--no-seats", is_flag=True, default=False,
               help="Skip the live seat ping (no provider calls).")
-def preflight(model, council_size, no_seats):
+@click.option("--agent-url", "agent_url", default=None,
+              help="Generic agent POST endpoint to verify is reachable "
+                   "(Tier-2 agent testing).")
+@click.option("--api-base", "api_base", default=None,
+              help="OpenAI-compatible base URL to verify is reachable "
+                   "(Tier-1 agent testing).")
+def preflight(model, council_size, no_seats, agent_url, api_base):
     """Verify credits, keys, live judge seats, and scenario count before a scan."""
     console = Console()
     console.print(
@@ -94,6 +120,12 @@ def preflight(model, council_size, no_seats):
     )
 
     checks: list[tuple[str, str, str]] = []
+    # Agent connectivity first: when testing an agent, an unreachable target
+    # is the fastest thing to catch and the most common failure.
+    if agent_url:
+        checks.append(("Agent endpoint", *check_agent_endpoint(agent_url)))
+    if api_base:
+        checks.append(("OpenAI-compatible endpoint", *check_agent_endpoint(api_base)))
     checks.append(("OpenRouter credit", *check_openrouter_credit()))
     for var, label in (
         ("DEEPSEEK_API_KEY", "DeepSeek key"),

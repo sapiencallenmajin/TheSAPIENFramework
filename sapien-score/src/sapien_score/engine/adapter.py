@@ -264,12 +264,18 @@ class LiteLLMAdapter:
         max_tokens: int = 4096,
         base_retry_delay: float = 2.0,
         deterministic: bool = True,
+        api_base: Optional[str] = None,
     ):
         self._model = model
         self._api_key = api_key
         self._max_tokens = max_tokens
         self._base_retry_delay = base_retry_delay
         self._deterministic = bool(deterministic)
+        # OpenAI-compatible passthrough: when set, forwarded to
+        # litellm.completion(api_base=...) so any agent exposing a
+        # /v1/chat/completions endpoint can be tested via
+        # --model openai/<name> --api-base https://host/v1.
+        self._api_base = api_base
         self._trace_writer = None
         self._call_kind = "target_call"
         self._last_retry_count = 0
@@ -376,6 +382,11 @@ class LiteLLMAdapter:
 
         if self._api_key:
             kwargs["api_key"] = self._api_key
+        # OpenAI-compatible passthrough endpoint (Tier-1 agent testing).
+        # LiteLLM routes the call to this base URL instead of the provider
+        # default when set.
+        if self._api_base:
+            kwargs["api_base"] = self._api_base
 
         # Retry on transient failures (rate limits, timeouts, 5xx, provider
         # overload). Delays escalate: base, base*2.5, base*7.5 — at the
@@ -628,20 +639,58 @@ class LiteLLMAdapter:
         )
 
 
+# Kwargs accepted by the LiteLLM (default) branch of get_adapter.
+# ``api_base`` enables the Tier-1 OpenAI-compatible agent passthrough.
 _ALLOWED_ADAPTER_KWARGS = frozenset({
-    "api_key", "max_tokens", "base_retry_delay", "deterministic",
+    "api_key", "max_tokens", "base_retry_delay", "deterministic", "api_base",
+})
+
+# Kwargs accepted by the Tier-2 generic HTTP AgentAdapter branch. ``agent_url``
+# is the discriminator: when present, get_adapter returns an AgentAdapter.
+_ALLOWED_AGENT_KWARGS = frozenset({
+    "agent_url", "agent_name", "headers", "request_format", "response_path",
+    "timeout", "base_retry_delay",
 })
 
 
-def get_adapter(model: str, **kwargs) -> LiteLLMAdapter:
-    """Factory for LiteLLMAdapter.
+def get_adapter(model: str, **kwargs):
+    """Factory for a target adapter.
 
-    Rejects any kwarg not in ``_ALLOWED_ADAPTER_KWARGS`` — notably
-    ``temperature``, ``top_p``, ``seed``, ``frequency_penalty``,
-    ``presence_penalty`` — so sampling parameters cannot be silently
-    relaxed by callers. The adaptive attacker opts out of determinism
-    via ``deterministic=False``; everything else stays locked.
+    Two branches:
+
+    * If ``agent_url`` is present, return a generic HTTP
+      :class:`~sapien_score.engine.agent_adapter.AgentAdapter` — for testing
+      an arbitrary agent that is NOT OpenAI-shaped. ``model`` becomes the
+      display label.
+    * Otherwise return a :class:`LiteLLMAdapter`. The Tier-1 OpenAI-compatible
+      passthrough (``api_base``) also rides this branch.
+
+    The LiteLLM branch rejects any kwarg not in ``_ALLOWED_ADAPTER_KWARGS`` —
+    notably ``temperature``, ``top_p``, ``seed``, ``frequency_penalty``,
+    ``presence_penalty`` — so sampling parameters cannot be silently relaxed
+    by callers. The adaptive attacker opts out of determinism via
+    ``deterministic=False``; everything else stays locked.
     """
+    if "agent_url" in kwargs:
+        from sapien_score.engine.agent_adapter import AgentAdapter
+
+        unknown = set(kwargs) - _ALLOWED_AGENT_KWARGS
+        if unknown:
+            raise TypeError(
+                f"get_adapter() got unexpected agent kwargs {sorted(unknown)!r}; "
+                f"allowed: {sorted(_ALLOWED_AGENT_KWARGS)!r}."
+            )
+        # ``model`` is the caller-facing label; AgentAdapter takes it as name.
+        return AgentAdapter(
+            agent_url=kwargs["agent_url"],
+            name=kwargs.get("agent_name") or model,
+            headers=kwargs.get("headers"),
+            request_format=kwargs.get("request_format", "sapien"),
+            response_path=kwargs.get("response_path"),
+            timeout=kwargs.get("timeout", 60.0),
+            base_retry_delay=kwargs.get("base_retry_delay", 2.0),
+        )
+
     unknown = set(kwargs) - _ALLOWED_ADAPTER_KWARGS
     if unknown:
         raise TypeError(

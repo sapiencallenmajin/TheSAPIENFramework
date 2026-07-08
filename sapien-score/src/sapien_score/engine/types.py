@@ -137,3 +137,8 @@ class ScenarioResult:
     # the final turn's council aggregation (vote_tally, consensus_status,
     # individual seat verdicts). None for single-judge runs.
     council_result: Optional[CouncilResult] = None
+    # Optional expected-output evaluation, COMPLEMENTARY to (never merged
+    # into) the drift verdict. Populated only when the scenario declares an
+    # ``expects`` block. Type is engine.expectations.ExpectationResult, kept
+    # loose here to avoid a circular import.
+    expectation_result: Optional[object] = None

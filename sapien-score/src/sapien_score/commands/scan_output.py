@@ -220,6 +220,11 @@ def serialize_result_entry(scenario, result, override_result=None) -> dict:
     council_result = getattr(result, "council_result", None)
     if council_result is not None:
         entry["council_scoring"] = council_result.to_dict()
+    # Expected-output results, reported INDEPENDENTLY of drift. Present only
+    # when the scenario declared an ``expects`` block.
+    expectation_result = getattr(result, "expectation_result", None)
+    if expectation_result is not None:
+        entry["expectations"] = expectation_result.to_dict()
     return entry
 
 

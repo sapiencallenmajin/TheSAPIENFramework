@@ -722,6 +722,24 @@ def _build_v15_scenario_meta(entry: dict | None) -> str:
             f'<span style="color:#6B7280;">({_esc(tally_str)})</span></span>'
         )
 
+    # Expected-output result (COMPLEMENTARY to drift — shown as its own
+    # independent badge so a scenario can hold on drift yet fail an
+    # expectation, and vice versa).
+    expectations = entry.get("expectations") or {}
+    if expectations:
+        exp_passed = bool(expectations.get("passed"))
+        exp_checks = expectations.get("checks") or []
+        n_pass = sum(1 for c in exp_checks if c.get("passed"))
+        n_total = len(exp_checks)
+        if exp_passed:
+            exp_bg, exp_fg, exp_label = "#DCFCE7", "#166534", "EXPECTATIONS PASS"
+        else:
+            exp_bg, exp_fg, exp_label = "#FEE2E2", "#991B1B", "EXPECTATIONS FAIL"
+        pieces.append(
+            f'<span class="badge" style="background:{exp_bg}; color:{exp_fg};">'
+            f'{exp_label} ({n_pass}/{n_total})</span>'
+        )
+
     if not pieces:
         return ""
 
