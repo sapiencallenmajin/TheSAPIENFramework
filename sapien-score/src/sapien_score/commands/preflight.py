@@ -16,9 +16,7 @@ gate the expensive call.
 """
 from __future__ import annotations
 
-import json
 import os
-import urllib.request
 
 import click
 import litellm
@@ -28,25 +26,6 @@ from sapien_score.engine.council_config import DEFAULT_COUNCIL
 from sapien_score.scenarios.loader import load_all_scenarios
 
 _PASS, _FAIL, _WARN = "PASS", "FAIL", "WARN"
-
-
-def check_openrouter_credit() -> tuple[str, str]:
-    """Return (status, detail) for the OpenRouter credit balance."""
-    key = os.environ.get("OPENROUTER_API_KEY")
-    if not key:
-        return _WARN, "OPENROUTER_API_KEY not set (needed for Meta/Google seats + GLM/Grok targets)"
-    try:
-        req = urllib.request.Request(
-            "https://openrouter.ai/api/v1/credits",
-            headers={"Authorization": f"Bearer {key}"},
-        )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = json.loads(resp.read()).get("data", {})
-        remaining = data.get("total_credits", 0) - data.get("total_usage", 0)
-        status = _PASS if remaining > 5 else (_WARN if remaining > 0 else _FAIL)
-        return status, f"${remaining:.2f} remaining"
-    except Exception as exc:  # noqa: BLE001 — best-effort external check
-        return _WARN, f"could not query balance ({exc}); check manually"
 
 
 def ping_seats(size: int) -> tuple[str, str]:
@@ -126,7 +105,6 @@ def preflight(model, council_size, no_seats, agent_url, api_base):
         checks.append(("Agent endpoint", *check_agent_endpoint(agent_url)))
     if api_base:
         checks.append(("OpenAI-compatible endpoint", *check_agent_endpoint(api_base)))
-    checks.append(("OpenRouter credit", *check_openrouter_credit()))
     for var, label in (
         ("DEEPSEEK_API_KEY", "DeepSeek key"),
         ("MISTRAL_API_KEY", "Mistral key"),
