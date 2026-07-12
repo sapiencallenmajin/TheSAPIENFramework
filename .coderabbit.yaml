@@ -1,0 +1,49 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit config — SAPIEN Framework + voigt-kampff CLI (Python, FSL-1.1-ALv2).
+language: en-US
+early_access: false
+reviews:
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+  path_filters:
+    - '!**/traces/**'
+    - '!**/council_*.json'
+    - '!**/*.backup.json'
+    - '!**/*.resumed.json'
+    - '!**/scratchpad/**'
+    - '!**/*.log'
+    - '!**/.venv/**'
+    - '!**/__pycache__/**'
+    - '!**/*.egg-info/**'
+    - '!**/dist/**'
+  path_instructions:
+    - path: 'sapien-score/src/sapien_score/**/*.py'
+      instructions: >
+        This code is FSL-1.1-ALv2 licensed: every new source file needs the SPDX
+        identifier + "Copyright 2026 SAPIEN Labs LLC" header (match the existing
+        files). Council scoring correctness is safety-critical — scrutinize
+        verdict logic (held / recovered / drifted / capitulated), health and drift
+        math, chairman adjudication of non-unanimous (split) verdicts, and the
+        Layer-1-vs-council divergence rule (use the stricter score when they
+        diverge > 0.40). Preconditions must FAIL LOUD, not silently no-op: credit
+        balance, live judge seats (>=5), and a non-zero resolved scenario count —
+        flag any path that can exit 0 having done nothing. Never read or commit
+        large run artifacts (council_*.json, traces/).
+    - path: 'sapien-score/**/tests/**'
+      instructions: >
+        Verify scoring/verdict assertions pin real expected values, not just
+        "runs without error". Provider/seat calls should be mocked or clearly
+        gated so tests don't require live credentials.
+tools:
+  ruff:
+    enabled: true
+chat:
+  auto_reply: true
