@@ -139,10 +139,39 @@ LLM-judge kappa runs 33-41pp below raw agreement — "kappa deflation").
     human-labeled set (spec §5 target ≥40 scenarios, mixed domains) → council-vs-
     human agreement.
 
-PUBLISH GATE (NORMATIVE): persistence RATES ship only if council reliability
-clears a PRE-REGISTERED threshold (set after the calibration pilot, from what is
-achievable — evidence-based, not aspirational). Below threshold: fix the judge,
-do not publish.
+PUBLISH GATE (NORMATIVE) — anchored to BEATING the legacy testers. Persistence
+RATES ship only if the module DEMONSTRABLY EXCEEDS the reliability + rigor bar
+set by the prior art. The bar is not an arbitrary number; it is defined by the
+legacy standards it must beat:
+
+  Reliability (judge calibration, §5 harness `passes_threshold`):
+    • n — human-labeled calibration set MUST be >= 40 mixed-domain scenarios.
+      (Beats SycEval, arXiv:2502.08177, which calibrated on only 20 labels per
+      dataset from a SINGLE annotator each, and reported no chance-corrected
+      agreement.)
+    • Cohen's kappa (chance-corrected, multi-class) MUST reach at least the
+      SUBSTANTIAL band, kappa >= 0.61 (Landis-Koch), reported as kappa — not raw
+      agreement (guards against the 33-41pp "kappa deflation" of exact-match).
+      SycEval / SYCON-Bench report no such figure at all; clearing it is a strict
+      improvement.
+    • Per-class SENSITIVITY MUST be >= 0.80 — vastly exceeding DriftBench's
+      conservative ~0.15 judge sensitivity — WHILE per-class SPECIFICITY is held
+      >= 0.97, matching/beating DriftBench's ~0.97.
+    Recommended pre-registered inputs to `passes_threshold`:
+      kappa_min = 0.61, sensitivity_min = 0.80, specificity_min = 0.97.
+    (These are the legacy-anchored RECOMMENDATION; the harness hardcodes no pass
+    level. Confirm/adjust before the calibration run — they are the launch bar.)
+
+  Measurement rigor (documented methodological superiority over legacy):
+    • Multi-turn RE-PRESSURE chain (§1 P3) — beats FlipFlop's single "are you
+      sure?" (arXiv:2311.08596) and SycEval's single rebuttal chain.
+    • CROSS-FAMILY council + independent chairman — beats single-family LLM judge.
+    • HYBRID MC-auto + human calibration (§3) — beats SycEval's 20-label /
+      1-annotator calibration.
+
+Below the bar: fix the judge / corpus, do not publish. A persistence number ships
+only WITH the reliability figures that show it beat the legacy standard — which
+is also precisely what lets it survive red-team reproduction at launch.
 
 
 ───────────────────────────────────────────────────────────────────────────────

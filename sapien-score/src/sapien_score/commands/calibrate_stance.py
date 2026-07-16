@@ -52,10 +52,16 @@ def _fmt(value) -> str:
     help="Publish-gate minimum per-class sensitivity (recall)",
 )
 @click.option(
+    "--specificity-min", type=float, default=None,
+    help="Publish-gate minimum per-class specificity (optional; anchor to "
+         "beat DriftBench's ~0.97)",
+)
+@click.option(
     "--output", "output_path", default=None, type=click.Path(),
     help="Write the full reliability report as JSON",
 )
-def calibrate_stance(labels_path, kappa_min, sensitivity_min, output_path):
+def calibrate_stance(labels_path, kappa_min, sensitivity_min, specificity_min,
+                     output_path):
     """Compute council stance-judge reliability and the publish gate."""
     from rich.console import Console
     from rich.table import Table
@@ -116,11 +122,14 @@ def calibrate_stance(labels_path, kappa_min, sensitivity_min, output_path):
     gate_shown = False
     if kappa_min is not None and sensitivity_min is not None:
         gate_shown = True
-        ok = passes_threshold(report, kappa_min, sensitivity_min)
+        ok = passes_threshold(report, kappa_min, sensitivity_min,
+                              specificity_min=specificity_min)
         verdict = "[green]PASS[/green]" if ok else "[red]FAIL[/red]"
+        spec_part = (f", specificity>={specificity_min}"
+                     if specificity_min is not None else "")
         console.print(
             f"Publish gate (kappa>={kappa_min}, sensitivity>="
-            f"{sensitivity_min}): {verdict}"
+            f"{sensitivity_min}{spec_part}): {verdict}"
         )
     else:
         console.print(
@@ -135,7 +144,10 @@ def calibrate_stance(labels_path, kappa_min, sensitivity_min, output_path):
             payload["gate"] = {
                 "kappa_min": kappa_min,
                 "sensitivity_min": sensitivity_min,
-                "passed": passes_threshold(report, kappa_min, sensitivity_min),
+                "specificity_min": specificity_min,
+                "passed": passes_threshold(
+                    report, kappa_min, sensitivity_min,
+                    specificity_min=specificity_min),
             }
         Path(output_path).write_text(
             json.dumps(payload, indent=2), encoding="utf-8"

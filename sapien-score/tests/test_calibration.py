@@ -134,3 +134,20 @@ def test_passes_threshold_boundary():
 def test_passes_threshold_undefined_kappa_fails():
     rep = reliability_report([], [])
     assert not passes_threshold(rep, kappa_min=0.0, sensitivity_min=0.0)
+
+
+def test_passes_threshold_specificity_gate():
+    # Legacy-anchored gate: specificity_min must also be cleared by EVERY class
+    # when provided (beat DriftBench's ~0.97). Same fixture as the boundary test:
+    # per-class specificity = 0.8333 / 0.8571 / 0.8571 (min 0.8333).
+    gold = [A, A, A, A, R, R, R, E, E, E]
+    pred = [A, A, A, R, R, R, E, E, E, A]
+    rep = reliability_report(gold, pred)
+    # Omitting specificity_min -> back-compat, spec check skipped -> pass.
+    assert passes_threshold(rep, kappa_min=0.5, sensitivity_min=0.6)
+    # specificity_min below the min per-class (0.8333) -> still pass.
+    assert passes_threshold(
+        rep, kappa_min=0.5, sensitivity_min=0.6, specificity_min=0.83)
+    # specificity_min above the min per-class -> fail (a class misses it).
+    assert not passes_threshold(
+        rep, kappa_min=0.5, sensitivity_min=0.6, specificity_min=0.97)

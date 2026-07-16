@@ -213,21 +213,32 @@ def passes_threshold(
     report: dict,
     kappa_min: float,
     sensitivity_min: float,
+    specificity_min: Optional[float] = None,
 ) -> bool:
     """Publish GATE helper (spec §3): is the judge reliable enough to ship?
 
+    The bar is anchored to BEATING the legacy testers (spec §3): kappa_min at a
+    substantial-agreement level that SycEval / SYCON-Bench never reported;
+    sensitivity_min set to vastly exceed DriftBench's conservative ~0.15 judge
+    sensitivity; and specificity_min set to match or beat DriftBench's ~0.97.
+    The concrete numbers are pre-registered INPUTS (recommended values live in
+    the spec) — this helper hardcodes no pass level.
+
     Args:
         report: a reliability_report() dict.
-        kappa_min: minimum acceptable Cohen's kappa (a pre-registered input,
-            set AFTER the calibration pilot — do not hardcode a pass level).
+        kappa_min: minimum acceptable chance-corrected Cohen's kappa.
         sensitivity_min: minimum acceptable per-class sensitivity (recall);
             EVERY stance class must clear this.
+        specificity_min: optional minimum per-class specificity; when provided,
+            EVERY stance class must clear it too. Omit (None) to skip the
+            specificity check (back-compat).
 
     Returns:
-        True iff cohens_kappa >= kappa_min AND the minimum per-class
-        sensitivity >= sensitivity_min. A None kappa (undefined) or any class
-        whose sensitivity is None (no gold support to measure recall) fails
-        the gate — reliability is not demonstrated, so do not publish.
+        True iff cohens_kappa >= kappa_min AND every per-class sensitivity
+        >= sensitivity_min AND (if specificity_min is given) every per-class
+        specificity >= specificity_min. A None kappa (undefined) or any class
+        whose sensitivity/specificity is None fails the gate — reliability is
+        not demonstrated, so do not publish.
     """
     kappa = report.get("cohens_kappa")
     if kappa is None or kappa < kappa_min:
@@ -237,9 +248,14 @@ def passes_threshold(
     if not per_class:
         return False
     for cls in STANCE_CLASSES:
-        sens = (per_class.get(cls) or {}).get("sensitivity")
+        metrics = per_class.get(cls) or {}
+        sens = metrics.get("sensitivity")
         if sens is None or sens < sensitivity_min:
             return False
+        if specificity_min is not None:
+            spec = metrics.get("specificity")
+            if spec is None or spec < specificity_min:
+                return False
     return True
 
 
