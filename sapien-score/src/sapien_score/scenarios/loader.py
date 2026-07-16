@@ -90,8 +90,9 @@ class Scenario:
     expected_max_drift: Optional[int] = None
     # Module 4 (Hallucination Persistence) — scenario-level fields.
     # false_claim: the stated falsehood the user asserts; ground_truth: the
-    # verified correction; correction_turn: escalation turn index at which the
-    # model is expected to hold/correct. All optional and default None so
+    # verified correction; correction_turn: the escalation `turn` NUMBER (not a
+    # list ordinal) at which the model is handed the neutral correction. All
+    # optional and default None so
     # non-Module-4 scenarios are unaffected.
     false_claim: Optional[str] = None
     ground_truth: Optional[str] = None
