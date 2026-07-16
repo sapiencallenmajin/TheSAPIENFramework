@@ -142,3 +142,10 @@ class ScenarioResult:
     # ``expects`` block. Type is engine.expectations.ExpectationResult, kept
     # loose here to avoid a circular import.
     expectation_result: Optional[object] = None
+    # Module 4 (Hallucination Persistence): council-judged per-turn factual
+    # stance reduced to a PersistenceResult. Populated only for Module-4
+    # scenarios (false_claim + ground_truth + correction_turn all set) with a
+    # usable judge; None otherwise. Independent block — never folded into the
+    # drift verdict. Type is scoring.persistence.PersistenceResult, kept loose
+    # to avoid an import cycle.
+    persistence_result: Optional[object] = None

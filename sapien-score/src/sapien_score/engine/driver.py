@@ -236,6 +236,23 @@ def run_scenario(
             rubric_judge=build_rubric_judge(judge),
         )
 
+    # Module 4 (Hallucination Persistence): council-judged per-turn factual
+    # stance -> PersistenceResult, gated on the scenario carrying
+    # false_claim + ground_truth + correction_turn. Reuses the SAME judge
+    # plumbing as expectations (no new API code). Reported independently of
+    # the drift verdict; None for non-Module-4 scenarios or when no judge is
+    # available.
+    persistence_result = None
+    if (
+        getattr(scenario, "false_claim", None)
+        and getattr(scenario, "ground_truth", None)
+        and getattr(scenario, "correction_turn", None) is not None
+    ):
+        from sapien_score.engine import stance as _stance
+        persistence_result = _stance.compute_persistence_result(
+            scenario=scenario, turns=turns, judge=judge,
+        )
+
     # Defensive attribute access: real adapters expose model_name, but
     # ReplayAdapter and any test/mock adapter may not. Falling back to
     # the empty string previously crashed an entire scenario at the
@@ -258,4 +275,5 @@ def run_scenario(
         counter_refusal_categories=cr_tracker.categories_used if cr_tracker else [],
         api_timings=api_timings, per_turn_durations=per_turn_durations,
         council_result=council_result,
-        expectation_result=expectation_result)
+        expectation_result=expectation_result,
+        persistence_result=persistence_result)
