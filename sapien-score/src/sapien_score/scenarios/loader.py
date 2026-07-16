@@ -52,6 +52,10 @@ class Escalation:
     hold_variants: list[str] = field(default_factory=list)
     # Optional per-turn expected-output block (see Scenario.expects).
     expects: Optional[dict] = None
+    # Module 4 (Hallucination Persistence): optional per-turn overrides of
+    # the scenario-level false_claim / ground_truth (default None = inherit).
+    false_claim: Optional[str] = None
+    ground_truth: Optional[str] = None
 
 
 @dataclass
@@ -84,6 +88,14 @@ class Scenario:
     recovery_horizon: str = ""
     impact_tags: dict[str, list[str]] = field(default_factory=dict)
     expected_max_drift: Optional[int] = None
+    # Module 4 (Hallucination Persistence) — scenario-level fields.
+    # false_claim: the stated falsehood the user asserts; ground_truth: the
+    # verified correction; correction_turn: escalation turn index at which the
+    # model is expected to hold/correct. All optional and default None so
+    # non-Module-4 scenarios are unaffected.
+    false_claim: Optional[str] = None
+    ground_truth: Optional[str] = None
+    correction_turn: Optional[int] = None
     # Optional expected-output block, evaluated INDEPENDENTLY of drift.
     # Shape: {must_contain: [str], must_not_contain: [str], regex: [str],
     #         rubric: str}. See engine/expectations.py.
@@ -322,6 +334,33 @@ def validate_scenario(data: dict) -> list[str]:
     if "expects" in data:
         errors.extend(validate_expects(data["expects"], "scenario"))
 
+    # ---- Module 4 (Hallucination Persistence), all optional ----
+    if "false_claim" in data and data["false_claim"] is not None:
+        if not isinstance(data["false_claim"], str) or not data["false_claim"].strip():
+            errors.append("false_claim must be a non-empty string when present")
+    if "ground_truth" in data and data["ground_truth"] is not None:
+        if not isinstance(data["ground_truth"], str) or not data["ground_truth"].strip():
+            errors.append("ground_truth must be a non-empty string when present")
+    if "correction_turn" in data and data["correction_turn"] is not None:
+        ct = data["correction_turn"]
+        if not isinstance(ct, int) or isinstance(ct, bool):
+            errors.append(
+                f"correction_turn must be an integer, got "
+                f"{type(ct).__name__}: {ct!r}"
+            )
+        elif isinstance(escalations, list):
+            # correction_turn must reference an actual escalation turn index.
+            valid_turns = {
+                esc.get("turn", (i + 1) * 2 - 1)
+                for i, esc in enumerate(escalations)
+                if isinstance(esc, dict)
+            }
+            if valid_turns and ct not in valid_turns:
+                errors.append(
+                    f"correction_turn {ct} is not a valid escalation turn "
+                    f"(valid: {sorted(valid_turns)})"
+                )
+
     # Pressure type validation on escalations
     for i, esc in enumerate(escalations):
         if not isinstance(esc, dict):
@@ -373,6 +412,8 @@ def load_scenario_from_dict(data: dict) -> Scenario:
             severity=esc.get("severity"),
             hold_variants=esc.get("hold_variants", []),
             expects=esc.get("expects"),
+            false_claim=esc.get("false_claim"),
+            ground_truth=esc.get("ground_truth"),
         ))
 
     # Parse hold variants (top-level, keyed by turn number)
@@ -418,6 +459,9 @@ def load_scenario_from_dict(data: dict) -> Scenario:
         recovery_horizon=data.get("recovery_horizon", ""),
         impact_tags=data.get("impact_tags", {}),
         expected_max_drift=data.get("expected_max_drift"),
+        false_claim=data.get("false_claim"),
+        ground_truth=data.get("ground_truth"),
+        correction_turn=data.get("correction_turn"),
         expects=data.get("expects"),
     )
 
