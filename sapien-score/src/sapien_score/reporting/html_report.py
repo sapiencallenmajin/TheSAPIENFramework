@@ -704,7 +704,10 @@ def _build_persistence_card(persistence: dict) -> str:
 
     tiles = [
         ("Persistence rate", _pct(persistence.get("persistence_rate")), "of baited"),
-        ("Retraction rate", _pct(persistence.get("retraction_rate")), "of baited"),
+        ("Snap-back rate", _pct(persistence.get("snap_back_rate")), "of retracted"),
+        ("Clean-retraction", _pct(persistence.get("clean_retraction_rate")), "of baited"),
+        # Bait rate is ALWAYS surfaced (spec §2 capability confound) — a
+        # 0-bait model reads "not measurable", never "safe".
         ("Bait rate", _pct(persistence.get("bait_rate")), "of Module-4"),
         ("Snowball index", snowball_str, "avg / scenario"),
     ]
@@ -719,11 +722,33 @@ def _build_persistence_card(persistence: dict) -> str:
             f'</div>'
         )
 
+    # Spec §5 fail-loud line: judge-incomplete + requested-vs-scored accounting.
+    judge_incomplete = int(persistence.get("judge_incomplete", 0) or 0)
+    requested = persistence.get("requested")
+    scored = persistence.get("scored")
+    accounting_bits = []
+    if scored is not None and requested is not None:
+        accounting_bits.append(f"{int(scored)} scored / {int(requested)} requested")
+    if judge_incomplete:
+        accounting_bits.append(
+            f"{judge_incomplete} judge-incomplete (below quorum, unscored)"
+        )
+    dropped = persistence.get("dropped_scenario_ids") or []
+    if dropped:
+        accounting_bits.append(f"{len(dropped)} dropped")
+    accounting_line = (
+        f'<p class="meta" style="font-size:0.8rem; color:#92400E;">'
+        f'{_esc(" · ".join(accounting_bits))}</p>'
+        if accounting_bits
+        else ""
+    )
+
     return f"""<h2>Hallucination Persistence (Module 4)</h2>
 <div class="summary-card" style="flex-direction:column; align-items:flex-start; gap:12px;">
   <p class="meta">{n_module4} Module-4 scenario{"s" if n_module4 != 1 else ""} ·
      {n_bait} took the bait</p>
   <div style="display:flex; gap:24px; flex-wrap:wrap;">{tile_cells}</div>
+  {accounting_line}
 </div>
 """
 

@@ -233,6 +233,13 @@ def serialize_result_entry(scenario, result, override_result=None) -> dict:
     if persistence_result is not None:
         from sapien_score.scoring.persistence import PERSISTENCE_KEY
         entry[PERSISTENCE_KEY] = persistence_result.to_dict()
+    # Module 4 v0.2 (spec §5 fail-loud): JUDGE-INCOMPLETE marker. Present ONLY
+    # for a Module-4 scenario whose persistence was unscored because a required
+    # turn fell below judge quorum. Surfaced additively so the run-level block
+    # can count `judge_incomplete` — these scenarios carry no persistence block.
+    incomplete_reason = getattr(result, "persistence_incomplete_reason", None)
+    if incomplete_reason:
+        entry["persistence_incomplete_reason"] = incomplete_reason
     return entry
 
 
@@ -348,6 +355,69 @@ def _build_risk_summary(entries: list) -> dict:
     return summary
 
 
+def _augment_persistence_block(
+    summary: Optional[dict],
+    success_entries: list,
+    error_entries: list,
+) -> Optional[dict]:
+    """Add spec §5 fail-loud accounting to the run-level persistence block.
+
+    Adds a ``judge_incomplete`` count (Module-4 scenarios whose persistence was
+    unscored below judge quorum — they carry no persistence block, so
+    ``aggregate_persistence`` never sees them) and requested-vs-scored scenario
+    accounting so a run that silently drops scenarios is visible.
+
+    ``summary`` is the ``aggregate_persistence`` output (or None when no scored
+    Module-4 blocks exist). Returns None only when there was NO Module-4 activity
+    at all — no scored blocks AND no judge-incomplete scenarios — so the block is
+    still omitted cleanly for non-Module-4 runs.
+    """
+    incomplete_ids = [
+        e.get("scenario_id")
+        for e in (success_entries or [])
+        if isinstance(e, dict) and e.get("persistence_incomplete_reason")
+    ]
+    judge_incomplete = len(incomplete_ids)
+    dropped_ids = [
+        e.get("scenario_id")
+        for e in (error_entries or [])
+        if isinstance(e, dict)
+    ]
+
+    # No Module-4 activity whatsoever -> omit the block cleanly.
+    if summary is None and judge_incomplete == 0:
+        return None
+
+    if summary is None:
+        # Every Module-4 scenario was judge-incomplete: nothing scored, so no
+        # rates are computable. bait_rate MUST still be present (None = "not
+        # measurable", never silently absent).
+        summary = {
+            "persistence_rate": None,
+            "retraction_rate": None,
+            "snap_back_rate": None,
+            "clean_retraction_rate": None,
+            "bait_rate": None,
+            "snowball_index": None,
+            "n_module4": 0,
+            "n_bait_taken": 0,
+            "n_retracted_on_corr": 0,
+        }
+
+    scored = int(summary.get("n_module4", 0) or 0)
+    summary["judge_incomplete"] = judge_incomplete
+    if incomplete_ids:
+        summary["judge_incomplete_ids"] = incomplete_ids
+    # Scenario accounting: `scored` (persistence-scored) + `judge_incomplete`
+    # (ran, unscored) + dropped (target-side failures) = `requested`. A gap
+    # between requested and scored is now visible rather than silent.
+    summary["scored"] = scored
+    summary["requested"] = scored + judge_incomplete + len(dropped_ids)
+    if dropped_ids:
+        summary["dropped_scenario_ids"] = dropped_ids
+    return summary
+
+
 def build_output_payload(
     model: str,
     results: list,
@@ -444,7 +514,9 @@ def build_output_payload(
         # Module-4 scenarios. Reported INDEPENDENTLY of the health score.
         # None (block omitted) when no Module-4 scenarios ran.
         from sapien_score.scoring.persistence import aggregate_persistence
-        persistence_summary = aggregate_persistence(success_entries)
+        persistence_summary = _augment_persistence_block(
+            aggregate_persistence(success_entries), success_entries, error_entries
+        )
         if persistence_summary is not None:
             payload["persistence"] = persistence_summary
         # Top-level scoring provenance. council_version is SCORE-AFFECTING
@@ -590,7 +662,9 @@ def build_output_payload(
     # Module 4 persistence aggregate over the MERGED entry set (see the
     # fresh-payload branch above) so resumed files reflect the full run.
     from sapien_score.scoring.persistence import aggregate_persistence
-    persistence_summary = aggregate_persistence(success_combined)
+    persistence_summary = _augment_persistence_block(
+        aggregate_persistence(success_combined), success_combined, error_combined
+    )
     if persistence_summary is not None:
         payload["persistence"] = persistence_summary
     # Top-level scoring provenance across the MERGED entry set (see the

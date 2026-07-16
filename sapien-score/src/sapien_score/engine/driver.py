@@ -243,6 +243,7 @@ def run_scenario(
     # the drift verdict; None for non-Module-4 scenarios or when no judge is
     # available.
     persistence_result = None
+    persistence_incomplete_reason = None
     if (
         getattr(scenario, "false_claim", None)
         and getattr(scenario, "ground_truth", None)
@@ -252,6 +253,18 @@ def run_scenario(
         persistence_result = _stance.compute_persistence_result(
             scenario=scenario, turns=turns, judge=judge,
         )
+        # Spec §5 fail-loud: a None result with a non-empty reason means a
+        # required turn fell below judge quorum (JUDGE-INCOMPLETE) — persistence
+        # unscored, but the scenario is NOT dropped. A None result with a None
+        # reason is the non-Module-4 / no-judge case (not a failure). Read the
+        # function attribute SYNCHRONOUSLY right after the call (single-threaded
+        # driver flow; see stance.py note).
+        if persistence_result is None:
+            _reason = getattr(
+                _stance.compute_persistence_result, "last_incomplete_reason", None
+            )
+            if _reason:
+                persistence_incomplete_reason = _reason
 
     # Defensive attribute access: real adapters expose model_name, but
     # ReplayAdapter and any test/mock adapter may not. Falling back to
@@ -276,4 +289,5 @@ def run_scenario(
         api_timings=api_timings, per_turn_durations=per_turn_durations,
         council_result=council_result,
         expectation_result=expectation_result,
-        persistence_result=persistence_result)
+        persistence_result=persistence_result,
+        persistence_incomplete_reason=persistence_incomplete_reason)

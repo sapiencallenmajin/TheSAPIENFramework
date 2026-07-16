@@ -149,3 +149,10 @@ class ScenarioResult:
     # drift verdict. Type is scoring.persistence.PersistenceResult, kept loose
     # to avoid an import cycle.
     persistence_result: Optional[object] = None
+    # Module 4 v0.2 (spec §5 fail-loud): set ONLY when a Module-4 scenario's
+    # persistence could not be scored because a required turn fell below judge
+    # quorum (JUDGE-INCOMPLETE). Carries the human-readable reason from
+    # ``compute_persistence_result.last_incomplete_reason``. None for scenarios
+    # that scored normally AND for non-Module-4 scenarios (no judge) — the two
+    # are distinguished at capture time in the driver. Independent, additive.
+    persistence_incomplete_reason: Optional[str] = None

@@ -53,7 +53,7 @@ def _fake_scenario(sid):
     )
 
 
-def _fake_result(persistence_result=None):
+def _fake_result(persistence_result=None, persistence_incomplete_reason=None):
     verdict = SimpleNamespace(
         verdict="held",
         health_score=90,
@@ -79,6 +79,7 @@ def _fake_result(persistence_result=None):
         council_result=None,
         expectation_result=None,
         persistence_result=persistence_result,
+        persistence_incomplete_reason=persistence_incomplete_reason,
     )
 
 
@@ -269,6 +270,125 @@ def test_resume_path_aggregates_persistence():
     assert block["persistence_rate"] == pytest.approx(0.5)
 
 
+# --- v0.2: snap-back / clean-retraction in payload -------------------------
+
+def test_payload_surfaces_snap_back_and_clean_retraction():
+    # 2 baited scenarios, both retracted; one snapped back, one held clean.
+    results = _pairs([
+        _persistence(True, True, True, snapped_back=True),
+        _persistence(True, True, False, snapped_back=False),
+    ])
+    payload = build_output_payload(
+        model="test/model",
+        results=results,
+        dim_averages={},
+        overall_health=calculate_health_score({}),
+        mean_score=90.0,
+        p10=90.0,
+    )
+    block = payload["persistence"]
+    assert "snap_back_rate" in block
+    assert "clean_retraction_rate" in block
+    assert block["snap_back_rate"] == pytest.approx(0.5)   # 1 of 2 retracted
+    assert block["clean_retraction_rate"] == pytest.approx(0.5)
+    # bait_rate always present alongside.
+    assert block["bait_rate"] == pytest.approx(1.0)
+
+
+# --- v0.2: judge-incomplete fail-loud accounting ---------------------------
+
+def test_payload_counts_judge_incomplete():
+    pairs = _pairs([_persistence(True, True, False)])  # one scored scenario
+    # One extra Module-4 scenario whose persistence was unscored below quorum.
+    pairs.append((
+        _fake_scenario("sapien.medical.incomplete.v1"),
+        _fake_result(
+            persistence_result=None,
+            persistence_incomplete_reason=(
+                "judge below quorum on required turn(s) [2]; persistence unscored"
+            ),
+        ),
+    ))
+    payload = build_output_payload(
+        model="test/model",
+        results=pairs,
+        dim_averages={},
+        overall_health=calculate_health_score({}),
+        mean_score=90.0,
+        p10=90.0,
+    )
+    block = payload["persistence"]
+    assert block["judge_incomplete"] == 1
+    assert block["judge_incomplete_ids"] == ["sapien.medical.incomplete.v1"]
+    # scored counts only the persistence-scored scenario; requested includes
+    # the judge-incomplete one so the gap is visible.
+    assert block["scored"] == 1
+    assert block["requested"] == 2
+    # bait_rate still present.
+    assert "bait_rate" in block
+
+
+def test_payload_all_judge_incomplete_still_emits_block():
+    # No scored blocks at all, but a Module-4 scenario ran and was unscored.
+    pairs = [(
+        _fake_scenario("sapien.medical.only.v1"),
+        _fake_result(
+            persistence_result=None,
+            persistence_incomplete_reason="below quorum; persistence unscored",
+        ),
+    )]
+    payload = build_output_payload(
+        model="test/model",
+        results=pairs,
+        dim_averages={},
+        overall_health=calculate_health_score({}),
+        mean_score=90.0,
+        p10=90.0,
+    )
+    assert "persistence" in payload
+    block = payload["persistence"]
+    assert block["judge_incomplete"] == 1
+    assert block["scored"] == 0
+    # bait_rate MUST be present (None = "not measurable"), never silently absent.
+    assert "bait_rate" in block
+    assert block["bait_rate"] is None
+
+
+def test_payload_reports_requested_vs_scored_gap_on_dropped_scenario():
+    results = _pairs([_persistence(True, True, False)])
+    payload = build_output_payload(
+        model="test/model",
+        results=results,
+        dim_averages={},
+        overall_health=calculate_health_score({}),
+        mean_score=90.0,
+        p10=90.0,
+        failed_scenarios=[
+            {"id": "sapien.medical.dropped.v1", "title": "dropped", "error": "boom"},
+        ],
+    )
+    block = payload["persistence"]
+    assert block["scored"] == 1
+    assert block["requested"] == 2  # 1 scored + 1 dropped
+    assert block["dropped_scenario_ids"] == ["sapien.medical.dropped.v1"]
+
+
+def test_no_module4_still_omits_block_with_only_failures():
+    # A run with only a non-Module-4 target failure -> no persistence block.
+    payload = build_output_payload(
+        model="test/model",
+        results=[],
+        dim_averages={},
+        overall_health=calculate_health_score({}),
+        mean_score=0.0,
+        p10=0.0,
+        failed_scenarios=[
+            {"id": "sapien.other.x.v1", "title": "x", "error": "boom"},
+        ],
+    )
+    assert "persistence" not in payload
+
+
 # --- HTML report -----------------------------------------------------------
 
 def test_html_report_renders_persistence_card(tmp_path):
@@ -294,6 +414,38 @@ def test_html_report_renders_persistence_card(tmp_path):
     html = out.read_text(encoding="utf-8")
     assert "Hallucination Persistence (Module 4)" in html
     assert "Persistence rate" in html
+
+
+def test_html_report_renders_snap_back_and_judge_incomplete(tmp_path):
+    from sapien_score.reporting.html_report import generate_html_report
+
+    scan_payload = {
+        "persistence": {
+            "persistence_rate": 0.5,
+            "snap_back_rate": 0.25,
+            "clean_retraction_rate": 0.4,
+            "bait_rate": 0.6667,
+            "snowball_index": 0.75,
+            "n_module4": 4,
+            "n_bait_taken": 3,
+            "judge_incomplete": 1,
+            "scored": 3,
+            "requested": 4,
+        },
+    }
+    out = tmp_path / "report.html"
+    generate_html_report(
+        results=[],
+        model_name="test/model",
+        output_path=str(out),
+        scan_payload=scan_payload,
+    )
+    html = out.read_text(encoding="utf-8")
+    assert "Snap-back rate" in html
+    assert "Clean-retraction" in html
+    assert "Bait rate" in html
+    assert "judge-incomplete" in html
+    assert "3 scored / 4 requested" in html
 
 
 def test_html_report_omits_card_without_persistence(tmp_path):
