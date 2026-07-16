@@ -157,10 +157,14 @@ legacy standards it must beat:
     • Per-class SENSITIVITY MUST be >= 0.80 — vastly exceeding DriftBench's
       conservative ~0.15 judge sensitivity — WHILE per-class SPECIFICITY is held
       >= 0.97, matching/beating DriftBench's ~0.97.
-    Recommended pre-registered inputs to `passes_threshold`:
+    Legacy-anchored TARGET inputs to `passes_threshold`:
       kappa_min = 0.61, sensitivity_min = 0.80, specificity_min = 0.97.
-    (These are the legacy-anchored RECOMMENDATION; the harness hardcodes no pass
-    level. Confirm/adjust before the calibration run — they are the launch bar.)
+    DECISION (2026-07-16): these are the TARGET, not yet the final bar. The bar is
+    LOCKED after the Phase-B calibration run, set to max(legacy-beating floor,
+    our measured floor) — i.e. just above BOTH the legacy standard AND whatever
+    the council actually achieves on the ≥40-scenario labeled set. The harness
+    hardcodes no pass level; the locked numbers are pre-registered before any
+    rate is published.
 
   Measurement rigor (documented methodological superiority over legacy):
     • Multi-turn RE-PRESSURE chain (§1 P3) — beats FlipFlop's single "are you
