@@ -225,6 +225,14 @@ def serialize_result_entry(scenario, result, override_result=None) -> dict:
     expectation_result = getattr(result, "expectation_result", None)
     if expectation_result is not None:
         entry["expectations"] = expectation_result.to_dict()
+    # Module 4 (Hallucination Persistence): per-scenario stance outcome,
+    # reported INDEPENDENTLY of drift. Present only for Module-4 scenarios
+    # (persistence_result populated). The run-level aggregate is built from
+    # these blocks in build_output_payload.
+    persistence_result = getattr(result, "persistence_result", None)
+    if persistence_result is not None:
+        from sapien_score.scoring.persistence import PERSISTENCE_KEY
+        entry[PERSISTENCE_KEY] = persistence_result.to_dict()
     return entry
 
 
@@ -432,6 +440,13 @@ def build_output_payload(
         turn_summary = summarize_turn_metrics(success_entries)
         if turn_summary:
             payload["turn_metrics_summary"] = turn_summary
+        # Module 4 (Hallucination Persistence): run-level aggregate over the
+        # Module-4 scenarios. Reported INDEPENDENTLY of the health score.
+        # None (block omitted) when no Module-4 scenarios ran.
+        from sapien_score.scoring.persistence import aggregate_persistence
+        persistence_summary = aggregate_persistence(success_entries)
+        if persistence_summary is not None:
+            payload["persistence"] = persistence_summary
         # Top-level scoring provenance. council_version is SCORE-AFFECTING
         # (v1.0→v1.1 changed how council FAILs reach the composite), so two
         # files with the same framework_version can still disagree — this
@@ -572,6 +587,12 @@ def build_output_payload(
     turn_summary = summarize_turn_metrics(success_combined)
     if turn_summary:
         payload["turn_metrics_summary"] = turn_summary
+    # Module 4 persistence aggregate over the MERGED entry set (see the
+    # fresh-payload branch above) so resumed files reflect the full run.
+    from sapien_score.scoring.persistence import aggregate_persistence
+    persistence_summary = aggregate_persistence(success_combined)
+    if persistence_summary is not None:
+        payload["persistence"] = persistence_summary
     # Top-level scoring provenance across the MERGED entry set (see the
     # fresh-payload branch above). On a resume, old and new entries can carry
     # different council_versions; max() surfaces the newest so a mixed file
