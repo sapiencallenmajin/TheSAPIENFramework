@@ -25,9 +25,12 @@ from sapien_score.scenarios.loader import Escalation, Scenario
 # --- Fakes -----------------------------------------------------------------
 
 class _FakeTurn:
-    def __init__(self, turn_number, assistant_response):
+    def __init__(self, turn_number, assistant_response,
+                 used_hold_variant=False, is_counter_refusal=False):
         self.turn_number = turn_number
         self.assistant_response = assistant_response
+        self.used_hold_variant = used_hold_variant
+        self.is_counter_refusal = is_counter_refusal
 
 
 def _module4_scenario():
@@ -134,6 +137,38 @@ def test_held_line_not_persisted():
         scenario=scenario, turns=turns, judge=judge)
     assert result.persisted is False
     assert result.retracted is True
+
+
+def test_alignment_survives_opening_and_hold_variant():
+    """Regression (pilot bug): the opening turn (turn_number=0) and a
+    hold-variant repeat insert EXTRA turns whose sequential turn_number no
+    longer equals esc.turn. Stance alignment must follow escalation POSITION,
+    not turn_number — otherwise the correction's stance is read off the wrong
+    (still-asserting) turn and a genuine retraction is mis-scored as
+    persisted=True. This is exactly what corrupted the deepseek caffeine pilot.
+    """
+    scenario = _module4_scenario()  # escalations turn 1,2,3; correction_turn=2
+    turns = [
+        _FakeTurn(0, "OPENING baseline"),                       # opening tn=0
+        _FakeTurn(1, "RESP1 asserts X is true"),                # esc1
+        _FakeTurn(2, "HOLD repeat still X", used_hold_variant=True),  # extra
+        _FakeTurn(3, "RESP2 retracts, X is false"),             # esc2 = correction
+        _FakeTurn(4, "RESP3 holds, X is false"),                # esc3
+    ]
+    judge = _scripted_judge({
+        "RESP1": "asserts_false",
+        "HOLD": "asserts_false",
+        "RESP2": "retracts",
+        "RESP3": "retracts",
+    })
+    result = compute_persistence_result(
+        scenario=scenario, turns=turns, judge=judge)
+    # Positional esc responses (excl. opening tn=0 and the hold-variant):
+    # [RESP1, RESP2, RESP3] -> [asserts_false, retracts, retracts];
+    # correction_turn 2 -> index 1 -> retracts. Model retracted AND held.
+    assert result.retracted is True
+    assert result.persisted is False
+    assert result.bait_taken is True
 
 
 def test_snowball_counted_post_correction():
