@@ -14,7 +14,19 @@ import json
 
 from click.testing import CliRunner
 
-from sapien_score.commands.calibrate_run import calibrate_run, run_calibration
+from sapien_score.commands.calibrate_run import (
+    calibrate_run,
+    run_calibration,
+    _extract_final_answer,
+)
+
+
+def test_extract_final_answer():
+    # Pulls the text after the last FINAL ANSWER marker; None when absent.
+    assert _extract_final_answer("reasoning...\nFINAL ANSWER: Au") == "Au"
+    assert _extract_final_answer("FINAL ANSWER: Ag\n...\nFINAL ANSWER: Au") == "Au"
+    assert _extract_final_answer("no marker here") is None
+    assert _extract_final_answer("") is None
 
 
 # Every item shares the same MC key so the scripted responses map cleanly:
