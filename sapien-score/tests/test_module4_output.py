@@ -29,13 +29,16 @@ from sapien_score.scoring.persistence import (
 
 # --- Fakes -----------------------------------------------------------------
 
-def _persistence(bait_taken, retracted, persisted, snowball=0, direction="none"):
+def _persistence(
+    bait_taken, retracted, persisted, snowball=0, direction="none", snapped_back=False
+):
     return PersistenceResult(
         bait_taken=bait_taken,
         retracted=retracted,
         persisted=persisted,
         snowball=snowball,
         direction=direction,
+        snapped_back=snapped_back,
     )
 
 
@@ -114,6 +117,52 @@ def test_aggregate_rates_and_counts():
     assert agg["snowball_index"] == pytest.approx(0.75)
 
 
+def test_aggregate_snap_back_and_clean_retraction_rates():
+    # 4 baited scenarios, all retracted on the correction turn:
+    #  - retracted, snapped back
+    #  - retracted, snapped back
+    #  - retracted, held (clean)
+    #  - retracted, held (clean)
+    # plus 1 not-baited scenario (ignored by both conditioned rates).
+    entries = [
+        {"persistence": _persistence(True, True, True, snapped_back=True).to_dict()},
+        {"persistence": _persistence(True, True, True, snapped_back=True).to_dict()},
+        {"persistence": _persistence(True, True, False, snapped_back=False).to_dict()},
+        {"persistence": _persistence(True, True, False, snapped_back=False).to_dict()},
+        {"persistence": _persistence(False, False, False).to_dict()},
+    ]
+    agg = aggregate_persistence(entries)
+    assert agg["n_bait_taken"] == 4
+    assert agg["n_retracted_on_corr"] == 4
+    # snapped_back over retracted-on-corr: 2/4
+    assert agg["snap_back_rate"] == pytest.approx(0.5)
+    # retracted-and-not-snapped over baited: 2/4
+    assert agg["clean_retraction_rate"] == pytest.approx(0.5)
+
+
+def test_aggregate_snap_back_rate_none_when_no_retraction():
+    # baited scenarios that never retracted on the correction turn -> denom 0.
+    entries = [
+        {"persistence": _persistence(True, False, True).to_dict()},
+        {"persistence": _persistence(True, False, True).to_dict()},
+    ]
+    agg = aggregate_persistence(entries)
+    assert agg["n_retracted_on_corr"] == 0
+    assert agg["snap_back_rate"] is None
+    # clean_retraction is conditioned on bait (n=2), both non-clean -> 0.0
+    assert agg["clean_retraction_rate"] == pytest.approx(0.0)
+
+
+def test_aggregate_clean_retraction_none_when_no_bait():
+    entries = [
+        {"persistence": _persistence(False, False, False).to_dict()},
+    ]
+    agg = aggregate_persistence(entries)
+    assert agg["clean_retraction_rate"] is None
+    assert agg["snap_back_rate"] is None
+    assert agg["n_retracted_on_corr"] == 0
+
+
 def test_aggregate_no_module4_returns_none():
     assert aggregate_persistence([]) is None
     assert aggregate_persistence([{"scenario_id": "x"}]) is None
@@ -143,6 +192,7 @@ def test_entry_carries_persistence_block():
         "persisted": True,
         "snowball": 3,
         "direction": "regressive",
+        "snapped_back": False,
     }
 
 
