@@ -176,6 +176,96 @@ def resume_implies_run_all(
     return bool(resume) and not (run_all or domain or domains or scenario_ids)
 
 
+def build_council_judge(
+    *,
+    target_model: str,
+    council_size: int = 5,
+    chairman: bool = True,
+    chairman_model: Optional[str] = None,
+    retry_delay: float = 0.0,
+    trace_reader=None,
+    trace_writer=None,
+    console: Optional["Console"] = None,
+):
+    """Build the real 5-seat (or 3-seat) CouncilScorer used by the scan.
+
+    Single source of truth for council construction: ``setup_engine`` (the
+    live scan) AND the Module-4 ``calibrate-run`` calibration runner both call
+    this so the calibrated judge is byte-for-byte the judge that ships. Applies
+    Council v2 family recusal against ``target_model`` and constructs one
+    adapter per seat (never collapsing same-model seats into one voice).
+
+    Returns ``(judge, council)`` where ``judge`` is a
+    :class:`~sapien_score.engine.council_scorer.CouncilScorer` and ``council``
+    is its :class:`~sapien_score.engine.council_config.CouncilConfig`.
+    """
+    from sapien_score.engine.adapter import get_adapter
+    from sapien_score.engine.council_config import (
+        DEFAULT_CHAIRMAN_MODEL,
+        CouncilConfig,
+        resolve_council_for_target,
+    )
+    from sapien_score.engine.council_scorer import CouncilScorer
+
+    # Council v2 family recusal: if the TARGET model shares a family
+    # with a seated judge, that seat steps down for this run and a
+    # bench seat substitutes — no judge ever scores its own family.
+    resolved_seats = resolve_council_for_target(target_model)
+    council = CouncilConfig(
+        size=int(council_size),
+        seats=resolved_seats,
+        chairman_enabled=chairman,
+        chairman_model=(
+            (chairman_model or DEFAULT_CHAIRMAN_MODEL) if chairman else None
+        ),
+    )
+    if chairman and console is not None:
+        console.print(
+            f"[dim]Council v2: chairman={council.chairman_model} "
+            f"(adjudicates non-unanimous verdicts)[/dim]"
+        )
+
+    # Shared adapter pool: one adapter per seat, keyed by seat *index* so two
+    # seats configured with the same model.string never collapse into a single
+    # voice paying retry/throttle costs once instead of per-seat.
+    seat_adapters: dict[int, object] = {}
+    for seat_idx, seat in enumerate(council.seats):
+        if trace_reader:
+            from sapien_score.tracing.replay import ReplayAdapter
+            seat_adapter = ReplayAdapter(trace_reader, call_kind="judge_call")
+        else:
+            seat_model_str = (
+                f"{seat.model}@{seat.model_version}"
+                if seat.model_version else seat.model
+            )
+            seat_adapter = get_adapter(
+                model=seat_model_str, base_retry_delay=retry_delay,
+            )
+        if trace_writer:
+            seat_adapter.trace_writer = trace_writer
+            seat_adapter.call_kind = "judge_call"
+        seat_adapters[seat_idx] = seat_adapter
+
+    seat_id_to_index: dict[int, int] = {
+        id(seat): idx for idx, seat in enumerate(council.seats)
+    }
+
+    def _pool_caller(seat, system: str, user_msg: str) -> str:
+        a = seat_adapters[seat_id_to_index[id(seat)]]
+        return a.send_message(
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user_msg},
+            ],
+        )
+
+    judge = CouncilScorer(
+        council_config=council,
+        judge_caller=_pool_caller,
+    )
+    return judge, council
+
+
 def setup_engine(
     *,
     model: str,
@@ -529,77 +619,15 @@ def setup_engine(
             judge_adapter.call_kind = "judge_call"
         judge = JudgeScorer(adapter=judge_adapter)
     else:  # scoring_mode == "council"
-        from sapien_score.engine.council_config import (
-            DEFAULT_CHAIRMAN_MODEL,
-            CouncilConfig,
-            resolve_council_for_target,
-        )
-        from sapien_score.engine.council_scorer import CouncilScorer
-
-        # Council v2 family recusal: if the TARGET model shares a family
-        # with a seated judge, that seat steps down for this run and a
-        # bench seat substitutes — no judge ever scores its own family.
-        # Resolved seats are recorded per run via council_composition.
-        resolved_seats = resolve_council_for_target(model)
-        council = CouncilConfig(
-            size=int(council_size),
-            seats=resolved_seats,
-            chairman_enabled=chairman,
-            chairman_model=(
-                (chairman_model or DEFAULT_CHAIRMAN_MODEL) if chairman else None
-            ),
-        )
-        if chairman:
-            console.print(
-                f"[dim]Council v2: chairman={council.chairman_model} "
-                f"(adjudicates non-unanimous verdicts)[/dim]"
-            )
-
-        # Shared adapter pool: one LiteLLMAdapter per seat, constructed
-        # once. The pool is keyed by seat *index* (id(seat) is fine too,
-        # but indexes survive copy/serialization for tests). Two seats
-        # configured with the same model.string previously collapsed into
-        # a single adapter — the council degenerated into a single voice
-        # paying retry/throttle costs once instead of per-seat. Indexing
-        # by position guarantees one adapter per seat regardless of
-        # model overlap.
-        seat_adapters: dict[int, object] = {}
-        for seat_idx, seat in enumerate(council.seats):
-            if trace_reader:
-                from sapien_score.tracing.replay import ReplayAdapter
-                seat_adapter = ReplayAdapter(trace_reader, call_kind="judge_call")
-            else:
-                seat_model_str = (
-                    f"{seat.model}@{seat.model_version}"
-                    if seat.model_version else seat.model
-                )
-                seat_adapter = get_adapter(
-                    model=seat_model_str, base_retry_delay=retry_delay,
-                )
-            if trace_writer:
-                seat_adapter.trace_writer = trace_writer
-                seat_adapter.call_kind = "judge_call"
-            seat_adapters[seat_idx] = seat_adapter
-
-        # Reverse lookup so _pool_caller can find a seat's adapter without
-        # needing the council list at call time. id(seat) keys survive the
-        # life of the CouncilConfig (seats list is not mutated after init).
-        seat_id_to_index: dict[int, int] = {
-            id(seat): idx for idx, seat in enumerate(council.seats)
-        }
-
-        def _pool_caller(seat, system: str, user_msg: str) -> str:
-            a = seat_adapters[seat_id_to_index[id(seat)]]
-            return a.send_message(
-                messages=[
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user_msg},
-                ],
-            )
-
-        judge = CouncilScorer(
-            council_config=council,
-            judge_caller=_pool_caller,
+        judge, council = build_council_judge(
+            target_model=model,
+            council_size=int(council_size),
+            chairman=chairman,
+            chairman_model=chairman_model,
+            retry_delay=retry_delay,
+            trace_reader=trace_reader,
+            trace_writer=trace_writer,
+            console=console,
         )
 
     # --- Partial results path ---
