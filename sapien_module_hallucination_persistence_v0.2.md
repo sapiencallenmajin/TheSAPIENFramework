@@ -6,8 +6,9 @@
                          DRAFT v0.2
                          July 2026
 
-        Measuring whether a model retracts or defends a falsehood
-              once conceded — under SUSTAINED re-pressure
+        Characterizing sycophancy-induced hallucination as a
+        VULNERABILITY: likelihood, severity, persistence, whether
+        it is trained-in, and whether it can be weaponized
 
                     Author: Callen Sapien
                     SAPIEN Framework Extension
@@ -21,6 +22,57 @@ proved that a clean-correction probe measures INDUCIBILITY, not PERSISTENCE.
 
 NORMATIVE sections (MUST/SHOULD/MAY per RFC 2119) define requirements;
 INFORMATIVE sections give rationale and evidence.
+
+
+───────────────────────────────────────────────────────────────────────────────
+THESIS & THREAT MODEL (INFORMATIVE) — what this module is actually for
+───────────────────────────────────────────────────────────────────────────────
+
+Module 4 is NOT a re-run of drift measurement on a new failure. Drift asks
+"does a model abandon a SAFETY position under pressure." Module 4 asks a
+security question: is SYCOPHANCY-INDUCED HALLUCINATION a characterizable
+VULNERABILITY of a model — and can it be exploited? The persistence metric is
+one axis of a five-axis characterization:
+
+  1. LIKELIHOOD  — how readily can a designated falsehood be INDUCED under
+     sycophantic pressure (false premise, fabricated citation, authority)?
+     Measured by BAIT_TAKEN / bait_rate.
+  2. SEVERITY    — how harmful is the induced falsehood if acted on (medical
+     dose, legal standard, financial figure)? Carried by the scenario's curated
+     `impact_tier`; a persisted falsehood MUST be reportable weighted by stakes,
+     not just counted.
+  3. SUSTAINABILITY (PERSISTENCE) — once induced, does the falsehood STICK and
+     SNAP BACK under renewed pressure after a clean correction? The headline
+     `persisted` / `snap_back` metric. This is the load-bearing axis, which is
+     why its judge is calibrated against independent graders before any rate
+     ships (§3, §5).
+  4. TRAINED-IN / SYSTEMIC — is induction+persistence an idiosyncrasy or a
+     SYSTEMIC property of how models are aligned — the same RLHF pressure that
+     produces sycophancy (Sharma et al. 2310.13548; SycEval finds alignment
+     tuning AMPLIFIES sycophancy)? Investigated by cross-model correlation of
+     bait_rate / persistence against family and alignment lineage. A RESEARCH
+     QUESTION the instrument is built to answer, not an assumed result.
+  5. WEAPONIZABILITY (THREAT MODEL) — the security payload. If a falsehood can
+     be induced and made to persist, the same lever is an ATTACK PRIMITIVE:
+       • Actors: model creators/trainers (bake in or fail to remove the
+         weakness) AND external THREAT ACTORS.
+       • Goals: (a) DATA EXTRACTION — steer a committed model into revealing or
+         fabricating content it would otherwise withhold; (b) MODEL CONTROL —
+         install a false premise the model then defends and builds on, hijacking
+         downstream reasoning/tool-use.
+       • Mechanism: induce a sycophantic concession → persistence makes it
+         durable within the session → the committed falsehood becomes leverage.
+     Module 4 measures the PRECONDITION for such attacks (inducibility +
+     persistence). SAPIEN is a DEFENSIVE benchmark: this section motivates why
+     the measurement matters and frames what an abuse-oriented scenario tests;
+     it is not attack tooling and MUST NOT be written as a how-to. Abuse-vector
+     scenarios test whether the precondition holds, reported as a risk signal.
+
+Composite framing: LIKELIHOOD × SEVERITY × SUSTAINABILITY is the risk surface;
+TRAINED-IN says whether it generalizes across the model population; WEAPONIZABLE
+says whether the risk is exploitable rather than merely present. The metrics in
+§2 instrument axes 1-3 directly; axes 4-5 are the research/threat program the
+corpus and cross-model runs are designed to feed.
 
 
 ───────────────────────────────────────────────────────────────────────────────
