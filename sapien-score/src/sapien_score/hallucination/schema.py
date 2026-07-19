@@ -20,9 +20,11 @@
 # option), the opaque per-scenario answer-token pair, the pre-curated harm tier,
 # the induction lever, and the fixed seven-turn sequence (§4.4). No I/O, no LLM.
 
+import json
 import re
 from dataclasses import dataclass, field
-from typing import List, Literal
+from pathlib import Path
+from typing import List, Literal, Union
 
 # The opaque-token grammar the deterministic parser accepts (extractor.py
 # _ANSWER_RE captures ``[A-Za-z0-9_]+``). Tokens that violate this grammar would
@@ -197,3 +199,94 @@ class HallucinationScenario:
             if t.phase == "correction":
                 return t.index
         return -1
+
+
+# ---------------------------------------------------------------------------
+# Corpus loading (pure, tolerant deserialisation of frozen JSON packets).
+#
+# Scenarios are authored as JSON on disk (the frozen, hashable artifact of the
+# pre-registration ledger, §14). ``from_dict`` is a tolerant deserialiser: it
+# accepts missing OPTIONAL keys (falling back to the canonical seven-turn
+# sequence when ``turns`` is absent) but never invents answer-key content.
+# ``load_hallucination_corpus`` loads every ``*.json`` in a directory and calls
+# ``validate()`` on each, failing loud on a schema-invalid packet — a poisoned
+# answer key must never load silently.
+# ---------------------------------------------------------------------------
+def _turn_from_obj(obj: Union["Turn", dict], fallback_index: int) -> "Turn":
+    """Build a Turn from a dict (or pass an existing Turn through)."""
+    if isinstance(obj, Turn):
+        return obj
+    if not isinstance(obj, dict):
+        raise TypeError(f"turn must be a dict or Turn, got {type(obj)!r}")
+    return Turn(
+        index=int(obj.get("index", fallback_index)),
+        phase=obj.get("phase", ""),
+        prompt=obj.get("prompt", "") or "",
+    )
+
+
+def from_dict(d: dict) -> HallucinationScenario:
+    """Deserialise a single scenario dict into a HallucinationScenario.
+
+    Tolerant of missing OPTIONAL keys: ``turns`` defaults to the canonical
+    seven-turn sequence; ``false_claim_text`` / ``true_claim_text`` /
+    ``domain`` / ``source`` default to empty strings; ``scenario_id`` accepts
+    either ``scenario_id`` or ``id``. Required answer-key fields are read
+    verbatim and never fabricated, so an incomplete packet round-trips to a
+    scenario that ``validate()`` will reject rather than to a silent default.
+    """
+    if not isinstance(d, dict):
+        raise TypeError(f"scenario must be a dict, got {type(d)!r}")
+
+    turns_raw = d.get("turns")
+    if turns_raw:
+        turns = [_turn_from_obj(t, i) for i, t in enumerate(turns_raw)]
+    else:
+        turns = default_turn_sequence()
+
+    return HallucinationScenario(
+        scenario_id=d.get("scenario_id") or d.get("id") or "",
+        true_option=d.get("true_option", ""),
+        false_option=d.get("false_option", ""),
+        true_token=d.get("true_token", ""),
+        false_token=d.get("false_token", ""),
+        harm_tier=d.get("harm_tier"),
+        induction_lever=d.get("induction_lever", ""),
+        turns=turns,
+        false_claim_text=d.get("false_claim_text", "") or "",
+        true_claim_text=d.get("true_claim_text", "") or "",
+        domain=d.get("domain", "") or "",
+        source=d.get("source", "") or "",
+    )
+
+
+def load_hallucination_corpus(
+    path: Union[str, Path],
+) -> List[HallucinationScenario]:
+    """Load every ``*.json`` scenario packet in a directory.
+
+    Each file holds either one scenario object or a list of them. Every loaded
+    scenario is passed through ``validate()``; a schema-invalid packet raises
+    ``ValueError`` naming the file, scenario id, and violations (fail loud — a
+    poisoned answer key must never enter the corpus silently). Files are loaded
+    in sorted filename order for deterministic, reproducible corpus assembly.
+    """
+    directory = Path(path)
+    if not directory.is_dir():
+        raise NotADirectoryError(f"corpus path is not a directory: {directory}")
+
+    scenarios: List[HallucinationScenario] = []
+    for json_file in sorted(directory.glob("*.json")):
+        with open(json_file, encoding="utf-8") as fh:
+            data = json.load(fh)
+        items = data if isinstance(data, list) else [data]
+        for item in items:
+            scenario = from_dict(item)
+            errors = scenario.validate()
+            if errors:
+                raise ValueError(
+                    f"invalid scenario {scenario.scenario_id!r} in "
+                    f"{json_file.name}: {'; '.join(errors)}"
+                )
+            scenarios.append(scenario)
+    return scenarios

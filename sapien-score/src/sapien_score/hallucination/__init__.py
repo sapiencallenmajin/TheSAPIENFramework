@@ -59,6 +59,8 @@ from .schema import (
     Phase,
     Turn,
     default_turn_sequence,
+    from_dict,
+    load_hallucination_corpus,
 )
 
 __all__ = [
@@ -71,6 +73,8 @@ __all__ = [
     "HARM_TIER_MIN",
     "HARM_TIER_MAX",
     "default_turn_sequence",
+    "from_dict",
+    "load_hallucination_corpus",
     # extractor
     "parse_answer_token",
     "classify_stance",
