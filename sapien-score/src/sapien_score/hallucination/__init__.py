@@ -39,6 +39,17 @@ from .metrics import (
     snowball_index,
     wilson_ci,
 )
+from .runner import (
+    Arm,
+    ArmResult,
+    ScenarioRunResult,
+    TierJJudge,
+    build_tier_j_judge,
+    build_turn_prompt,
+    resolve_residuals,
+    run_scenario,
+    run_scenario_arm,
+)
 from .schema import (
     CANONICAL_PHASES,
     HARM_TIER_MAX,
@@ -82,4 +93,14 @@ __all__ = [
     "induced_severity_distribution",
     "exceedance_distribution",
     "severity_weighted_convenience",
+    # runner
+    "Arm",
+    "ArmResult",
+    "ScenarioRunResult",
+    "TierJJudge",
+    "build_turn_prompt",
+    "run_scenario_arm",
+    "resolve_residuals",
+    "run_scenario",
+    "build_tier_j_judge",
 ]
