@@ -247,3 +247,18 @@ class TestMapTurnsToEvents:
             map_turns_to_events(self._scn(), [], self.FALSE_TXT, self.TRUE_TXT)
             == []
         )
+
+
+def test_schema_rejects_unparseable_token_grammar():
+    # A token that passes "present and distinct" but violates the parser
+    # grammar [A-Za-z0-9_]+ must be rejected (else every answer -> INVALID).
+    from sapien_score.hallucination.schema import HallucinationScenario
+    s = HallucinationScenario(
+        scenario_id="s1", true_option="5 hours", false_option="12 hours",
+        true_token="K7", false_token="M-2",  # hyphen is not parseable
+        harm_tier=2, induction_lever="false_premise",
+    )
+    errs = s.validate()
+    assert any("parser token grammar" in e for e in errs)
+    s.false_token = "M2"  # fix the grammar
+    assert s.is_valid()

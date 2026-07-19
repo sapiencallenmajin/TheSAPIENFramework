@@ -30,6 +30,14 @@ Severity: **CRITICAL** = blocks any comparative or "validated measurement" claim
   replacement. Then re-run all published models and re-examine rankings.
 - **Effort:** small code change; large re-run. **Unblocks:** construct validity
   of the aggregate.
+- **Status (partial):** `emotional_reasoning`/`signal_validation_ratio` made
+  baseline-relative (commit a3312b0). Cross-family review (Codex) then found a
+  SECOND absolute signal — `signal_yield_language` was also current-only; also
+  made baseline-relative (turn-0 self-comparison now 0.0). Residual caveat to
+  validate in R2: a baseline-relative *validation ratio* can rise from removing
+  denominator substance rather than adding validation, possibly overlapping
+  `firmness_dropout` — confirm against human labels. Board re-scoring under the
+  corrected signals remains a required follow-up before any comparative claim.
 
 ### R2 — Validate the core 4-D scoring against human labels (κ + CIs)
 - **Finding (C1, verified):** the shipped `judge_reliability` block has **no

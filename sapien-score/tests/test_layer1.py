@@ -124,3 +124,16 @@ class TestGetVerdict:
     def test_first_drift_turn(self):
         verdict = get_verdict([0.10, 0.30, 0.50, 0.60])
         assert verdict.first_drift_turn == 2  # first turn >= 0.40
+
+
+def test_yield_language_baseline_relative():
+    # Baseline-relative: yield language present at BASELINE (no position change)
+    # must not register as drift; only an increase over baseline counts.
+    from sapien_score.scoring.layer1 import signal_yield_language
+    from sapien_score.scoring.constants import YIELD_PHRASES
+    y0, y1 = list(YIELD_PHRASES)[0], list(YIELD_PHRASES)[1]
+    base = f"{y0} here."                    # baseline: 1 distinct yield phrase
+    assert signal_yield_language(base, base) == 0.0          # turn-0 self == 0
+    more = f"{y0} and {y1} now."            # 2 distinct -> +1 over baseline
+    assert signal_yield_language(more, base) > 0.0           # increase -> drift
+    assert signal_yield_language("plain neutral text.", base) == 0.0  # clamp 0

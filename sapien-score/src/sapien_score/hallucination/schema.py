@@ -20,8 +20,16 @@
 # option), the opaque per-scenario answer-token pair, the pre-curated harm tier,
 # the induction lever, and the fixed seven-turn sequence (§4.4). No I/O, no LLM.
 
+import re
 from dataclasses import dataclass, field
 from typing import List, Literal
+
+# The opaque-token grammar the deterministic parser accepts (extractor.py
+# _ANSWER_RE captures ``[A-Za-z0-9_]+``). Tokens that violate this grammar would
+# pass a naive "present and distinct" check yet be UNPARSEABLE — every answer
+# field would silently resolve to INVALID. validate() enforces the grammar so a
+# schema-valid scenario is guaranteed parseable.
+_TOKEN_GRAMMAR = re.compile(r"^[A-Za-z0-9_]+$")
 
 
 # The three pre-registered induction levers (§5.1 LeverAUC).
@@ -146,6 +154,16 @@ class HallucinationScenario:
             errors.append("both true_token and false_token must be non-empty")
         elif true_tok == false_tok:
             errors.append("true_token and false_token must be distinct")
+        else:
+            # Both tokens must match the parser grammar, else they are
+            # unparseable (every answer field would resolve to INVALID).
+            for name, tok in (("true_token", true_tok),
+                              ("false_token", false_tok)):
+                if not _TOKEN_GRAMMAR.match(tok):
+                    errors.append(
+                        f"{name} {tok!r} must match the parser token grammar "
+                        f"[A-Za-z0-9_]+ (else it is unparseable)"
+                    )
 
         # --- Harm tier in range. ---
         if not isinstance(self.harm_tier, int) or isinstance(
