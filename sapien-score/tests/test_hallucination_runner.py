@@ -223,6 +223,5 @@ def test_run_scenario_assembles_structs_and_feeds_metrics():
     assert dep["n"] == 1
 
 
-def test_build_tier_j_judge_is_a_documented_stub():
-    with pytest.raises(NotImplementedError):
-        build_tier_j_judge()
+# build_tier_j_judge live-council wiring is covered in
+# tests/test_hallucination_tier_j.py (mocked council; no live LLM calls).

@@ -438,22 +438,111 @@ def run_scenario(
 # here: this factory documents exactly how to wrap the real (judge, council)
 # from commands.scan_orchestration.build_council_judge into a TierJJudge.
 # ---------------------------------------------------------------------------
-def build_tier_j_judge(*args, **kwargs) -> TierJJudge:
-    """Construct the LIVE residual-only Tier-J classifier (NEXT WAVE — stub).
+# Map the lowercase stance vocab emitted by engine.stance (asserts_false /
+# retracts / evades) to the UPPERCASE Event vocab this runner/extractor use.
+# Explicit rather than ``.upper()`` so the seam is auditable and a vocab drift
+# on either side fails loud instead of silently mis-mapping.
+_STANCE_LOWER_TO_UPPER = {
+    "asserts_false": "ASSERTS_FALSE",
+    "retracts": "RETRACTS",
+    "evades": "EVADES",
+}
 
-    The live implementation must wrap the real council from
-    ``commands.scan_orchestration.build_council_judge`` (which returns
-    ``(judge, council)``) in a ``TierJJudge`` whose ``classify`` maps a residual
-    response to ASSERTS_FALSE / RETRACTS / EVADES on the residual subset only,
-    with the calibration report (§10.3/§10.5) attached.
+# Sentinel returned when the council leaves a residual unresolved (below quorum,
+# or an un-mappable stance). It is NOT a decisive stance, so resolve_residuals
+# leaves the residual event unchanged — exactly the "still unresolved" path.
+_UNRESOLVED_SENTINEL: Stance = "MECH_AMBIGUOUS"
 
-    This is intentionally a stub so the injection seam ships now without faking
-    a council. Callers wire a real (mock in tests, council-backed live) judge
-    into ``run_scenario`` / ``resolve_residuals`` directly.
+
+@dataclass
+class _CouncilTierJJudge:
+    """Council-backed TierJJudge: reuses the calibrated stance-judging path.
+
+    ``classify`` polls each council seat for the residual response's factual
+    stance via :func:`engine.stance.judge_turn_stance`, takes the resolved
+    majority, and maps the lowercase stance to the UPPERCASE Event vocab. When
+    the council is below quorum (unresolved) it returns MECH_AMBIGUOUS so the
+    runner leaves the residual undecided (never coerced to a stance).
     """
-    raise NotImplementedError(
-        "Live Tier-J council wiring is the next wave. Inject a TierJJudge into "
-        "run_scenario(tier_j_judge=...) directly; wrap "
-        "commands.scan_orchestration.build_council_judge's (judge, council) "
-        "here when calibration lands."
+
+    seat_judges: list
+    council: object = None  # CouncilConfig — retained for audit/introspection.
+    _judge_stance: Callable = None  # injected judge_turn_stance (testability).
+
+    def classify(
+        self,
+        response: str,
+        scenario: HallucinationScenario,
+        turn_index: int,
+    ) -> Stance:
+        false_claim = (
+            (scenario.false_claim_text or "").strip() or scenario.false_option
+        )
+        ground_truth = (
+            (scenario.true_claim_text or "").strip() or scenario.true_option
+        )
+        stance, _new_claim, resolved = self._judge_stance(
+            response, false_claim, ground_truth, self.seat_judges
+        )
+        if not resolved or stance is None:
+            # Below quorum: leave the residual undecided (§5 graceful degrade).
+            return _UNRESOLVED_SENTINEL
+        return _STANCE_LOWER_TO_UPPER.get(stance, _UNRESOLVED_SENTINEL)
+
+
+def build_tier_j_judge(
+    target_model: str,
+    council_size: int = 5,
+    chairman_model: str = "gemini/gemini-2.5-pro",
+    *,
+    judge_turn_stance_fn: Optional[Callable] = None,
+    build_council_judge_fn: Optional[Callable] = None,
+    build_stance_judges_fn: Optional[Callable] = None,
+    **council_kwargs,
+) -> TierJJudge:
+    """Construct the LIVE residual-only Tier-J classifier (§10.1).
+
+    Reuses existing council plumbing end-to-end — no new API code:
+
+    * :func:`commands.scan_orchestration.build_council_judge` builds the real
+      ``(judge, council)`` tuple (the SAME 5-seat CouncilScorer the scan ships).
+      Only the ``judge`` is passed on.
+    * :func:`engine.stance.build_stance_judges` derives one ``(system, user) ->
+      reply`` callable per seat from that judge.
+    * :func:`engine.stance.judge_turn_stance` polls the seats per residual and
+      returns the majority stance + a resolved flag (quorum = min(3, n_seats)).
+
+    The returned :class:`_CouncilTierJJudge` maps the lowercase stance vocab
+    (asserts_false / retracts / evades) to the runner's UPPERCASE Event vocab,
+    and returns MECH_AMBIGUOUS when the council is below quorum so the residual
+    stays unresolved.
+
+    The ``*_fn`` params are injection seams for tests (mock council + mock
+    stance judging) so no live LLM call is ever made in a test. The live path
+    leaves them None and imports the real functions lazily.
+    """
+    if build_council_judge_fn is None:
+        from sapien_score.commands.scan_orchestration import (
+            build_council_judge as build_council_judge_fn,
+        )
+    if build_stance_judges_fn is None:
+        from sapien_score.engine.stance import (
+            build_stance_judges as build_stance_judges_fn,
+        )
+    if judge_turn_stance_fn is None:
+        from sapien_score.engine.stance import (
+            judge_turn_stance as judge_turn_stance_fn,
+        )
+
+    judge, council = build_council_judge_fn(
+        target_model=target_model,
+        council_size=council_size,
+        chairman_model=chairman_model,
+        **council_kwargs,
+    )
+    seat_judges = build_stance_judges_fn(judge)
+    return _CouncilTierJJudge(
+        seat_judges=seat_judges,
+        council=council,
+        _judge_stance=judge_turn_stance_fn,
     )
