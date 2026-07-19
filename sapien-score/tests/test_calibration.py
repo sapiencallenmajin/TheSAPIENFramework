@@ -151,3 +151,37 @@ def test_passes_threshold_specificity_gate():
     # specificity_min above the min per-class -> fail (a class misses it).
     assert not passes_threshold(
         rep, kappa_min=0.5, sensitivity_min=0.6, specificity_min=0.97)
+
+
+# --- Human-validation stats: Fleiss' kappa + bootstrap CI --------------------
+from sapien_score.scoring.calibration import fleiss_kappa, bootstrap_ci
+
+
+def test_fleiss_kappa_known_value():
+    # 4 items, 3 raters, 2 categories. Hand-computed: P_bar=0.6667, P_e=0.5,
+    # kappa = (0.6667-0.5)/0.5 = 0.3333.
+    items = [["a", "a", "a"], ["b", "b", "b"], ["a", "a", "b"], ["a", "b", "b"]]
+    k = fleiss_kappa(items)
+    assert abs(k - 0.33333333) < 1e-6
+
+
+def test_fleiss_kappa_perfect():
+    assert abs(fleiss_kappa([["a", "a"], ["b", "b"]]) - 1.0) < 1e-9
+
+
+def test_fleiss_kappa_degenerate_and_empty():
+    assert fleiss_kappa([["a", "a"], ["a", "a"]]) is None  # single category
+    assert fleiss_kappa([]) is None
+    assert fleiss_kappa([["a"]]) is None  # <2 raters
+
+
+def test_bootstrap_ci_constant_and_seeded():
+    lo, hi = bootstrap_ci([0.5] * 50, n_resamples=500, seed=1)
+    assert lo == 0.5 and hi == 0.5
+    # Seeded => reproducible; bounds bracket the mean of a spread sample.
+    vals = [0, 1] * 25
+    a = bootstrap_ci(vals, n_resamples=1000, seed=7)
+    b = bootstrap_ci(vals, n_resamples=1000, seed=7)
+    assert a == b  # reproducible
+    assert a[0] <= 0.5 <= a[1]
+    assert bootstrap_ci([]) == (None, None)

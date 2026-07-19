@@ -361,3 +361,108 @@ def _endorses(response: str, option: str) -> bool:
 
     # Never found, or every occurrence was negated -> not endorsed.
     return False
+
+
+# ---------------------------------------------------------------------------
+# Human-validation statistics (Module 4 validation protocol §6)
+# Multi-annotator inter-rater agreement + bootstrap confidence intervals.
+# ---------------------------------------------------------------------------
+
+def fleiss_kappa(item_ratings: list) -> Optional[float]:
+    """Fleiss' kappa for multi-annotator agreement (>=2 raters per item).
+
+    Args:
+        item_ratings: list of items; each item is the list of category labels
+            the raters assigned to it, e.g. [["a","a","b"], ["b","b","b"], ...].
+            Items may have different rater counts; each item needs >= 2 ratings.
+
+    Returns:
+        Chance-corrected Fleiss' kappa in [-1, 1], or None if undefined
+        (no items, any item with < 2 ratings, or fully degenerate agreement).
+
+    Formula (Fleiss 1971), tolerant of variable raters-per-item:
+        P_i = (sum_j n_ij^2 - n_i) / (n_i (n_i - 1))     # per-item agreement
+        P_bar = mean_i P_i
+        p_j = (sum_i n_ij) / (sum_i n_i)                 # category prevalence
+        P_e = sum_j p_j^2
+        kappa = (P_bar - P_e) / (1 - P_e)
+    """
+    items = [list(r) for r in (item_ratings or []) if r is not None]
+    items = [r for r in items if len(r) >= 2]
+    if not items:
+        return None
+    categories = sorted({lbl for r in items for lbl in r})
+    if len(categories) < 2:
+        # Everyone agrees on one category everywhere -> perfect but P_e == 1;
+        # kappa is undefined (0/0). Report None rather than a fake 1.0.
+        return None
+    cat_index = {c: i for i, c in enumerate(categories)}
+    total_ratings = 0
+    col_totals = [0] * len(categories)
+    p_is = []
+    for r in items:
+        n_i = len(r)
+        counts = [0] * len(categories)
+        for lbl in r:
+            counts[cat_index[lbl]] += 1
+        total_ratings += n_i
+        for j, c in enumerate(counts):
+            col_totals[j] += c
+        p_i = (sum(c * c for c in counts) - n_i) / (n_i * (n_i - 1))
+        p_is.append(p_i)
+    p_bar = sum(p_is) / len(p_is)
+    p_e = sum((ct / total_ratings) ** 2 for ct in col_totals)
+    if p_e >= 1.0:
+        return None
+    return (p_bar - p_e) / (1.0 - p_e)
+
+
+def bootstrap_ci(
+    values: list,
+    statistic: Callable = None,
+    n_resamples: int = 10000,
+    alpha: float = 0.05,
+    seed: int = 42,
+) -> tuple:
+    """Percentile bootstrap CI for a statistic over item-level values.
+
+    Resamples ITEMS with replacement (the resampling unit is the cluster/item,
+    per §6), recomputes the statistic, and returns the (lower, upper) percentile
+    bounds. Seeded for reproducibility.
+
+    NOTE: this is the PERCENTILE bootstrap. The methodology's target is BCa
+    (bias-corrected and accelerated); percentile is a defensible, transparent
+    first implementation and is labeled as such — do not report it as BCa.
+
+    Args:
+        values: item-level values (e.g. per-scenario rates) or arbitrary items
+            if `statistic` reduces them.
+        statistic: callable(list) -> float. Defaults to the arithmetic mean.
+        n_resamples: bootstrap resamples (>= 2000 recommended).
+        alpha: two-sided; returns the (alpha/2, 1-alpha/2) percentiles.
+        seed: RNG seed for reproducibility.
+
+    Returns:
+        (lower, upper) floats, or (None, None) if `values` is empty.
+    """
+    import random as _random
+
+    data = list(values or [])
+    if not data:
+        return (None, None)
+    stat = statistic or (lambda xs: sum(xs) / len(xs))
+    rng = _random.Random(seed)
+    n = len(data)
+    estimates = []
+    for _ in range(max(1, n_resamples)):
+        sample = [data[rng.randrange(n)] for _ in range(n)]
+        try:
+            estimates.append(stat(sample))
+        except (ZeroDivisionError, ValueError):
+            continue
+    if not estimates:
+        return (None, None)
+    estimates.sort()
+    lo_idx = int((alpha / 2) * len(estimates))
+    hi_idx = min(len(estimates) - 1, int((1 - alpha / 2) * len(estimates)))
+    return (estimates[lo_idx], estimates[hi_idx])
