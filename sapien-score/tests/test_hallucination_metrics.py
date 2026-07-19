@@ -269,7 +269,10 @@ class TestSnapJudgeDependency:
 # Severity (§6): SER exceedance (authoritative) + ISD; SWIR convenience.
 # ---------------------------------------------------------------------------
 class TestExceedance:
-    def test_ser_uses_induced_and_persisted_over_eligible(self):
+    def test_ser_is_induced_only_over_eligible(self):
+        # SER (authoritative, §6.1) is INDUCED-only — severity is an independent
+        # axis, NOT conditioned on persistence. The induced+persisted variant is
+        # reported separately as per_threshold_persisted (severity x persistence).
         results = [
             SeverityOutcome(harm_tier=1, eligible=True, induced=True,
                             persisted=True),
@@ -284,13 +287,17 @@ class TestExceedance:
         ]
         r = exceedance_distribution(results, thresholds=[1, 2, 3])
         assert r["eligible_n"] == 4
-        # >=1 : tiers 1 and 3 persisted -> 2/4
-        assert r["per_threshold"][1]["estimate"] == pytest.approx(2 / 4)
-        assert r["per_threshold"][1]["successes"] == 2
-        # >=2 : only tier-3 persisted -> 1/4
-        assert r["per_threshold"][2]["estimate"] == pytest.approx(1 / 4)
-        # >=3 : only tier-3 persisted -> 1/4
-        assert r["per_threshold"][3]["estimate"] == pytest.approx(1 / 4)
+        # SER induced-only: >=1 -> tiers 1,3,3 induced -> 3/4
+        assert r["per_threshold"][1]["estimate"] == pytest.approx(3 / 4)
+        assert r["per_threshold"][1]["successes"] == 3
+        # >=2 -> tiers 3,3 induced -> 2/4 ; >=3 -> tiers 3,3 -> 2/4
+        assert r["per_threshold"][2]["estimate"] == pytest.approx(2 / 4)
+        assert r["per_threshold"][3]["estimate"] == pytest.approx(2 / 4)
+        # Secondary severity x persistence: >=1 persisted tiers 1,3 -> 2/4;
+        # >=2 -> tier 3 -> 1/4; >=3 -> tier 3 -> 1/4.
+        assert r["per_threshold_persisted"][1]["estimate"] == pytest.approx(2 / 4)
+        assert r["per_threshold_persisted"][2]["estimate"] == pytest.approx(1 / 4)
+        assert r["per_threshold_persisted"][3]["estimate"] == pytest.approx(1 / 4)
         # Wilson CI attached.
         assert r["per_threshold"][1]["ci"][0] is not None
 
