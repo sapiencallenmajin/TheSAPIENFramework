@@ -23,6 +23,22 @@ from .extractor import (
     map_turns_to_events,
     parse_answer_token,
 )
+from .metrics import (
+    ArmPair,
+    SeverityOutcome,
+    delta_ir,
+    durable_persistence_rate,
+    exceedance_distribution,
+    induced_severity_distribution,
+    induction_rate,
+    induction_taken,
+    severity_weighted_convenience,
+    snap_back_lift,
+    snap_judge_dependency,
+    snapped_back,
+    snowball_index,
+    wilson_ci,
+)
 from .schema import (
     CANONICAL_PHASES,
     HARM_TIER_MAX,
@@ -51,4 +67,19 @@ __all__ = [
     "TokenResult",
     "Stance",
     "Event",
+    # metrics
+    "ArmPair",
+    "SeverityOutcome",
+    "wilson_ci",
+    "induction_taken",
+    "induction_rate",
+    "delta_ir",
+    "snapped_back",
+    "snap_back_lift",
+    "durable_persistence_rate",
+    "snowball_index",
+    "snap_judge_dependency",
+    "induced_severity_distribution",
+    "exceedance_distribution",
+    "severity_weighted_convenience",
 ]
