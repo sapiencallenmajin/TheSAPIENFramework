@@ -289,6 +289,9 @@ def publish(run_files, run_label, is_primary, publisher, owner_id, endpoint,
             f"scenarios: {len(results)}   payload: {size_bytes / 1024 / 1024:.2f} MB   "
             f"judge_model: {judge_model or '(auto)'}   judge_family: {resolved_family or '(auto)'}"
         )
+        # Surface the resolved owner so --dry-run can confirm attribution before
+        # any real POST (an unset/typo'd owner_id silently omits it otherwise).
+        console.print(f"owner_id: {owner_id or '(none — public board only)'}")
         if plan.needs_chunking:
             console.print(
                 f"plan: [bold]{plan.total_chunks} chunks[/bold] of "
