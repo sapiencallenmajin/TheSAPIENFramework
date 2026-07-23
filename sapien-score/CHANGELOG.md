@@ -32,13 +32,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `council_version` stamp bumped to `"1.1"` on every council result.
 
 ### Notes
-- **Spec-version lineage.** The last full *published* SAPIEN spec document is
-  v1.1 (CC BY 4.0). The methodology changes between the published spec and the
-  `framework_version: "1.5"` stamp emitted by scan output — namely council
-  scoring, the risk-impact matrix, and over-refusal detection — are recorded
-  in the `[0.2.0]` entry below. This CHANGELOG is the authoritative record of
-  the v1.2–v1.5 methodology delta until the next full spec document is
-  published; the `"1.5"` stamp in code is intentional and unchanged.
+- **Spec-version lineage.** The published SAPIEN spec is **v1.5** (the full
+  document — `the_sapien_framework_v1.5.md` — is published at
+  sapienframework.org/framework/specification/ and as a download; v1.1 is
+  retained as an archived, superseded release). The scan output stamps
+  `framework_version: "1.5"` to match. This CHANGELOG tracks the scoring-engine
+  changes shipped under that methodology (council scoring, the risk-impact
+  matrix, over-refusal detection). Note the three version lineages are
+  independent: the **spec** (v1.5), this **reference implementation**
+  (`sapien-score`, currently 0.2.0 — see below), and the **council scoring**
+  methodology (stamped `council_version`, currently 1.1).
 
 ## [0.2.0] - 2026-04-24
 
