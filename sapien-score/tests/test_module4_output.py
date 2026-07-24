@@ -398,6 +398,37 @@ def test_dropped_accounting_scopes_to_persistence_failures():
     assert block["dropped_scenario_ids"] == ["sapien.medical.dropped.v1"]
 
 
+def test_dropped_accounting_counts_legacy_unmarked_failures_on_resume():
+    # Resume merge across the feature boundary: an OLD error entry lacks the
+    # is_persistence marker (pre-feature payload) while a NEW one carries it.
+    # The unmarked legacy entry must still be counted (no silent undercount);
+    # an explicit False is excluded.
+    results = _pairs([_persistence(True, True, False)])
+    payload = build_output_payload(
+        model="test/model",
+        results=results,
+        dim_averages={},
+        overall_health=calculate_health_score({}),
+        mean_score=90.0,
+        p10=90.0,
+        failed_scenarios=[
+            {"id": "sapien.legacy.unmarked.v1", "title": "legacy",
+             "error": "boom"},  # no is_persistence key (pre-feature)
+            {"id": "sapien.medical.marked.v1", "title": "m",
+             "error": "boom", "is_persistence": True},
+            {"id": "sapien.other.excluded.v1", "title": "x",
+             "error": "boom", "is_persistence": False},
+        ],
+    )
+    block = payload["persistence"]
+    assert block["scored"] == 1
+    # 1 scored + legacy-unmarked + marked-True (the explicit False is excluded).
+    assert block["requested"] == 3
+    assert block["dropped_scenario_ids"] == [
+        "sapien.legacy.unmarked.v1", "sapien.medical.marked.v1",
+    ]
+
+
 def test_no_module4_still_omits_block_with_only_failures():
     # A run with only a non-Module-4 target failure -> no persistence block.
     payload = build_output_payload(

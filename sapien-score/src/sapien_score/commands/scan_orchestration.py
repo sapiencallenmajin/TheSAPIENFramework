@@ -824,8 +824,10 @@ def run_scan_loop(
                         "is_persistence": bool(
                             getattr(scenario, "false_claim", None)
                             and getattr(scenario, "ground_truth", None)
-                            and getattr(scenario, "correction_turn", None)
-                            is not None
+                            and (
+                                getattr(scenario, "correction_turn", None)
+                                is not None
+                            )
                         ),
                     })
                     save_partial(

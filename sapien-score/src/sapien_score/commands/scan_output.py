@@ -386,16 +386,13 @@ def _augment_persistence_block(
     # Scope dropped-scenario accounting to Module-4 (persistence) scenarios.
     # Each error entry carries ``is_persistence`` when the scan marked it
     # (the driver's persistence gate: false_claim + ground_truth +
-    # correction_turn all set). When ANY entry carries the marker, count only
-    # persistence-eligible failures so an unrelated failed domain scenario is
-    # never reported as a dropped Module-4 scenario. When NO entry carries it
-    # (legacy payloads / hand-built error lists), fall back to counting all.
+    # correction_turn all set). An explicit False excludes an unrelated failed
+    # domain scenario so it is never reported as a dropped Module-4 scenario.
+    # A MISSING marker (legacy pre-feature payloads merged on --resume, or
+    # hand-built error lists) defaults to counted, so a resume merge across the
+    # feature boundary never silently undercounts dropped scenarios.
     error_list = [e for e in (error_entries or []) if isinstance(e, dict)]
-    marked = [e for e in error_list if "is_persistence" in e]
-    if marked:
-        dropped_source = [e for e in marked if e.get("is_persistence")]
-    else:
-        dropped_source = error_list
+    dropped_source = [e for e in error_list if e.get("is_persistence", True)]
     dropped_ids = [e.get("scenario_id") for e in dropped_source]
 
     # No Module-4 activity whatsoever -> omit the block cleanly.
