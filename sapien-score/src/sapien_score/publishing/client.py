@@ -251,7 +251,10 @@ def build_publish_payload(
         payload["publisher"] = publisher
     # Associate the run with a user account so it appears in that user's
     # certification dashboard. The ingest endpoint stores runs.owner_id from
-    # this field; absent, the run is owner-less (public-board only).
+    # this field; absent, the run is owner-less (public-board only). Drop any
+    # owner_id inherited from output_data first, so ownership is assigned ONLY
+    # when the caller passes it explicitly — a run file can never self-assign.
+    payload.pop("owner_id", None)
     if owner_id is not None:
         payload["owner_id"] = owner_id
     return payload

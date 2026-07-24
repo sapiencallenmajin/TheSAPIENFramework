@@ -191,7 +191,13 @@ def publish(run_files, run_label, is_primary, publisher, owner_id, endpoint,
 
     console = Console()
     publisher = publisher or os.environ.get("SAPIEN_PUBLISHER")
-    owner_id = owner_id or os.environ.get("SAPIEN_INGEST_OWNER_ID")
+    # Resolve the env fallback ONLY when --owner-id was omitted (None). An
+    # explicit --owner-id "" must not silently reinterpret to SAPIEN_INGEST_OWNER_ID
+    # (that could assign the run to a different user than the caller intended).
+    if owner_id is None:
+        owner_id = os.environ.get("SAPIEN_INGEST_OWNER_ID") or None
+    if owner_id is not None and not owner_id.strip():
+        raise click.ClickException("--owner-id cannot be empty")
     url = endpoint or os.environ.get("SAPIEN_INGEST_URL", DEFAULT_INGEST_URL)
     fallback = FALLBACK_INGEST_URL if url == DEFAULT_INGEST_URL else None
 
