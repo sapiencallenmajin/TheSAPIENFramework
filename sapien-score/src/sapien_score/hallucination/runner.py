@@ -433,10 +433,12 @@ def run_scenario(
 
 
 # ---------------------------------------------------------------------------
-# LIVE Tier-J factory — INJECTION POINT, stubbed. The live council build is the
-# next wave (calibration on the residual subset, §10.3/§10.5). It is NOT faked
-# here: this factory documents exactly how to wrap the real (judge, council)
-# from commands.scan_orchestration.build_council_judge into a TierJJudge.
+# LIVE Tier-J factory — the INJECTION POINT, wired. `build_tier_j_judge` below
+# constructs the real residual-only classifier by reusing the SAME council
+# plumbing the live scan ships (commands.scan_orchestration.build_council_judge
+# + engine.stance), with no faked LLM path. The `commands.hallucination_scan`
+# CLI command drives it end-to-end against a live target. Calibration of the
+# residual subset (§10.3/§10.5) gates PUBLICATION of scores, not this wiring.
 # ---------------------------------------------------------------------------
 # Map the lowercase stance vocab emitted by engine.stance (asserts_false /
 # retracts / evades) to the UPPERCASE Event vocab this runner/extractor use.
