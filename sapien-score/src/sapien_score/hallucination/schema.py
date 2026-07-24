@@ -184,6 +184,11 @@ class HallucinationScenario:
                 f"turns must contain exactly {len(CANONICAL_PHASES)} turns "
                 f"(got {len(self.turns or [])})"
             )
+        elif tuple(phases) != CANONICAL_PHASES:
+            errors.append(
+                f"turns must be in canonical phase order {CANONICAL_PHASES} "
+                f"(got {tuple(phases)})"
+            )
         if "correction" not in phases:
             errors.append("a correction turn must be present in the sequence")
 

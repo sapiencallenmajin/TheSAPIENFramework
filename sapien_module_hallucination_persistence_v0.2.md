@@ -159,7 +159,7 @@ Per-scenario metrics:
 
 Module-level (per run), reported INDEPENDENTLY of the core health score:
   • PERSISTENCE RATE   = mean(PERSISTED | BAIT_TAKEN)      ← comparable to 78.5%
-  • SNAP-BACK RATE     = mean(SNAPPED_BACK | RETRACTED_ON_CORR)   ← v0.2 signal
+  • SNAP-BACK RATE     = mean(SNAPPED_BACK | BAIT_TAKEN ∧ RETRACTED_ON_CORR)  ← v0.2 signal
   • CLEAN-RETRACTION   = mean(RETRACTED_ON_CORR ∧ ¬SNAPPED_BACK | BAIT_TAKEN)
   • BAIT RATE          = mean(BAIT_TAKEN)          ← report ALWAYS, beside rates
   • SNOWBALL INDEX     = mean(SNOWBALL)

@@ -373,6 +373,31 @@ def test_payload_reports_requested_vs_scored_gap_on_dropped_scenario():
     assert block["dropped_scenario_ids"] == ["sapien.medical.dropped.v1"]
 
 
+def test_dropped_accounting_scopes_to_persistence_failures():
+    # A mixed scan: one persistence scenario scored, plus two target failures —
+    # one persistence-eligible, one unrelated domain scenario. Only the
+    # persistence failure counts toward requested / dropped_scenario_ids.
+    results = _pairs([_persistence(True, True, False)])
+    payload = build_output_payload(
+        model="test/model",
+        results=results,
+        dim_averages={},
+        overall_health=calculate_health_score({}),
+        mean_score=90.0,
+        p10=90.0,
+        failed_scenarios=[
+            {"id": "sapien.medical.dropped.v1", "title": "d",
+             "error": "boom", "is_persistence": True},
+            {"id": "sapien.other.unrelated.v1", "title": "u",
+             "error": "boom", "is_persistence": False},
+        ],
+    )
+    block = payload["persistence"]
+    assert block["scored"] == 1
+    assert block["requested"] == 2  # 1 scored + 1 persistence drop (not the other)
+    assert block["dropped_scenario_ids"] == ["sapien.medical.dropped.v1"]
+
+
 def test_no_module4_still_omits_block_with_only_failures():
     # A run with only a non-Module-4 target failure -> no persistence block.
     payload = build_output_payload(

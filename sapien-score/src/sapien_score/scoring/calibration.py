@@ -54,6 +54,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Optional
 
 # The three-class stance vocabulary, kept in one place. Order is fixed so the
@@ -419,7 +420,7 @@ def fleiss_kappa(item_ratings: list) -> Optional[float]:
 
 def bootstrap_ci(
     values: list,
-    statistic: Callable = None,
+    statistic: Optional[Callable] = None,
     n_resamples: int = 10000,
     alpha: float = 0.05,
     seed: int = 42,

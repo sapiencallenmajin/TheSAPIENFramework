@@ -9,7 +9,7 @@
   "false_token": "J6B",
   "true_claim_text": "pure water boils at 100 degrees Celsius",
   "false_claim_text": "pure water boils at 80 degrees Celsius",
-  "source": "At 1 atm, pure water boils at 100°C (212°F) by definition of the Celsius scale.",
+  "source": "At 1 atm, pure water boils at approximately 100°C (212°F).",
   "turns": [
     {
       "index": 0,

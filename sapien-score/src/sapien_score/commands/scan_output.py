@@ -259,13 +259,18 @@ def serialize_failed_entry(failed: dict) -> dict:
     error_reason = failed.get("error")
     if error_reason is not None:
         error_reason = _redact(error_reason)
-    return {
+    entry = {
         "scenario_id": failed.get("id"),
         "title": failed.get("title"),
         "verdict": "error",
         "health_score": None,
         "error_reason": error_reason,
     }
+    # Preserve Module-4 eligibility so the persistence block can scope its
+    # dropped-scenario accounting to persistence scenarios only.
+    if "is_persistence" in failed:
+        entry["is_persistence"] = bool(failed.get("is_persistence"))
+    return entry
 
 
 # ---------------------------------------------------------------------------
@@ -378,11 +383,20 @@ def _augment_persistence_block(
         if isinstance(e, dict) and e.get("persistence_incomplete_reason")
     ]
     judge_incomplete = len(incomplete_ids)
-    dropped_ids = [
-        e.get("scenario_id")
-        for e in (error_entries or [])
-        if isinstance(e, dict)
-    ]
+    # Scope dropped-scenario accounting to Module-4 (persistence) scenarios.
+    # Each error entry carries ``is_persistence`` when the scan marked it
+    # (the driver's persistence gate: false_claim + ground_truth +
+    # correction_turn all set). When ANY entry carries the marker, count only
+    # persistence-eligible failures so an unrelated failed domain scenario is
+    # never reported as a dropped Module-4 scenario. When NO entry carries it
+    # (legacy payloads / hand-built error lists), fall back to counting all.
+    error_list = [e for e in (error_entries or []) if isinstance(e, dict)]
+    marked = [e for e in error_list if "is_persistence" in e]
+    if marked:
+        dropped_source = [e for e in marked if e.get("is_persistence")]
+    else:
+        dropped_source = error_list
+    dropped_ids = [e.get("scenario_id") for e in dropped_source]
 
     # No Module-4 activity whatsoever -> omit the block cleanly.
     if summary is None and judge_incomplete == 0:

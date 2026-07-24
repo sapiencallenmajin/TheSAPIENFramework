@@ -86,5 +86,7 @@ sapien-score/fresh_*.json
 sapien-score/*.run.log
 sapien-score/spotcheck.txt
 sapien-score/*.code-workspace
+sapien-score/council_*.json
+sapien-score/traces/
 /repair_*.json
 /.playwright-mcp/

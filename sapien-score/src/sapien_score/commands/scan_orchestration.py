@@ -816,6 +816,17 @@ def run_scan_loop(
                         "id": scenario.id,
                         "title": scenario.title,
                         "error": safe_error[:200],
+                        # Module-4 eligibility (mirrors the driver's persistence
+                        # gate: all three fields set). Lets the output layer
+                        # scope dropped-scenario accounting to persistence
+                        # scenarios so an unrelated failed domain scenario is not
+                        # counted as a dropped Module-4 scenario.
+                        "is_persistence": bool(
+                            getattr(scenario, "false_claim", None)
+                            and getattr(scenario, "ground_truth", None)
+                            and getattr(scenario, "correction_turn", None)
+                            is not None
+                        ),
                     })
                     save_partial(
                         results, failed_scenarios, engine.partial_path,

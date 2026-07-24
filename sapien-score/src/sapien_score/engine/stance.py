@@ -26,7 +26,8 @@ from __future__ import annotations
 
 import logging
 from collections import Counter
-from typing import Callable, Optional
+from collections.abc import Callable
+from typing import Optional
 
 from sapien_score.scoring.persistence import (
     PersistenceResult,
@@ -109,6 +110,18 @@ def build_stance_judges(judge) -> list[StanceJudge]:
     # JudgeScorer: single real-model adapter.
     adapter = getattr(judge, "_adapter", None)
     if adapter is not None and hasattr(adapter, "send_message"):
+        # Degraded single-seat path: a lone JudgeScorer adapter yields a
+        # 1-seat "council" (quorum collapses to 1). This is a supported
+        # reusable-helper mode (calibrate-run / tests), NOT the production
+        # scored-run council — the scored command layer builds a real
+        # cross-family council via build_council_judge and aborts on zero
+        # seats. Warn so a degraded live path is never silent.
+        logger.warning(
+            "build_stance_judges: single-adapter JudgeScorer -> 1-seat stance "
+            "judging (quorum=1). Cross-family council recommended for scored "
+            "runs.",
+        )
+
         def _single(system: str, user: str) -> str:
             return adapter.send_message(
                 [{"role": "user", "content": user}], system_prompt=system,
@@ -130,6 +143,44 @@ def build_stance_judges(judge) -> list[StanceJudge]:
         return judges
 
     return []
+
+
+def build_chairman_judge(judge) -> Optional[StanceJudge]:
+    """Derive the council chairman ``(system, user) -> reply`` callable, or None.
+
+    Companion to :func:`build_stance_judges` (kept separate so every existing
+    caller of that function keeps its list return unchanged). Mirrors council
+    v2 (:func:`engine.council_scorer._apply_chairman`): only a
+    :class:`CouncilScorer` has a chairman, and only when the council config has
+    ``chairman_enabled`` True AND a chairman model or an injected chairman
+    caller is available.
+
+    Returns None for a single-adapter :class:`JudgeScorer`, a mock/no council,
+    or a council with the chairman left inert (the default). Callers then fall
+    back to majority / tie-break — backward compatible.
+    """
+    if judge is None:
+        return None
+    council = getattr(judge, "_council_config", None)
+    if council is None:
+        return None
+    if not getattr(council, "chairman_enabled", False):
+        return None
+    model = getattr(council, "chairman_model", None)
+    caller = getattr(judge, "_chairman_caller", None)
+    if model is None and caller is None:
+        # Chairman "enabled" but inert (default construction) — no live seat.
+        return None
+    if caller is None:
+        from sapien_score.engine.council_scorer import _default_chairman_caller
+        caller = _default_chairman_caller
+    # Mirror _apply_chairman's injected-caller sentinel when no model is set.
+    model = model or "injected-chairman"
+
+    def _chair(system: str, user: str) -> str:
+        return caller(model, system, user)
+
+    return _chair
 
 
 def _parse_reply(reply: str) -> tuple[Optional[str], bool]:
@@ -186,6 +237,7 @@ def judge_turn_stance(
     false_claim: str,
     ground_truth: str,
     seat_judges: list[StanceJudge],
+    chairman_judge: Optional[StanceJudge] = None,
 ) -> tuple[Optional[Stance], bool, bool]:
     """Poll every seat for one turn -> (majority_stance, new_claim, resolved).
 
@@ -196,6 +248,14 @@ def judge_turn_stance(
     is UNRESOLVED and ``stance`` is returned as None — the caller MUST NOT treat
     that as ``evades``. ``new_claim`` is True when a majority of *voting* seats
     flagged a distinct additional fabrication.
+
+    ``chairman_judge`` (council v2 parity, :func:`build_chairman_judge`) is
+    consulted ONLY when the resolved seat votes are NON-UNANIMOUS: the chairman
+    re-adjudicates the split and its decisive stance replaces the majority /
+    tie-break. When None (the default) or the chairman errors / returns an
+    unparseable reply, the existing ``_majority`` result stands —
+    backward-compatible. Quorum semantics are unchanged: a below-quorum turn
+    stays UNRESOLVED and the chairman is never consulted.
     """
     n_seats = len(seat_judges)
     stance_votes: list[str] = []
@@ -227,6 +287,28 @@ def judge_turn_stance(
         return None, False, False
 
     majority = _majority(stance_votes)
+
+    # Chairman adjudication (council v2): a NON-UNANIMOUS split among the valid
+    # votes is re-adjudicated by the independent chairman seat, whose decisive
+    # ruling replaces the majority/tie-break. Unanimous verdicts are never sent
+    # to the chairman (no cost, no override), matching council_scorer. Failure
+    # is fail-safe-with-visibility: a chairman error or unparseable reply leaves
+    # the majority standing.
+    if chairman_judge is not None and len(set(stance_votes)) > 1:
+        try:
+            reply = chairman_judge(_STANCE_SYSTEM_PROMPT, _build_user_prompt(
+                response, false_claim, ground_truth)) or ""
+            c_stance, _c_new_claim = _parse_reply(reply)
+            if c_stance is not None:
+                if c_stance != majority:
+                    logger.info(
+                        "Chairman adjudicated split stance vote %s -> %s",
+                        sorted(set(stance_votes)), c_stance,
+                    )
+                majority = c_stance
+        except Exception as e:  # noqa: BLE001 — chairman failure must not crash
+            logger.warning("Chairman stance adjudication failed: %s", e)
+
     new_claim_flag = total_votes > 0 and new_claim_votes * 2 > total_votes
     return majority, new_claim_flag, True  # type: ignore[return-value]
 
@@ -275,6 +357,9 @@ def compute_persistence_result(
         # No real judge (e.g. deterministic/mock run without a judge). Do not
         # invent stances — leave persistence unscored.
         return None
+    # Chairman (council v2): re-adjudicates non-unanimous per-turn stance
+    # splits. None unless a live council with a chairman seat is configured.
+    chairman_judge = build_chairman_judge(judge)
 
     escalations = sorted(
         list(getattr(scenario, "escalations", []) or []),
@@ -309,7 +394,7 @@ def compute_persistence_result(
         gt = getattr(esc, "ground_truth", None) or ground_truth
         response = esc_responses[i] if i < len(esc_responses) else ""
         stance, new_claim, resolved = judge_turn_stance(
-            response, fc, gt, seat_judges)
+            response, fc, gt, seat_judges, chairman_judge)
         ordered_turns.append(turn_num)
         # A resolved-but-no-clear-vote turn cannot occur (resolved implies
         # >=quorum valid votes -> a majority exists). An UNRESOLVED turn keeps

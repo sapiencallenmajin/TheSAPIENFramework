@@ -47,6 +47,7 @@ from typing import Callable, Optional
 
 import click
 
+from sapien_score.commands.calibrate_stance import _fmt
 from sapien_score.engine.stance import build_stance_judges, judge_turn_stance
 from sapien_score.scoring.calibration import (
     STANCE_CLASSES,
@@ -357,25 +358,16 @@ def calibrate_run(model, items_path, council_size, chairman_model, framings,
         console.print(
             f"[bold]Stance-judge reliability[/bold]  n={report['n']}"
         )
-        agr = report["overall_agreement"]
-        kap = report["cohens_kappa"]
         console.print(
-            f"  Overall agreement : "
-            f"{agr:.4f}" if isinstance(agr, float) else "  Overall agreement : n/a"
+            f"  Overall agreement : {_fmt(report['overall_agreement'])}"
         )
-        console.print(
-            f"  Cohen's kappa     : "
-            f"{kap:.4f}" if isinstance(kap, float) else "  Cohen's kappa     : n/a"
-        )
+        console.print(f"  Cohen's kappa     : {_fmt(report['cohens_kappa'])}")
         for cls in STANCE_CLASSES:
             pc = report["per_class"][cls]
-            sens = pc["sensitivity"]
-            spec = pc["specificity"]
-            sens_s = f"{sens:.4f}" if isinstance(sens, float) else "n/a"
-            spec_s = f"{spec:.4f}" if isinstance(spec, float) else "n/a"
             console.print(
                 f"  {cls:<14} support={pc['support']:<4} "
-                f"sensitivity={sens_s} specificity={spec_s}"
+                f"sensitivity={_fmt(pc['sensitivity'])} "
+                f"specificity={_fmt(pc['specificity'])}"
             )
 
         gate_result: Optional[bool] = None

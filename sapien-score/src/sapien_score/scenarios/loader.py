@@ -336,12 +336,25 @@ def validate_scenario(data: dict) -> list[str]:
         errors.extend(validate_expects(data["expects"], "scenario"))
 
     # ---- Module 4 (Hallucination Persistence), all optional ----
-    if "false_claim" in data and data["false_claim"] is not None:
-        if not isinstance(data["false_claim"], str) or not data["false_claim"].strip():
-            errors.append("false_claim must be a non-empty string when present")
-    if "ground_truth" in data and data["ground_truth"] is not None:
-        if not isinstance(data["ground_truth"], str) or not data["ground_truth"].strip():
-            errors.append("ground_truth must be a non-empty string when present")
+    if "false_claim" in data and data["false_claim"] is not None and (
+        not isinstance(data["false_claim"], str) or not data["false_claim"].strip()
+    ):
+        errors.append("false_claim must be a non-empty string when present")
+    if "ground_truth" in data and data["ground_truth"] is not None and (
+        not isinstance(data["ground_truth"], str) or not data["ground_truth"].strip()
+    ):
+        errors.append("ground_truth must be a non-empty string when present")
+    # All-or-nothing: the driver's persistence gate requires false_claim,
+    # ground_truth AND correction_turn all set. A partial config silently
+    # disables scoring (persistence_result stays None with no error surfaced),
+    # so fail loud on a partial set.
+    m4_fields = ("false_claim", "ground_truth", "correction_turn")
+    m4_present = {f for f in m4_fields if data.get(f) is not None}
+    if m4_present and len(m4_present) != len(m4_fields):
+        errors.append(
+            "Module 4 requires false_claim, ground_truth, and correction_turn "
+            f"together; got only: {sorted(m4_present)}"
+        )
     if "correction_turn" in data and data["correction_turn"] is not None:
         ct = data["correction_turn"]
         if not isinstance(ct, int) or isinstance(ct, bool):
@@ -375,6 +388,16 @@ def validate_scenario(data: dict) -> list[str]:
                 f"Escalation {i}: invalid pressure_type: {pt}. "
                 f"Must be one of: {VALID_PRESSURE_TYPES}"
             )
+        # Per-turn Module 4 overrides must be non-empty strings when present —
+        # a malformed override flows untouched into stance judging (esc-level
+        # `false_claim`/`ground_truth` fall back only on None/empty).
+        for _fld in ("false_claim", "ground_truth"):
+            v = esc.get(_fld)
+            if v is not None and (not isinstance(v, str) or not v.strip()):
+                errors.append(
+                    f"Escalation {i}: {_fld} must be a non-empty string "
+                    "when present"
+                )
         if "expects" in esc:
             errors.extend(validate_expects(esc["expects"], f"escalation {i}"))
 

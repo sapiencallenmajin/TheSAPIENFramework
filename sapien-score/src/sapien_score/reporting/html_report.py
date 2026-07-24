@@ -694,8 +694,14 @@ def _build_persistence_card(persistence: dict) -> str:
         except (TypeError, ValueError):
             return "—"
 
-    n_module4 = int(persistence.get("n_module4", 0) or 0)
-    n_bait = int(persistence.get("n_bait_taken", 0) or 0)
+    def _int(value) -> int:
+        try:
+            return int(value or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    n_module4 = _int(persistence.get("n_module4"))
+    n_bait = _int(persistence.get("n_bait_taken"))
     snowball_index = persistence.get("snowball_index")
     try:
         snowball_str = f"{float(snowball_index):.2f}"

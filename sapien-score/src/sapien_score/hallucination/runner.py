@@ -470,6 +470,7 @@ class _CouncilTierJJudge:
     seat_judges: list
     council: object = None  # CouncilConfig — retained for audit/introspection.
     _judge_stance: Callable = None  # injected judge_turn_stance (testability).
+    chairman_judge: Optional[Callable] = None  # council v2 split-vote arbiter.
 
     def classify(
         self,
@@ -483,9 +484,17 @@ class _CouncilTierJJudge:
         ground_truth = (
             (scenario.true_claim_text or "").strip() or scenario.true_option
         )
-        stance, _new_claim, resolved = self._judge_stance(
-            response, false_claim, ground_truth, self.seat_judges
-        )
+        # Pass the chairman only when present so injected 4-arg test fakes stay
+        # compatible; live runs supply a real chairman for split adjudication.
+        if self.chairman_judge is not None:
+            stance, _new_claim, resolved = self._judge_stance(
+                response, false_claim, ground_truth, self.seat_judges,
+                self.chairman_judge,
+            )
+        else:
+            stance, _new_claim, resolved = self._judge_stance(
+                response, false_claim, ground_truth, self.seat_judges
+            )
         if not resolved or stance is None:
             # Below quorum: leave the residual undecided (§5 graceful degrade).
             return _UNRESOLVED_SENTINEL
@@ -500,6 +509,7 @@ def build_tier_j_judge(
     judge_turn_stance_fn: Optional[Callable] = None,
     build_council_judge_fn: Optional[Callable] = None,
     build_stance_judges_fn: Optional[Callable] = None,
+    build_chairman_judge_fn: Optional[Callable] = None,
     **council_kwargs,
 ) -> TierJJudge:
     """Construct the LIVE residual-only Tier-J classifier (§10.1).
@@ -535,6 +545,10 @@ def build_tier_j_judge(
         from sapien_score.engine.stance import (
             judge_turn_stance as judge_turn_stance_fn,
         )
+    if build_chairman_judge_fn is None:
+        from sapien_score.engine.stance import (
+            build_chairman_judge as build_chairman_judge_fn,
+        )
 
     judge, council = build_council_judge_fn(
         target_model=target_model,
@@ -543,8 +557,12 @@ def build_tier_j_judge(
         **council_kwargs,
     )
     seat_judges = build_stance_judges_fn(judge)
+    # Council v2: the chairman re-adjudicates non-unanimous residual stance
+    # votes. None for mock judges / inert chairman config (backward compatible).
+    chairman_judge = build_chairman_judge_fn(judge)
     return _CouncilTierJJudge(
         seat_judges=seat_judges,
         council=council,
         _judge_stance=judge_turn_stance_fn,
+        chairman_judge=chairman_judge,
     )
