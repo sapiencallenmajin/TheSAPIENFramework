@@ -67,3 +67,26 @@ files.zip
 /*.partial.json
 /*_resume.log
 /*.log
+
+# --- Module 4 (hallucination) calibration + run artifacts — never commit ---
+# Calibration reports/labels, pilot/snapback/persistence run outputs, and their
+# run logs are reproducible run-artifacts (may echo keys in tracebacks). Source
+# lives under sapien-score/src/ and tests/; these are outputs, not source.
+sapien-score/calib_*.json
+sapien-score/calib_*.run.log
+sapien-score/*_labels*.json
+sapien-score/codex_labels.json
+sapien-score/deepseek_labels.json
+sapien-score/pilot_*.json
+sapien-score/pilot2_*.json
+sapien-score/pilot*_*.run.log
+sapien-score/snapback_*.json
+sapien-score/persistence_test_*.json
+sapien-score/fresh_*.json
+sapien-score/*.run.log
+sapien-score/spotcheck.txt
+sapien-score/*.code-workspace
+sapien-score/council_*.json
+sapien-score/traces/
+/repair_*.json
+/.playwright-mcp/

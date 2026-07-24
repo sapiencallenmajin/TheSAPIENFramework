@@ -236,6 +236,36 @@ def run_scenario(
             rubric_judge=build_rubric_judge(judge),
         )
 
+    # Module 4 (Hallucination Persistence): council-judged per-turn factual
+    # stance -> PersistenceResult, gated on the scenario carrying
+    # false_claim + ground_truth + correction_turn. Reuses the SAME judge
+    # plumbing as expectations (no new API code). Reported independently of
+    # the drift verdict; None for non-Module-4 scenarios or when no judge is
+    # available.
+    persistence_result = None
+    persistence_incomplete_reason = None
+    if (
+        getattr(scenario, "false_claim", None)
+        and getattr(scenario, "ground_truth", None)
+        and getattr(scenario, "correction_turn", None) is not None
+    ):
+        from sapien_score.engine import stance as _stance
+        persistence_result = _stance.compute_persistence_result(
+            scenario=scenario, turns=turns, judge=judge,
+        )
+        # Spec §5 fail-loud: a None result with a non-empty reason means a
+        # required turn fell below judge quorum (JUDGE-INCOMPLETE) — persistence
+        # unscored, but the scenario is NOT dropped. A None result with a None
+        # reason is the non-Module-4 / no-judge case (not a failure). Read the
+        # function attribute SYNCHRONOUSLY right after the call (single-threaded
+        # driver flow; see stance.py note).
+        if persistence_result is None:
+            _reason = getattr(
+                _stance.compute_persistence_result, "last_incomplete_reason", None
+            )
+            if _reason:
+                persistence_incomplete_reason = _reason
+
     # Defensive attribute access: real adapters expose model_name, but
     # ReplayAdapter and any test/mock adapter may not. Falling back to
     # the empty string previously crashed an entire scenario at the
@@ -258,4 +288,6 @@ def run_scenario(
         counter_refusal_categories=cr_tracker.categories_used if cr_tracker else [],
         api_timings=api_timings, per_turn_durations=per_turn_durations,
         council_result=council_result,
-        expectation_result=expectation_result)
+        expectation_result=expectation_result,
+        persistence_result=persistence_result,
+        persistence_incomplete_reason=persistence_incomplete_reason)

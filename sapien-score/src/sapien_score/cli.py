@@ -50,6 +50,9 @@ from .commands.diff import diff
 from .commands.drift_tax import drift_tax
 from .commands.batch import batch
 from .commands.calibrate import calibrate
+from .commands.calibrate_stance import calibrate_stance
+from .commands.calibrate_run import calibrate_run
+from .commands.hallucination_scan import hallucination_scan
 from .commands.list_info import info, list_scenarios, packs
 from .commands.memory_delta import memory_delta
 from .commands.preflight import preflight
@@ -98,6 +101,9 @@ main.add_command(memory_delta)
 main.add_command(preflight)
 main.add_command(publish)
 main.add_command(calibrate)
+main.add_command(calibrate_stance)
+main.add_command(calibrate_run)
+main.add_command(hallucination_scan)
 main.add_command(list_scenarios)
 main.add_command(packs)
 main.add_command(info)

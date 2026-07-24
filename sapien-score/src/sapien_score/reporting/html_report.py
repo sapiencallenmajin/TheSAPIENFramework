@@ -427,6 +427,13 @@ def generate_html_report(
     if risk_summary:
         parts.append(_build_risk_summary_card(risk_summary))
 
+    # ---- Module 4 persistence summary (when Module-4 scenarios ran) ----
+    persistence_summary = (
+        (scan_payload or {}).get("persistence") if scan_payload else None
+    )
+    if persistence_summary:
+        parts.append(_build_persistence_card(persistence_summary))
+
     # ---- Cost summary (if usage data is present) ----
     total_tokens = sum(getattr(r, "total_tokens", 0) for r in results)
     if total_tokens > 0:
@@ -667,6 +674,87 @@ def _build_risk_summary_card(risk_summary: dict) -> str:
   {detail_line}
   <div style="display:flex; gap:16px; flex-wrap:wrap;">{dist_cells}</div>
   {over_refusal_block}
+</div>
+"""
+
+
+def _build_persistence_card(persistence: dict) -> str:
+    """Module 4 (Hallucination Persistence) run-level summary card.
+
+    Reported INDEPENDENTLY of the health score — surfaces the module block
+    (persistence/retraction/bait rates + snowball index) following the
+    risk-summary card precedent. Bait-conditioned rates render as "—" when
+    no scenario took the bait.
+    """
+    def _pct(value) -> str:
+        if value is None:
+            return "—"
+        try:
+            return f"{float(value):.1%}"
+        except (TypeError, ValueError):
+            return "—"
+
+    def _int(value) -> int:
+        try:
+            return int(value or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    n_module4 = _int(persistence.get("n_module4"))
+    n_bait = _int(persistence.get("n_bait_taken"))
+    snowball_index = persistence.get("snowball_index")
+    try:
+        snowball_str = f"{float(snowball_index):.2f}"
+    except (TypeError, ValueError):
+        snowball_str = "—"
+
+    tiles = [
+        ("Persistence rate", _pct(persistence.get("persistence_rate")), "of baited"),
+        ("Snap-back rate", _pct(persistence.get("snap_back_rate")), "of retracted"),
+        ("Clean-retraction", _pct(persistence.get("clean_retraction_rate")), "of baited"),
+        # Bait rate is ALWAYS surfaced (spec §2 capability confound) — a
+        # 0-bait model reads "not measurable", never "safe".
+        ("Bait rate", _pct(persistence.get("bait_rate")), "of Module-4"),
+        ("Snowball index", snowball_str, "avg / scenario"),
+    ]
+    tile_cells = ""
+    for label, value, sub in tiles:
+        tile_cells += (
+            f'<div style="display:flex; flex-direction:column; align-items:center; '
+            f'min-width:110px;">'
+            f'<span class="meta" style="font-size:0.8rem;">{_esc(label)}</span>'
+            f'<span style="font-size:1.4rem; font-weight:600;">{_esc(value)}</span>'
+            f'<span class="meta" style="font-size:0.72rem; color:#6B7280;">{_esc(sub)}</span>'
+            f'</div>'
+        )
+
+    # Spec §5 fail-loud line: judge-incomplete + requested-vs-scored accounting.
+    judge_incomplete = int(persistence.get("judge_incomplete", 0) or 0)
+    requested = persistence.get("requested")
+    scored = persistence.get("scored")
+    accounting_bits = []
+    if scored is not None and requested is not None:
+        accounting_bits.append(f"{int(scored)} scored / {int(requested)} requested")
+    if judge_incomplete:
+        accounting_bits.append(
+            f"{judge_incomplete} judge-incomplete (below quorum, unscored)"
+        )
+    dropped = persistence.get("dropped_scenario_ids") or []
+    if dropped:
+        accounting_bits.append(f"{len(dropped)} dropped")
+    accounting_line = (
+        f'<p class="meta" style="font-size:0.8rem; color:#92400E;">'
+        f'{_esc(" · ".join(accounting_bits))}</p>'
+        if accounting_bits
+        else ""
+    )
+
+    return f"""<h2>Hallucination Persistence (Module 4)</h2>
+<div class="summary-card" style="flex-direction:column; align-items:flex-start; gap:12px;">
+  <p class="meta">{n_module4} Module-4 scenario{"s" if n_module4 != 1 else ""} ·
+     {n_bait} took the bait</p>
+  <div style="display:flex; gap:24px; flex-wrap:wrap;">{tile_cells}</div>
+  {accounting_line}
 </div>
 """
 

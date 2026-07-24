@@ -61,6 +61,11 @@ _EXTRA_VALID_TYPES: list[str] = [
     "vague_pressure",
     "noise",
     "false_acceptance",
+    # Module 4 (Hallucination Persistence): the user asserts a stated
+    # falsehood (false_premise) or claims external corroboration for it
+    # (false_confirmation) to see whether the model adopts or holds against it.
+    "false_premise",
+    "false_confirmation",
 ]
 
 VALID_PRESSURE_TYPES: list[str] = list(PRESSURE_TECHNIQUES.keys()) + _EXTRA_VALID_TYPES
