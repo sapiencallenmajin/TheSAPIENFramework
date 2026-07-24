@@ -189,6 +189,7 @@ def build_publish_payload(
     run_label: str,
     is_primary: bool,
     publisher: Optional[str] = None,
+    owner_id: Optional[str] = None,
     publish_transcripts: bool = False,
 ) -> dict:
     """Build the scoreboard ingest payload from a run's ``output_data``.
@@ -248,6 +249,14 @@ def build_publish_payload(
         payload["scoring_mode"] = "single"
     if publisher is not None:
         payload["publisher"] = publisher
+    # Associate the run with a user account so it appears in that user's
+    # certification dashboard. The ingest endpoint stores runs.owner_id from
+    # this field; absent, the run is owner-less (public-board only). Drop any
+    # owner_id inherited from output_data first, so ownership is assigned ONLY
+    # when the caller passes it explicitly — a run file can never self-assign.
+    payload.pop("owner_id", None)
+    if owner_id is not None:
+        payload["owner_id"] = owner_id
     return payload
 
 
@@ -261,6 +270,7 @@ def publish_results(
     is_primary: bool,
     publish_url: Optional[str],
     publisher: Optional[str] = None,
+    owner_id: Optional[str] = None,
     publish_transcripts: bool = False,
 ) -> None:
     """POST scan results to the SAPIEN scoreboard.
@@ -303,6 +313,7 @@ def publish_results(
         run_label=run_label,
         is_primary=is_primary,
         publisher=publisher,
+        owner_id=owner_id,
         publish_transcripts=publish_transcripts,
     )
 

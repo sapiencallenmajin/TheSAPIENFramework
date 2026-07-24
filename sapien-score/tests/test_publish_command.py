@@ -216,6 +216,42 @@ class TestCouncilPayload:
 
 
 # --------------------------------------------------------------------------
+# owner_id — ownership is assigned ONLY when explicitly passed
+# --------------------------------------------------------------------------
+
+class TestOwnerId:
+    def test_owner_id_set_when_provided(self):
+        payload = build_publish_payload(
+            output_data=council_run(6), judge_model=None, judge_family=None,
+            run_label="L", is_primary=False, owner_id="user-123")
+        assert payload["owner_id"] == "user-123"
+
+    def test_owner_id_absent_when_omitted(self):
+        payload = build_publish_payload(
+            output_data=council_run(6), judge_model=None, judge_family=None,
+            run_label="L", is_primary=False)
+        assert "owner_id" not in payload
+
+    def test_inherited_owner_id_dropped_when_omitted(self):
+        # A run file that carries its own owner_id must NOT self-assign to a
+        # dashboard when the caller did not pass --owner-id.
+        run = council_run(6)
+        run["owner_id"] = "sneaky-preexisting"
+        payload = build_publish_payload(
+            output_data=run, judge_model=None, judge_family=None,
+            run_label="L", is_primary=False)
+        assert "owner_id" not in payload
+
+    def test_explicit_owner_id_overrides_inherited(self):
+        run = council_run(6)
+        run["owner_id"] = "sneaky-preexisting"
+        payload = build_publish_payload(
+            output_data=run, judge_model=None, judge_family=None,
+            run_label="L", is_primary=False, owner_id="real-owner")
+        assert payload["owner_id"] == "real-owner"
+
+
+# --------------------------------------------------------------------------
 # CLI: dry-run, auth, partial, backfill, chunked publish, multi-file
 # --------------------------------------------------------------------------
 

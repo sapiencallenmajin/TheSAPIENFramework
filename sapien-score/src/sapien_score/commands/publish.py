@@ -135,6 +135,10 @@ def _check_partial(output_data):
               help="Mark this run as the primary/official run for the model.")
 @click.option("--publisher", "publisher", default=None,
               help="Publisher name (defaults to SAPIEN_PUBLISHER env var).")
+@click.option("--owner-id", "owner_id", default=None,
+              help="User account id (Supabase auth uid) to own this run, so it "
+                   "appears in that user's certification dashboard. Defaults to "
+                   "the SAPIEN_INGEST_OWNER_ID env var.")
 @click.option("--endpoint", "endpoint", default=None,
               help="Ingest endpoint URL (default: production ingest URL).")
 @click.option("--judge-model", "judge_model", default=None,
@@ -159,9 +163,9 @@ def _check_partial(output_data):
 @click.option("--dry-run", "dry_run", is_flag=True, default=False,
               help="Print the chunk plan, payload summary and backfill actions. "
                    "Makes ZERO HTTP calls.")
-def publish(run_files, run_label, is_primary, publisher, endpoint, judge_model,
-            judge_family, include_transcripts, chunk_size, allow_partial,
-            dry_run):
+def publish(run_files, run_label, is_primary, publisher, owner_id, endpoint,
+            judge_model, judge_family, include_transcripts, chunk_size,
+            allow_partial, dry_run):
     """Publish one or more COMPLETED run JSON files to the SAPIEN scoreboard.
 
     Council-aware (never mislabels council runs 'single'), auto-backfills
@@ -187,6 +191,13 @@ def publish(run_files, run_label, is_primary, publisher, endpoint, judge_model,
 
     console = Console()
     publisher = publisher or os.environ.get("SAPIEN_PUBLISHER")
+    # Resolve the env fallback ONLY when --owner-id was omitted (None). An
+    # explicit --owner-id "" must not silently reinterpret to SAPIEN_INGEST_OWNER_ID
+    # (that could assign the run to a different user than the caller intended).
+    if owner_id is None:
+        owner_id = os.environ.get("SAPIEN_INGEST_OWNER_ID") or None
+    if owner_id is not None and not owner_id.strip():
+        raise click.ClickException("--owner-id cannot be empty")
     url = endpoint or os.environ.get("SAPIEN_INGEST_URL", DEFAULT_INGEST_URL)
     fallback = FALLBACK_INGEST_URL if url == DEFAULT_INGEST_URL else None
 
@@ -264,6 +275,7 @@ def publish(run_files, run_label, is_primary, publisher, endpoint, judge_model,
             run_label=run_label,
             is_primary=is_primary,
             publisher=publisher,
+            owner_id=owner_id,
             publish_transcripts=include_transcripts,
         )
 
@@ -283,6 +295,9 @@ def publish(run_files, run_label, is_primary, publisher, endpoint, judge_model,
             f"scenarios: {len(results)}   payload: {size_bytes / 1024 / 1024:.2f} MB   "
             f"judge_model: {judge_model or '(auto)'}   judge_family: {resolved_family or '(auto)'}"
         )
+        # Surface the resolved owner so --dry-run can confirm attribution before
+        # any real POST (an unset/typo'd owner_id silently omits it otherwise).
+        console.print(f"owner_id: {owner_id or '(none — public board only)'}")
         if plan.needs_chunking:
             console.print(
                 f"plan: [bold]{plan.total_chunks} chunks[/bold] of "
