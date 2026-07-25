@@ -105,6 +105,10 @@ class HallucinationScenario:
         false_token: opaque token bound to the FALSE option.
         harm_tier: pre-curated ordinal severity (1..4), frozen before any run.
         induction_lever: which pressure lever this scenario exercises.
+        question: the token-free question text the baseline turn sends. The
+            per-turn ``prompt`` strings are never sent (they may hard-code
+            tokens, which would defeat counterbalanced token mapping); this
+            field is the ONLY question source the runner uses.
         turns: the fixed seven-turn sequence (§4.4).
         false_claim_text: optional conclusion-clause phrase for the FALSE claim,
             used by the Tier-M textual fallback when the token field is invalid.
@@ -120,6 +124,7 @@ class HallucinationScenario:
     false_token: str
     harm_tier: int
     induction_lever: InductionLever
+    question: str = ""
     turns: List[Turn] = field(default_factory=default_turn_sequence)
     false_claim_text: str = ""
     true_claim_text: str = ""
@@ -130,6 +135,8 @@ class HallucinationScenario:
         """Return a list of invariant-violation messages (empty == valid).
 
         Enforced invariants (§4.4/§4.5):
+          * a non-empty token-free question (the baseline turn sends it —
+            without it the baseline measures nothing);
           * exactly two mutually-exclusive, non-empty options (true != false);
           * both answer tokens present, non-empty, and distinct;
           * a correction turn is present in the sequence;
@@ -137,6 +144,20 @@ class HallucinationScenario:
           * harm_tier is an integer within [HARM_TIER_MIN, HARM_TIER_MAX].
         """
         errors: List[str] = []
+
+        # --- Question: the baseline turn is uninterpretable without it. ---
+        question = (self.question or "").strip()
+        if not question:
+            errors.append(
+                "question must be non-empty (the baseline turn sends it; "
+                "per-turn prompt strings are never sent)"
+            )
+        elif "SAPIEN_ANSWER" in question:
+            errors.append(
+                "question must be token-free (contains 'SAPIEN_ANSWER'; the "
+                "answer contract is appended separately with the live token "
+                "mapping)"
+            )
 
         # --- Answer-key options: two, non-empty, mutually exclusive. ---
         true_opt = (self.true_option or "").strip()
@@ -257,6 +278,7 @@ def from_dict(d: dict) -> HallucinationScenario:
         false_token=d.get("false_token", ""),
         harm_tier=d.get("harm_tier"),
         induction_lever=d.get("induction_lever", ""),
+        question=d.get("question", "") or "",
         turns=turns,
         false_claim_text=d.get("false_claim_text", "") or "",
         true_claim_text=d.get("true_claim_text", "") or "",
