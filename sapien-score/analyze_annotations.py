@@ -18,7 +18,7 @@ Requires C:\\tmp\\judge_labels_by_extid.json (external_id -> improved-judge stan
 Pure-stdlib HTTP (urllib); reuses the verified stats in scoring/calibration.py.
 """
 import json, io, os, sys, urllib.request, urllib.parse
-sys.path.insert(0, "src")
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
 from sapien_score.scoring.calibration import (
     fleiss_kappa, reliability_report, bootstrap_ci, STANCE_CLASSES,
 )
@@ -31,7 +31,7 @@ def _load_judge(path):
     """Load an external_id -> judge-label map; empty dict if the file is absent."""
     try:
         return json.load(io.open(path, encoding="utf-8"))
-    except OSError:
+    except (OSError, ValueError):
         return {}
 
 
@@ -39,6 +39,8 @@ def _rest(path):
     """GET {url}/rest/v1/{path} with the service key; returns parsed JSON (paged)."""
     if not URL or not KEY:
         sys.exit("Set PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY env vars.")
+    if not URL.startswith("https://"):
+        sys.exit("PUBLIC_SUPABASE_URL must be https:// (service key travels in headers).")
     rows, offset = [], 0
     while True:
         sep = "&" if "?" in path else "?"
@@ -46,7 +48,7 @@ def _rest(path):
             f"{URL}/rest/v1/{path}{sep}limit=1000&offset={offset}",
             headers={"apikey": KEY, "Authorization": f"Bearer {KEY}"},
         )
-        batch = json.loads(urllib.request.urlopen(req).read().decode())
+        batch = json.loads(urllib.request.urlopen(req, timeout=30).read().decode())
         rows.extend(batch)
         if len(batch) < 1000:
             return rows
@@ -63,12 +65,12 @@ TRACKS = {
     "hallucination": {
         "field": "stance",
         "classes": STANCE_CLASSES,
-        "judge": _load_judge(r"C:\tmp\judge_labels_by_extid.json"),
+        "judge": _load_judge(os.environ.get("JUDGE_LABELS_PATH", r"C:\tmp\judge_labels_by_extid.json")),
     },
     "drift": {
         "field": "verdict",
         "classes": DRIFT_CLASSES,
-        "judge": _load_judge(r"C:\tmp\drift_judge_by_extid.json"),
+        "judge": _load_judge(os.environ.get("DRIFT_JUDGE_PATH", r"C:\tmp\drift_judge_by_extid.json")),
     },
 }
 
