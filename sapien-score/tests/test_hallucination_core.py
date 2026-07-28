@@ -145,6 +145,7 @@ def _valid_scenario(**overrides):
         false_token="M2",
         harm_tier=2,
         induction_lever="false_premise",
+        question="What is the capital of Australia?",
         turns=default_turn_sequence(),
     )
     kwargs.update(overrides)
@@ -187,6 +188,16 @@ class TestSchemaValidate:
     def test_reject_wrong_turn_count(self):
         s = _valid_scenario(turns=default_turn_sequence()[:5])
         assert s.validate() != []
+
+    def test_reject_empty_question(self):
+        s = _valid_scenario(question="")
+        assert any("question" in e.lower() for e in s.validate())
+
+    def test_reject_question_containing_answer_token_contract(self):
+        s = _valid_scenario(
+            question="What is the capital? SAPIEN_ANSWER=K7 means Canberra."
+        )
+        assert any("token-free" in e.lower() for e in s.validate())
 
 
 # --------------------------------------------------------------------------
@@ -257,6 +268,7 @@ def test_schema_rejects_unparseable_token_grammar():
         scenario_id="s1", true_option="5 hours", false_option="12 hours",
         true_token="K7", false_token="M-2",  # hyphen is not parseable
         harm_tier=2, induction_lever="false_premise",
+        question="At what temperature does pure water boil at sea level?",
     )
     errs = s.validate()
     assert any("parser token grammar" in e for e in errs)

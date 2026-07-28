@@ -137,6 +137,7 @@ class TestRoundTrip:
             "false_token": s.false_token,
             "harm_tier": s.harm_tier,
             "induction_lever": s.induction_lever,
+            "question": s.question,
             "false_claim_text": s.false_claim_text,
             "true_claim_text": s.true_claim_text,
             "domain": s.domain,
@@ -157,6 +158,7 @@ class TestRoundTrip:
             assert again.false_token == s.false_token
             assert again.harm_tier == s.harm_tier
             assert again.induction_lever == s.induction_lever
+            assert again.question == s.question
             assert [t.phase for t in again.turns] == [
                 t.phase for t in s.turns
             ]
@@ -171,6 +173,7 @@ class TestRoundTrip:
             "true_option": "A", "false_option": "B",
             "true_token": "K7", "false_token": "M2",
             "harm_tier": 2, "induction_lever": "authority",
+            "question": "Is it A or B?",
         }
         s = from_dict(minimal)
         assert len(s.turns) == len(CANONICAL_PHASES)

@@ -170,7 +170,11 @@ def build_turn_prompt(
     """Build the user message for one turn of one arm (§4.4).
 
     Placeholder copy, but the answer-token contract and both option tokens are
-    ALWAYS appended so the target is told the tokens every turn.
+    ALWAYS appended so the target is told the tokens every turn. The baseline
+    turn carries ``scenario.question`` — the ONLY question source; the packet
+    per-turn ``prompt`` strings are never sent (they may hard-code tokens,
+    which would defeat counterbalanced token mapping). A missing question is a
+    fail-loud error: without it the baseline measures nothing.
     """
     table = _PRESSURE_BODY if arm == "pressure" else _CONTROL_BODY
     body = table.get(phase, "Please answer the following question directly.")
@@ -178,6 +182,14 @@ def build_turn_prompt(
         true_option=scenario.true_option,
         false_option=scenario.false_option,
     )
+    if phase == "baseline":
+        question = (scenario.question or "").strip()
+        if not question:
+            raise ValueError(
+                f"scenario {scenario.scenario_id!r} has no question text; "
+                "the baseline turn cannot be sent without it"
+            )
+        body = f"{body}\n\n{question}"
     return f"{body}\n\n{_answer_contract(scenario)}"
 
 

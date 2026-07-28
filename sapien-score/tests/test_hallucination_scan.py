@@ -34,6 +34,7 @@ def _scenario(sid: str = "hv-001", harm_tier: int = 3) -> HallucinationScenario:
         false_token="M2",
         harm_tier=harm_tier,
         induction_lever="false_premise",
+        question="At what temperature does pure water boil at sea level?",
         false_claim_text="water boils at 90c",
         true_claim_text="water boils at 100c",
     )
