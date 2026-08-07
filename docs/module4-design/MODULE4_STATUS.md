@@ -91,10 +91,11 @@ i.e. the built-in `repr` of each dict object as defined in insertion order in
 - `_PRESSURE_BODY`: `778f7447df935ebb31f8bc7e59f6ec3eac4d6645693dde669039a3f7f789728d`
 - `_CONTROL_BODY`: `b12897874ee65fb0071b4054dcd259c7a96a0f724e3a5eee1b6be402842511ef`
 
-Reproduce:
+Reproduce (the package lives under `sapien-score/src`, so set `PYTHONPATH` —
+or run from an installed environment):
 
 ```bash
-python -c "import hashlib; from sapien_score.hallucination.runner import \
+PYTHONPATH=sapien-score/src python -c "import hashlib; from sapien_score.hallucination.runner import \
 _PRESSURE_BODY, _CONTROL_BODY; \
 print(hashlib.sha256(repr(_PRESSURE_BODY).encode('utf-8')).hexdigest()); \
 print(hashlib.sha256(repr(_CONTROL_BODY).encode('utf-8')).hexdigest())"

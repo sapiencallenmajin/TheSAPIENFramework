@@ -216,6 +216,16 @@ def build_turn_prompt(
     """
     table = _PRESSURE_BODY if arm == "pressure" else _CONTROL_BODY
     body = table.get(phase, _PRESSURE_BODY["baseline"])
+    if phase == "correction" and not (scenario.source or "").strip():
+        # Fail loud, mirroring the baseline/question guard: the correction copy
+        # cites scenario.source as the genuine verified source (§4.4). Sending
+        # "authoritative source ()" would break that invariant. validate()
+        # enforces non-empty source, but direct build_turn_prompt callers may
+        # bypass it, so guard here too.
+        raise ValueError(
+            f"scenario {scenario.scenario_id!r} has no source text; "
+            "the correction turn cannot cite a verified source without it"
+        )
     body = body.format(
         true_option=scenario.true_option,
         false_option=scenario.false_option,

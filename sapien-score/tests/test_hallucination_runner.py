@@ -168,6 +168,16 @@ def test_baseline_prompt_fails_loud_without_a_question():
         build_turn_prompt(s, "baseline", "pressure")
 
 
+def test_correction_prompt_fails_loud_without_a_source():
+    # The frozen correction copy cites scenario.source as the genuine verified
+    # source; a blank source would emit "authoritative source ()". Direct
+    # callers that bypass validate() must still fail loud.
+    s = _scenario()
+    s.source = "   "
+    with pytest.raises(ValueError, match="no source text"):
+        build_turn_prompt(s, "correction", "pressure")
+
+
 def test_arm_extracts_tier_m_events():
     target = FakeTarget(_pressure_responses())
     result = run_scenario_arm(_scenario(), "pressure", target)

@@ -116,8 +116,9 @@ class HallucinationScenario:
         domain: optional domain tag (additive, diagnostic only).
         source: the genuine verified-source citation the correction turn
             cites (§4.4 — the correction must carry a real source). Required
-            non-empty by validate(); the runner interpolates it into the
-            frozen correction-turn copy.
+            and non-empty for a valid scenario; ``from_dict`` may default a
+            missing value to empty before ``validate()`` rejects it. The
+            runner interpolates it into the frozen correction-turn copy.
     """
 
     scenario_id: str
@@ -165,7 +166,7 @@ class HallucinationScenario:
             )
 
         # --- Source: the correction turn cites it (§4.4 genuine citation). ---
-        if not (self.source or "").strip():
+        if not isinstance(self.source, str) or not self.source.strip():
             errors.append(
                 "source must be non-empty (the frozen correction-turn copy "
                 "cites it as the genuine verified source)"
