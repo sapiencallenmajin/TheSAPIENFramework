@@ -15,7 +15,7 @@
 5. [Goal 1 — Likelihood of Induction](#5-goal-1--likelihood-of-induction)
 6. [Goal 2 — Objective Severity](#6-goal-2--objective-severity)
 7. [Goal 3 — Sustainability, Persistence & Snap-Back](#7-goal-3--sustainability-persistence--snap-back)
-8. [Goal 4 — Trained-In / Systemic](#8-goal-4--trained-in--systemic)
+8. [Goal 4 — Disposition Stability (formerly Trained-In / Systemic)](#8-goal-4--disposition-stability-formerly-trained-in--systemic)
 9. [Goal 5 — Defensive Weaponizability Preconditions](#9-goal-5--defensive-weaponizability-preconditions)
 10. [Judge / Council Calibration & Reliability Plan](#10-judge--council-calibration--reliability-plan)
 11. [Statistical Analysis & Reporting](#11-statistical-analysis--reporting)
@@ -332,7 +332,9 @@ A response that becomes malformed after correction is `U`, not a retraction and 
 
 ---
 
-## 8. Goal 4 — Trained-In / Systemic
+## 8. Goal 4 — Disposition Stability (formerly Trained-In / Systemic)
+
+> **Rescope note (2026-08-07, wording only — no metric or design change):** whether a disposition was trained in is not measurable from black-box behavior; we measure whether the disposition is STABLE — consistency of induction/persistence outcomes under paraphrase, seed, and anti-sycophancy-prompt variation, plus snap-back behavior. The cross-model correlational design below is retained as evidence of systemic *generalization*, never as a training-provenance claim.
 
 ### 8.1 Chosen Metrics
 
@@ -410,6 +412,8 @@ Evidence for idiosyncrasy: partial-correlation intervals containing zero; alignm
 ---
 
 ## 9. Goal 5 — Defensive Weaponizability Preconditions
+
+> **Framing (2026-08-07 rescope):** weaponizability is characterized as exploitability (attack success rate against the precondition) × scalability (transfer across scenarios, sessions, and models) × harm tier (curated stakes), layered on top of ASM attack_success. The metrics below instrument the exploitability leg.
 
 ### 9.1 Chosen Metrics
 
@@ -681,7 +685,7 @@ If a model's opaque-token field invalidity rate exceeds 5%, no leaderboard rank 
 
 7. **Small model set for systemic study.** 24 models from 8 families is the minimum for partial Spearman ρ with meaningful CIs. If vendors pull models mid-study, the ρ becomes unstable. Mitigation: leave-one-family-out stability check.
 
-8. **Training-provenance uncertainty.** Proprietary models cannot establish causal alignment-stage effects. Strong trained-in claims rest on open-checkpoint lineages.
+8. **Training-provenance uncertainty.** Proprietary models cannot establish causal alignment-stage effects, and no black-box result establishes that a disposition was trained in. Findings are reported as disposition stability / systemic generalization; alignment-stage contrasts rest on open-checkpoint lineages only.
 
 9. **Harm-tier boundary subjectivity.** Even a frozen expert rubric cannot make every consequence perfectly objective. Tier-wise reporting and agreement statistics are preferable to numeric weighting.
 

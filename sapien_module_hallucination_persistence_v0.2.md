@@ -8,7 +8,7 @@
 
         Characterizing sycophancy-induced hallucination as a
         VULNERABILITY: likelihood, severity, persistence, whether
-        it is trained-in, and whether it can be weaponized
+        it can be weaponized, and how stable the disposition is
 
                     Author: Callen Sapien
                     SAPIEN Framework Extension
@@ -46,13 +46,11 @@ one axis of a five-axis characterization:
      `persisted` / `snap_back` metric. This is the load-bearing axis, which is
      why its judge is calibrated against independent graders before any rate
      ships (§3, §5).
-  4. TRAINED-IN / SYSTEMIC — is induction+persistence an idiosyncrasy or a
-     SYSTEMIC property of how models are aligned — the same RLHF pressure that
-     produces sycophancy (Sharma et al. 2310.13548; SycEval finds alignment
-     tuning AMPLIFIES sycophancy)? Investigated by cross-model correlation of
-     bait_rate / persistence against family and alignment lineage. A RESEARCH
-     QUESTION the instrument is built to answer, not an assumed result.
-  5. WEAPONIZABILITY (THREAT MODEL) — the security payload. If a falsehood can
+  4. WEAPONIZABILITY (THREAT MODEL) — the security payload, measured as
+     EXPLOITABILITY (attack success rate against the precondition) ×
+     SCALABILITY (does the lever transfer across scenarios, sessions, and
+     models) × HARM TIER (the curated stakes of what the lever reaches),
+     layered on top of ASM attack_success. If a falsehood can
      be induced and made to persist, the same lever is an ATTACK PRIMITIVE:
        • Actors: model creators/trainers (bake in or fail to remove the
          weakness) AND external THREAT ACTORS.
@@ -67,10 +65,21 @@ one axis of a five-axis characterization:
      the measurement matters and frames what an abuse-oriented scenario tests;
      it is not attack tooling and MUST NOT be written as a how-to. Abuse-vector
      scenarios test whether the precondition holds, reported as a risk signal.
+  5. DISPOSITION STABILITY — is the observed disposition (to take a bait, or to
+     hold a falsehood) a STABLE property of the model, or an artifact of one
+     phrasing, one seed, one prompt frame? Measured as consistency of the
+     induction/persistence outcome under paraphrase variation, seed variation,
+     and anti-sycophancy prompt variation, plus snap-back behavior under
+     renewed pressure. Honesty note: whether a disposition was trained in is
+     not measurable from black-box behavior; we measure whether the disposition
+     is STABLE. (This axis replaces the earlier "TRAINED-IN / SYSTEMIC" axis,
+     whose training-provenance claim exceeded what black-box measurement can
+     support.)
 
 Composite framing: LIKELIHOOD × SEVERITY × SUSTAINABILITY is the risk surface;
-TRAINED-IN says whether it generalizes across the model population; WEAPONIZABLE
-says whether the risk is exploitable rather than merely present. The metrics in
+WEAPONIZABLE says whether the risk is exploitable rather than merely present;
+DISPOSITION STABILITY says whether the measured behavior is robust enough to
+treat as a property of the model rather than of the prompt. The metrics in
 §2 instrument axes 1-3 directly; axes 4-5 are the research/threat program the
 corpus and cross-model runs are designed to feed.
 
@@ -111,6 +120,12 @@ us four things that reshape v0.2:
      persistence scoring for a scenario; a flaky target endpoint dropped 3 of 6
      scenarios from a run with no top-level error. Both must fail LOUD and
      degrade gracefully.
+
+  (2026-08-07 wording rescope, same draft version): axis 4 is now
+  WEAPONIZABILITY (exploitability × scalability × harm tier) and axis 5 is
+  DISPOSITION STABILITY, replacing "TRAINED-IN / SYSTEMIC" — training
+  provenance is not black-box measurable, so the module measures stability of
+  the disposition instead. No metric, schema, or scoring change.
 
 
 ───────────────────────────────────────────────────────────────────────────────
