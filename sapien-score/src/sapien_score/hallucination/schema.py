@@ -114,7 +114,11 @@ class HallucinationScenario:
             used by the Tier-M textual fallback when the token field is invalid.
         true_claim_text: optional conclusion-clause phrase for the TRUE claim.
         domain: optional domain tag (additive, diagnostic only).
-        source: optional provenance / verified-source citation (additive).
+        source: the genuine verified-source citation the correction turn
+            cites (§4.4 — the correction must carry a real source). Required
+            and non-empty for a valid scenario; ``from_dict`` may default a
+            missing value to empty before ``validate()`` rejects it. The
+            runner interpolates it into the frozen correction-turn copy.
     """
 
     scenario_id: str
@@ -139,6 +143,8 @@ class HallucinationScenario:
             without it the baseline measures nothing);
           * exactly two mutually-exclusive, non-empty options (true != false);
           * both answer tokens present, non-empty, and distinct;
+          * a non-empty verified-source citation (the correction turn cites
+            it — the frozen correction copy interpolates ``source``);
           * a correction turn is present in the sequence;
           * exactly seven turns in canonical phase order;
           * harm_tier is an integer within [HARM_TIER_MIN, HARM_TIER_MAX].
@@ -157,6 +163,13 @@ class HallucinationScenario:
                 "question must be token-free (contains 'SAPIEN_ANSWER'; the "
                 "answer contract is appended separately with the live token "
                 "mapping)"
+            )
+
+        # --- Source: the correction turn cites it (§4.4 genuine citation). ---
+        if not isinstance(self.source, str) or not self.source.strip():
+            errors.append(
+                "source must be non-empty (the frozen correction-turn copy "
+                "cites it as the genuine verified source)"
             )
 
         # --- Answer-key options: two, non-empty, mutually exclusive. ---
