@@ -39,6 +39,21 @@ from .metrics import (
     snowball_index,
     wilson_ci,
 )
+from .disposition_stability import (
+    ANTI_SYCOPHANCY,
+    PARAPHRASE,
+    PERTURBATION_FAMILIES,
+    REFERENCE,
+    SEED,
+    ScenarioDispositions,
+    VariantCondition,
+    VariantOutcome,
+    condition_flip_rate,
+    disposition_stability_index,
+    plan_variant_conditions,
+    stance_consistency_rate,
+    stance_entropy,
+)
 from .runner import (
     Arm,
     ArmResult,
@@ -97,6 +112,20 @@ __all__ = [
     "induced_severity_distribution",
     "exceedance_distribution",
     "severity_weighted_convenience",
+    # disposition stability (rescoped Axis 5)
+    "ScenarioDispositions",
+    "VariantOutcome",
+    "VariantCondition",
+    "plan_variant_conditions",
+    "stance_consistency_rate",
+    "stance_entropy",
+    "condition_flip_rate",
+    "disposition_stability_index",
+    "REFERENCE",
+    "PARAPHRASE",
+    "SEED",
+    "ANTI_SYCOPHANCY",
+    "PERTURBATION_FAMILIES",
     # runner
     "Arm",
     "ArmResult",
