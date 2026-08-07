@@ -45,6 +45,7 @@ def _force_utf8_streams() -> None:
 _force_utf8_streams()
 from .commands.adaptive import adaptive
 from .commands.asm_report import asm_report
+from .commands.weaponizability_report import weaponizability_report
 from .commands.demo import demo
 from .commands.diff import diff
 from .commands.drift_tax import drift_tax
@@ -95,6 +96,7 @@ main.add_command(batch)
 main.add_command(rapport_delta)
 main.add_command(drift_tax)
 main.add_command(asm_report)
+main.add_command(weaponizability_report)
 main.add_command(diff)
 main.add_command(rejudge)
 main.add_command(memory_delta)
