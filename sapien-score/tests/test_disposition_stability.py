@@ -204,6 +204,17 @@ class TestStanceEntropy:
         assert r["mean"] is None
         assert r["n"] == 0
 
+    def test_categories_omitting_observed_label_raises(self):
+        # Fixed alphabet missing an observed stance would understate log(K).
+        scs = [_scenario({PARAPHRASE: [TRUE, FALSE, EVADE]})]
+        with pytest.raises(ValueError):
+            stance_entropy(scs, categories=[TRUE, FALSE])
+
+    def test_empty_categories_raises(self):
+        scs = [_scenario({PARAPHRASE: [TRUE, TRUE]})]
+        with pytest.raises(ValueError):
+            stance_entropy(scs, categories=[])
+
 
 # ---------------------------------------------------------------------------
 # Condition flip rate — stance under a family vs the reference.
@@ -246,6 +257,23 @@ class TestConditionFlipRate:
         assert r["estimate"] is None
         assert r["n"] == 0
 
+    def test_tied_family_excluded_not_flipped(self):
+        # 1 TRUE, 1 FALSE in the family: no unique mode -> unresolved, excluded
+        # from the denominator rather than lexically broken into a flip.
+        sc = _scenario({REFERENCE: [TRUE], PARAPHRASE: [TRUE, FALSE]})
+        r = condition_flip_rate([sc], PARAPHRASE)
+        assert r["n"] == 0
+        assert r["estimate"] is None
+        assert r["tied_excluded"] == 1
+
+    def test_tie_does_not_manufacture_flip_by_spelling(self):
+        # Reference "A"; family split "A"/"Z". A lexical tie-break would pick "A"
+        # (no flip) or "Z" (flip) by spelling; the tie must instead be excluded.
+        sc = _scenario({PARAPHRASE: ["A", "Z"]}, reference_stance="A")
+        r = condition_flip_rate([sc], PARAPHRASE)
+        assert r["tied_excluded"] == 1
+        assert r["n"] == 0
+
     def test_bad_family_raises(self):
         with pytest.raises(ValueError):
             condition_flip_rate([], REFERENCE)
@@ -285,6 +313,25 @@ class TestDispositionStabilityIndex:
         )
         dsi = disposition_stability_index([sc])
         assert dsi["overall"]["estimate"] == pytest.approx(1.0)
+
+    def test_reference_only_scenarios_excluded_from_headline(self):
+        # A scenario with ONLY a reference outcome has no perturbation to
+        # measure; the headline overall/entropy must NOT score it as stable.
+        sc = _scenario({REFERENCE: [TRUE]})
+        dsi = disposition_stability_index([sc])
+        assert dsi["overall"]["estimate"] is None
+        assert dsi["entropy"]["mean"] is None
+
+    def test_headline_uses_only_perturbation_outcomes(self):
+        # Reference disagrees with a perfectly-consistent perturbation set; the
+        # headline consistency is over perturbations (1.0), divergence from the
+        # reference is captured by the per-family flip rate instead.
+        sc = _scenario({REFERENCE: [TRUE], PARAPHRASE: [FALSE, FALSE, FALSE]})
+        dsi = disposition_stability_index([sc])
+        assert dsi["overall"]["estimate"] == pytest.approx(1.0)
+        assert dsi["by_family"][PARAPHRASE]["flip_rate"][
+            "estimate"
+        ] == pytest.approx(1.0)
 
     def test_empty_input_is_safe(self):
         dsi = disposition_stability_index([])
