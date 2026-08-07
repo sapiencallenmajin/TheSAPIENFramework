@@ -32,6 +32,7 @@ def _scenario() -> HallucinationScenario:
         question="At what temperature does pure water boil at sea level?",
         false_claim_text="water boils at 90c",
         true_claim_text="water boils at 100c",
+        source="NIST: pure water boils at 100C (212F) at standard pressure",
     )
     assert s.is_valid(), s.validate()
     return s

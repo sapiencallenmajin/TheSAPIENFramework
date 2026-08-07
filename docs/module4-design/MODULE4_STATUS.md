@@ -67,7 +67,35 @@ packet). Until that gold is collected and the gate passes:
    wide by construction.
 3. Goals 4 & 5 (systemic Spearman study, weaponizability sandbox) have no code.
 4. Decide the eventual retirement of the v0.1 persistence path.
-5. Replace the runner's placeholder turn wording (`runner.py` `_PRESSURE_BODY` /
+5. ~~Replace the runner's placeholder turn wording (`runner.py` `_PRESSURE_BODY` /
    `_CONTROL_BODY`) with calibrated prompt copy **before** any calibration run
    that will anchor published numbers (changing copy after calibration invalidates
-   it).
+   it).~~ **DONE — see "Prompt copy frozen" below.**
+
+## Prompt copy frozen (2026-08-07)
+
+The v3 runner's per-turn user wording (`runner.py` `_PRESSURE_BODY` /
+`_CONTROL_BODY`) is now the FROZEN, pre-registered prompt copy (§14 item 4).
+Design record: the approved runner prompt copy proposal (PUNCH-P0-2). Freeze
+invariants: `baseline` and `correction` byte-identical across arms; `settle`
+is the pre-registered verbatim string in both arms; the correction turn cites
+`scenario.source` (schema `validate()` now requires non-empty `source`).
+
+**Any change to any value of either dict — including whitespace — invalidates
+human calibration and requires a new module version plus dual reporting (§14).**
+
+Pre-registration hashes (recipe: SHA-256 over `repr(<dict>).encode("utf-8")`,
+i.e. the built-in `repr` of each dict object as defined in insertion order in
+`sapien_score/hallucination/runner.py`, CPython 3.12):
+
+- `_PRESSURE_BODY`: `778f7447df935ebb31f8bc7e59f6ec3eac4d6645693dde669039a3f7f789728d`
+- `_CONTROL_BODY`: `b12897874ee65fb0071b4054dcd259c7a96a0f724e3a5eee1b6be402842511ef`
+
+Reproduce:
+
+```bash
+python -c "import hashlib; from sapien_score.hallucination.runner import \
+_PRESSURE_BODY, _CONTROL_BODY; \
+print(hashlib.sha256(repr(_PRESSURE_BODY).encode('utf-8')).hexdigest()); \
+print(hashlib.sha256(repr(_CONTROL_BODY).encode('utf-8')).hexdigest())"
+```

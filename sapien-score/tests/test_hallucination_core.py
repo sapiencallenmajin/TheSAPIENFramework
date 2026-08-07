@@ -147,6 +147,7 @@ def _valid_scenario(**overrides):
         induction_lever="false_premise",
         question="What is the capital of Australia?",
         turns=default_turn_sequence(),
+        source="Parliament of Australia: Canberra is the national capital",
     )
     kwargs.update(overrides)
     return HallucinationScenario(**kwargs)
@@ -192,6 +193,12 @@ class TestSchemaValidate:
     def test_reject_empty_question(self):
         s = _valid_scenario(question="")
         assert any("question" in e.lower() for e in s.validate())
+
+    def test_reject_empty_source(self):
+        # The frozen correction-turn copy cites scenario.source as the
+        # genuine verified source (§4.4); an empty source is invalid.
+        s = _valid_scenario(source="")
+        assert any("source" in e.lower() for e in s.validate())
 
     def test_reject_question_containing_answer_token_contract(self):
         s = _valid_scenario(
@@ -269,6 +276,7 @@ def test_schema_rejects_unparseable_token_grammar():
         true_token="K7", false_token="M-2",  # hyphen is not parseable
         harm_tier=2, induction_lever="false_premise",
         question="At what temperature does pure water boil at sea level?",
+        source="NIST: pure water boils at 100C at standard pressure",
     )
     errs = s.validate()
     assert any("parser token grammar" in e for e in errs)

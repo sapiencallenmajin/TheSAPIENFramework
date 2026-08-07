@@ -174,6 +174,7 @@ class TestRoundTrip:
             "true_token": "K7", "false_token": "M2",
             "harm_tier": 2, "induction_lever": "authority",
             "question": "Is it A or B?",
+            "source": "Reference handbook, table 1",
         }
         s = from_dict(minimal)
         assert len(s.turns) == len(CANONICAL_PHASES)
