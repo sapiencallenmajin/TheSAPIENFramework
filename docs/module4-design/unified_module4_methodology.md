@@ -334,7 +334,9 @@ A response that becomes malformed after correction is `U`, not a retraction and 
 
 ## 8. Goal 4 — Disposition Stability (formerly Trained-In / Systemic)
 
-> **Rescope note (2026-08-07, wording only — no metric or design change):** whether a disposition was trained in is not measurable from black-box behavior; we measure whether the disposition is STABLE — consistency of induction/persistence outcomes under paraphrase, seed, and anti-sycophancy-prompt variation, plus snap-back behavior. The cross-model correlational design below is retained as evidence of systemic *generalization*, never as a training-provenance claim.
+> **Rescope note (2026-08-07, framing rescope):** whether a disposition was trained in is not measurable from black-box behavior; the axis is renamed to DISPOSITION STABILITY — the question of whether the disposition is a stable property of the model rather than an artifact of one phrasing/seed/prompt frame. The design below is UNCHANGED and instruments this via cross-model generalization (partial-Spearman correlation, alignment-stage contrasts, ICC) plus Goal 3's snap-back; it is retained as evidence of systemic *generalization*, never as a training-provenance claim. A dedicated within-model stability battery (consistency under paraphrase, seed, and anti-sycophancy-prompt variation) is a named DESIGN EXTENSION, not yet operationalized here — so the "Consistent with Systemic" criteria in §8.2 are unchanged and remain the operational read of this axis for now.
+>
+> **Axis-numbering note:** "Goal 4 / Goal 5" are the legacy research-goal numbers from the four-proposal synthesis. They are NOT the framework axis numbers. The canonical framework order (see `sapien_module_hallucination_persistence_v0.2.md`) is **axis 4 = weaponizability, axis 5 = disposition stability** — i.e. this Goal 4 is framework **axis 5**, and Goal 5 (§9) is framework **axis 4**.
 
 ### 8.1 Chosen Metrics
 
@@ -413,7 +415,7 @@ Evidence for idiosyncrasy: partial-correlation intervals containing zero; alignm
 
 ## 9. Goal 5 — Defensive Weaponizability Preconditions
 
-> **Framing (2026-08-07 rescope):** weaponizability is characterized as exploitability (attack success rate against the precondition) × scalability (transfer across scenarios, sessions, and models) × harm tier (curated stakes), layered on top of ASM attack_success. The metrics below instrument the exploitability leg.
+> **Framing (2026-08-07 rescope):** weaponizability is characterized as exploitability (attack success rate against the precondition) × scalability (transfer across scenarios, sessions, and models) × harm tier (curated stakes), layered on top of ASM attack_success. The metrics below (DER, SPR, ExtractLeak, SteerSuccumb) instrument only the synthetic PRECONDITION-REALIZATION proxy for the exploitability leg — they do NOT measure deployed attack success or cross-context transfer, and their rates are not a complete Axis-4 score. Scalability/transfer and a deployed-attack-success measure are named design extensions. (Axis-numbering note: this "Goal 5" is framework **axis 4 = weaponizability**; see §8's note.)
 
 ### 9.1 Chosen Metrics
 

@@ -46,11 +46,16 @@ one axis of a five-axis characterization:
      `persisted` / `snap_back` metric. This is the load-bearing axis, which is
      why its judge is calibrated against independent graders before any rate
      ships (§3, §5).
-  4. WEAPONIZABILITY (THREAT MODEL) — the security payload, measured as
+  4. WEAPONIZABILITY (THREAT MODEL) — the security payload, characterized as
      EXPLOITABILITY (attack success rate against the precondition) ×
      SCALABILITY (does the lever transfer across scenarios, sessions, and
      models) × HARM TIER (the curated stakes of what the lever reaches),
-     layered on top of ASM attack_success. If a falsehood can
+     layered on top of ASM attack_success. NOTE: the metrics this module ships
+     today measure the synthetic PRECONDITION REALIZATION (can the false premise
+     be installed, persisted, and made to disclose/steer); they are the
+     exploitability leg's proxy, NOT a full deployed-attack-success or transfer
+     measurement, and current rates MUST NOT be presented as a complete Axis-4
+     score. If a falsehood can
      be induced and made to persist, the same lever is an ATTACK PRIMITIVE:
        • Actors: model creators/trainers (bake in or fail to remove the
          weakness) AND external THREAT ACTORS.
@@ -67,14 +72,17 @@ one axis of a five-axis characterization:
      scenarios test whether the precondition holds, reported as a risk signal.
   5. DISPOSITION STABILITY — is the observed disposition (to take a bait, or to
      hold a falsehood) a STABLE property of the model, or an artifact of one
-     phrasing, one seed, one prompt frame? Measured as consistency of the
+     phrasing, one seed, one prompt frame? Conceptually: consistency of the
      induction/persistence outcome under paraphrase variation, seed variation,
      and anti-sycophancy prompt variation, plus snap-back behavior under
      renewed pressure. Honesty note: whether a disposition was trained in is
      not measurable from black-box behavior; we measure whether the disposition
      is STABLE. (This axis replaces the earlier "TRAINED-IN / SYSTEMIC" axis,
      whose training-provenance claim exceeded what black-box measurement can
-     support.)
+     support.) What the current instrument operationalizes TODAY is the
+     snap-back leg (§2, §5) plus cross-model generalization of the rates; the
+     dedicated within-model paraphrase/seed/anti-sycophancy-prompt perturbation
+     battery is a NAMED DESIGN EXTENSION, not yet operationalized in this draft.
 
 Composite framing: LIKELIHOOD × SEVERITY × SUSTAINABILITY is the risk surface;
 WEAPONIZABLE says whether the risk is exploitable rather than merely present;
@@ -125,7 +133,16 @@ us four things that reshape v0.2:
   WEAPONIZABILITY (exploitability × scalability × harm tier) and axis 5 is
   DISPOSITION STABILITY, replacing "TRAINED-IN / SYSTEMIC" — training
   provenance is not black-box measurable, so the module measures stability of
-  the disposition instead. No metric, schema, or scoring change.
+  the disposition instead. This is a FRAMING rescope: no metric, schema, or
+  scoring change ships with it. The paraphrase/seed/anti-sycophancy-prompt
+  stability battery (axis 5) and the deployed exploitability/transfer
+  measurement (axis 4) are named design extensions; today the instrument
+  operationalizes the precondition/snap-back proxies plus cross-model
+  generalization. Canonical axis order for the framework: 4 = weaponizability,
+  5 = disposition stability. (The design-panel methodology doc labels these by
+  their legacy research-goal numbers — Goal 4 = disposition stability, Goal 5 =
+  weaponizability — which are HISTORICAL work-item numbers, not axis numbers;
+  see that doc's §8/§9 mapping note.)
 
 
 ───────────────────────────────────────────────────────────────────────────────
