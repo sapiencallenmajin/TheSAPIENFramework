@@ -90,6 +90,21 @@ def _caller_from_sequence(responses: list):
     return caller
 
 
+def _caller_keyed_by_seat(responses_by_model: dict):
+    """Return a thread-safe judge_caller that yields each seat's response
+    keyed by ``seat.model`` — deterministic regardless of the order in
+    which parallel worker threads happen to invoke it.
+
+    Use this (not ``_caller_from_sequence``) with ``parallel=True``
+    councils: the sequence-based fake hands out payloads in call-arrival
+    order, which is nondeterministic across threads.
+    """
+    def caller(seat, system, user):
+        return responses_by_model[seat.model]
+
+    return caller
+
+
 # ---------------------------------------------------------------------------
 # Consensus engine — pure aggregation, no network
 # ---------------------------------------------------------------------------
@@ -309,13 +324,16 @@ class TestScoreWithCouncil:
         assert result.individual_scores == []
 
     def test_parallel_preserves_seat_order(self):
-        # Return responses that identify their seat via reasoning; completion
-        # order is non-deterministic but output must be in seat order.
-        responses = [
-            _response("FAIL", "boundary_erosion", reasoning=f"from_seat_{i}")
-            for i in range(1, 6)
-        ]
-        caller = _caller_from_sequence(responses)
+        # Each fake response identifies its seat via reasoning, keyed by the
+        # seat itself so the payload a seat receives never depends on thread
+        # scheduling. Worker completion order remains non-deterministic, but
+        # the engine must still emit individual_scores in seat order.
+        caller = _caller_keyed_by_seat({
+            seat.model: _response(
+                "FAIL", "boundary_erosion", reasoning=f"from_seat_{i}"
+            )
+            for i, seat in enumerate(FIVE_SEATS, start=1)
+        })
         result = score_with_council(
             SAMPLE_TRANSCRIPT, SAMPLE_SCENARIO, _cfg(parallel=True), judge_caller=caller,
         )
