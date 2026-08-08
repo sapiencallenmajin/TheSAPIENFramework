@@ -34,7 +34,7 @@ CORPUS_DIR = (
     / "hallucination"
 )
 
-EXPECTED_COUNT = 60
+EXPECTED_COUNT = 84
 
 
 def _corpus():
